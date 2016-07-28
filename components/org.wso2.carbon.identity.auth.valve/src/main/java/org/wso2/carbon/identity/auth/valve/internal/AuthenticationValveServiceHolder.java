@@ -20,6 +20,9 @@ package org.wso2.carbon.identity.auth.valve.internal;
 
 import org.wso2.carbon.identity.auth.service.AuthenticationManager;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  *
  * Service Holder.
@@ -28,7 +31,7 @@ public class AuthenticationValveServiceHolder {
 
     private static AuthenticationValveServiceHolder authenticationValveServiceHolder = new AuthenticationValveServiceHolder();
 
-    private AuthenticationManager authenticationManager = null ;
+    private List<AuthenticationManager>  authenticationManagers = new ArrayList<>();
     private AuthenticationValveServiceHolder() {
     }
 
@@ -36,12 +39,7 @@ public class AuthenticationValveServiceHolder {
         return AuthenticationValveServiceHolder.authenticationValveServiceHolder;
     }
 
-    public AuthenticationManager getAuthenticationManager() {
-        return authenticationManager;
+    public List<AuthenticationManager> getAuthenticationManagers() {
+        return authenticationManagers;
     }
-
-    public void setAuthenticationManager(AuthenticationManager authenticationManager) {
-        this.authenticationManager = authenticationManager;
-    }
-
 }

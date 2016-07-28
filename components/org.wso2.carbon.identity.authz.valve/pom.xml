@@ -25,9 +25,9 @@
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
-    <artifactId>org.wso2.carbon.identity.auth.service</artifactId>
+    <artifactId>org.wso2.carbon.identity.authz.valve</artifactId>
     <packaging>bundle</packaging>
-    <name>WSO2 Carbon - Authentication Service</name>
+    <name>WSO2 Carbon - Authorization Valve</name>
     <url>http://wso2.org</url>
 
     <dependencies>
@@ -53,8 +53,9 @@
         </dependency>
         <dependency>
             <groupId>org.wso2.carbon.identity</groupId>
-            <artifactId>org.wso2.carbon.identity.oauth</artifactId>
+            <artifactId>org.wso2.carbon.identity.authz.service</artifactId>
         </dependency>
+
     </dependencies>
 
     <build>
@@ -71,9 +72,6 @@
                     <instructions>
                         <Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
                         <Bundle-Name>${project.artifactId}</Bundle-Name>
-                        <Private-Package>
-                            org.wso2.carbon.identity.auth.service.internal
-                        </Private-Package>
                         <Import-Package>
                             javax.servlet.*; version="${imp.pkg.version.javax.servlet}",
                             org.apache.axiom.*; version="${axiom.osgi.version.range}",
@@ -86,13 +84,12 @@
                             org.wso2.carbon.core.*; version="${carbon.kernel.imp.pkg.version.range}",
                             org.wso2.carbon.utils.*; version="${carbon.kernel.imp.pkg.version.range}",
                             org.wso2.carbon.identity.core.*; version="${carbon.identity.package.import.version.range}",
-                            org.wso2.carbon.identity.oauth2.*;
-                            version="${org.wso2.carbon.identity.oauth.import.version.range}"
+                            org.wso2.carbon.identity.authz.service.*;version="${org.wso2.carbon.identity.authz.service.version.range}",
+                            org.apache.catalina.*;version="1.7.0"
                         </Import-Package>
-                        <Export-Package>
-                            !org.wso2.carbon.identity.auth.service.internal,
-                            org.wso2.carbon.identity.auth.service.*;
-                            version="${org.wso2.carbon.identity.auth.service.version}"
+                        <Export-Package>!org.wso2.carbon.identity.authz.valve.internal,
+                            org.wso2.carbon.identity.authz.valve.*;
+                            version="${org.wso2.carbon.identity.authz.valve.version}"
                         </Export-Package>
                         <DynamicImport-Package>*</DynamicImport-Package>
                     </instructions>
