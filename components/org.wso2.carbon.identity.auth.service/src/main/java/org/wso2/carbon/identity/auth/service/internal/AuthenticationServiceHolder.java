@@ -19,6 +19,7 @@
 package org.wso2.carbon.identity.auth.service.internal;
 
 import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
+import org.wso2.carbon.identity.auth.service.handler.ResourceHandler;
 import org.wso2.carbon.user.core.service.RealmService;
 
 import java.util.ArrayList;
@@ -35,6 +36,7 @@ public class AuthenticationServiceHolder {
 
     private RealmService realmService = null;
     private List<AuthenticationHandler> authenticationHandlers = new ArrayList<>();
+    private List<ResourceHandler> resourceHandlers = new ArrayList<>();
 
     private AuthenticationServiceHolder() {
 
@@ -54,6 +56,10 @@ public class AuthenticationServiceHolder {
 
     public void addAuthenticationHandler(AuthenticationHandler authenticationHandler) {
         authenticationHandlers.add(authenticationHandler);
+    }
+
+    public List<ResourceHandler> getResourceHandlers() {
+        return resourceHandlers;
     }
 
     public List<AuthenticationHandler> getAuthenticationHandlers() {

@@ -32,6 +32,7 @@ import org.wso2.carbon.user.api.AuthorizationManager;
 import org.wso2.carbon.user.api.UserRealm;
 import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.user.core.service.RealmService;
+import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
 
 /**
@@ -60,7 +61,8 @@ public class AuthorizationHandler implements IdentityHandler {
             UserRealm tenantUserRealm = realmService.getTenantUserRealm(tenantId);
 
             AuthorizationManager authorizationManager = tenantUserRealm.getAuthorizationManager();
-            boolean isUserAuthorized = authorizationManager.isUserAuthorized(userName,
+            boolean isUserAuthorized = authorizationManager.isUserAuthorized(MultitenantUtils.
+                            getTenantAwareUsername(userName),
                     permissionString, CarbonConstants.UI_PERMISSION_ACTION);
             if (isUserAuthorized) {
                 authorizationResult.setAuthorizationStatus(AuthorizationStatus.GRANT);

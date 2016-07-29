@@ -21,7 +21,6 @@ package org.wso2.carbon.identity.auth.valve;
 import org.apache.catalina.connector.Request;
 import org.apache.catalina.connector.Response;
 import org.apache.catalina.valves.ValveBase;
-import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.identity.auth.service.*;
@@ -49,48 +48,46 @@ public class AuthenticationValve extends ValveBase {
     @Override
     public void invoke(Request request, Response response) throws IOException, ServletException {
         String requestURI = request.getRequestURI();
-        if(log.isDebugEnabled()){
+        if (log.isDebugEnabled()) {
             log.debug("AuthenticationValve hit on " + requestURI);
         }
-        if (StringUtils.isNotEmpty(requestURI) && requestURI.startsWith("/api/identity")) {
-            AuthenticationResult authenticationResult = null;
-            try {
-                AuthenticationRequest.AuthenticationRequestBuilder requestBuilder =
-                        AuthenticationRequestBuilderFactory.getInstance().createRequestBuilder(request, response);
-                AuthenticationContext authenticationContext = new AuthenticationContext(requestBuilder.build());
-                List<AuthenticationManager> authenticationManagers =
-                        AuthenticationValveServiceHolder.getInstance().getAuthenticationManagers();
+        AuthenticationResult authenticationResult = null;
+        try {
+            AuthenticationRequest.AuthenticationRequestBuilder requestBuilder =
+                    AuthenticationRequestBuilderFactory.getInstance().createRequestBuilder(request, response);
+            AuthenticationContext authenticationContext = new AuthenticationContext(requestBuilder.build());
+            List<AuthenticationManager> authenticationManagers =
+                    AuthenticationValveServiceHolder.getInstance().getAuthenticationManagers();
 
-                AuthenticationManager authenticationManager = HandlerManager.getInstance().getFirstPriorityHandler(authenticationManagers, true);
+            AuthenticationManager authenticationManager = HandlerManager.getInstance().getFirstPriorityHandler(authenticationManagers, true);
 
-                authenticationResult = authenticationManager.authenticate(authenticationContext);
-                AuthenticationStatus authenticationStatus = authenticationResult.getAuthenticationStatus();
-                if (authenticationStatus.equals(AuthenticationStatus.SUCCESS)) {
-                    request.setAttribute(AUTHENTICATED_USER, authenticationResult.getAuthenticatedUser());
-                    getNext().invoke(request, response);
-                } else {
+            authenticationResult = authenticationManager.authenticate(authenticationContext);
+            AuthenticationStatus authenticationStatus = authenticationResult.getAuthenticationStatus();
+            if (authenticationStatus.equals(AuthenticationStatus.SUCCESS)) {
+                request.setAttribute(AUTHENTICATED_USER, authenticationResult.getAuthenticatedUser());
+                getNext().invoke(request, response);
+            }else if(authenticationStatus.equals(AuthenticationStatus.NOTSECURED)) {
+                getNext().invoke(request, response);
+            }else{
 
-                    StringBuilder value = new StringBuilder(16);
-                    value.append("realm user=\"");
-                    if(authenticationResult != null) {
-                        value.append(authenticationResult.getAuthenticatedUser());
-                    }
-                    value.append('\"');
-                    response.setHeader(AUTH_HEADER_NAME, value.toString());
-                    response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
-                }
-            } catch (AuthServiceClientException e) {
                 StringBuilder value = new StringBuilder(16);
                 value.append("realm user=\"");
-                if(authenticationResult != null) {
+                if (authenticationResult != null) {
                     value.append(authenticationResult.getAuthenticatedUser());
                 }
                 value.append('\"');
                 response.setHeader(AUTH_HEADER_NAME, value.toString());
-                response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
             }
-        } else {
-            getNext().invoke(request, response);
+        } catch (AuthServiceClientException e) {
+            StringBuilder value = new StringBuilder(16);
+            value.append("realm user=\"");
+            if (authenticationResult != null) {
+                value.append(authenticationResult.getAuthenticatedUser());
+            }
+            value.append('\"');
+            response.setHeader(AUTH_HEADER_NAME, value.toString());
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST);
         }
 
 

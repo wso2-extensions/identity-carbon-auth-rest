@@ -21,6 +21,7 @@ package org.wso2.carbon.identity.auth.service;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
+import org.wso2.carbon.identity.auth.service.handler.ResourceHandler;
 import org.wso2.carbon.identity.auth.service.internal.AuthenticationServiceHolder;
 import org.wso2.carbon.identity.core.handler.HandlerManager;
 import org.wso2.carbon.identity.core.handler.IdentityHandler;
@@ -62,17 +63,31 @@ public class AuthenticationManager implements IdentityHandler{
         }
         AuthenticationResult authenticationResult = new AuthenticationResult(AuthenticationStatus.FAILED);
 
-        List<AuthenticationHandler> authenticationHandlerList = AuthenticationServiceHolder.getInstance().getAuthenticationHandlers();
-        AuthenticationHandler authenticationHandler = HandlerManager.getInstance().getFirstPriorityHandler(authenticationHandlerList, true, authenticationContext);
-
-        if(authenticationHandler != null){
-            if (log.isDebugEnabled()) {
-                log.debug("AuthenticationHandler found : " + authenticationHandler.getClass().getName() + ".");
+        List<ResourceHandler> resourceHandlers =
+                AuthenticationServiceHolder.getInstance().getResourceHandlers();
+        boolean isSecureResourceFound = false ;
+        for(ResourceHandler resourceHandler: resourceHandlers){
+            isSecureResourceFound = resourceHandler.handleResource(authenticationContext);
+            if(isSecureResourceFound){
+                break ;
             }
-            authenticationResult = authenticationHandler.authenticate(authenticationContext);
-            if (log.isDebugEnabled()) {
-                if (authenticationResult != null) {
-                    log.debug("AuthenticationResult : " + authenticationResult.getAuthenticationStatus() + ".");
+        }
+        if(!isSecureResourceFound){
+            authenticationResult.setAuthenticationStatus(AuthenticationStatus.NOTSECURED);
+        }else {
+
+            List<AuthenticationHandler> authenticationHandlerList = AuthenticationServiceHolder.getInstance().getAuthenticationHandlers();
+            AuthenticationHandler authenticationHandler = HandlerManager.getInstance().getFirstPriorityHandler(authenticationHandlerList, true, authenticationContext);
+
+            if (authenticationHandler != null) {
+                if (log.isDebugEnabled()) {
+                    log.debug("AuthenticationHandler found : " + authenticationHandler.getClass().getName() + ".");
+                }
+                authenticationResult = authenticationHandler.authenticate(authenticationContext);
+                if (log.isDebugEnabled()) {
+                    if (authenticationResult != null) {
+                        log.debug("AuthenticationResult : " + authenticationResult.getAuthenticationStatus() + ".");
+                    }
                 }
             }
         }
