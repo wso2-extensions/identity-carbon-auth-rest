@@ -26,5 +26,6 @@ package org.wso2.carbon.identity.auth.service;
  */
 public enum AuthenticationStatus {
     SUCCESS,
-    FAILED;
+    FAILED,
+    NOTSECURED;
 }

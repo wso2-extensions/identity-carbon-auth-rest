@@ -23,6 +23,7 @@ import org.apache.commons.logging.LogFactory;
 import org.osgi.service.component.ComponentContext;
 import org.wso2.carbon.identity.auth.service.AuthenticationManager;
 import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
+import org.wso2.carbon.identity.auth.service.handler.ResourceHandler;
 import org.wso2.carbon.identity.auth.service.handler.impl.BasicAuthenticationHandler;
 import org.wso2.carbon.identity.auth.service.handler.impl.OAuthAuthenticationHandler;
 import org.wso2.carbon.user.core.service.RealmService;
@@ -32,9 +33,12 @@ import org.wso2.carbon.user.core.service.RealmService;
  * @scr.reference name="user.realmservice.default"
  * interface="org.wso2.carbon.user.core.service.RealmService"
  * cardinality="1..1" policy="dynamic" bind="setRealmService" unbind="unsetRealmService"
- * @scr.reference name="org.wso2.carbon.identity.auth.service.handler"
+ * @scr.reference name="org.wso2.carbon.identity.auth.service.handler.auth"
  * interface="org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler"
  * cardinality="0..n" policy="dynamic" bind="addAuthenticationHandler" unbind="removeAuthenticationHandler"
+ * @scr.reference name="org.wso2.carbon.identity.auth.service.handler.resource"
+ * interface="org.wso2.carbon.identity.auth.service.handler.ResourceHandler"
+ * cardinality="0..n" policy="dynamic" bind="addResourceHandler" unbind="removeResourceHandler"
  */
 public class AuthenticationServiceComponent {
 
@@ -45,6 +49,7 @@ public class AuthenticationServiceComponent {
             cxt.getBundleContext().registerService(AuthenticationHandler.class, new BasicAuthenticationHandler(), null);
             cxt.getBundleContext().registerService(AuthenticationHandler.class, new OAuthAuthenticationHandler(), null);
             cxt.getBundleContext().registerService(AuthenticationManager.class, AuthenticationManager.getInstance(), null);
+            cxt.getBundleContext().registerService(ResourceHandler.class, new ResourceHandler(), null);
 
             if (log.isDebugEnabled())
                 log.debug("AuthenticatorService is activated");
@@ -80,6 +85,17 @@ public class AuthenticationServiceComponent {
 
     protected void removeAuthenticationHandler(AuthenticationHandler authenticationHandler) {
         AuthenticationServiceHolder.getInstance().getAuthenticationHandlers().remove(authenticationHandler);
+    }
+
+    protected void addResourceHandler(ResourceHandler resourceHandler) {
+        if (log.isDebugEnabled()) {
+            log.debug("ResourceHandler acquired");
+        }
+        AuthenticationServiceHolder.getInstance().getResourceHandlers().add(resourceHandler);
+    }
+
+    protected void removeResourceHandler(ResourceHandler resourceHandler) {
+        AuthenticationServiceHolder.getInstance().getResourceHandlers().remove(resourceHandler);
     }
 
 }

@@ -45,16 +45,21 @@ public class AuthorizationManager implements IdentityHandler{
         List<ResourceHandler> resourceHandlerList =
                 AuthorizationServiceHolder.getInstance().getResourceHandlerList();
         List<ResourceHandler> resourceHandlers = HandlerManager.getInstance().sortHandlers(resourceHandlerList, true);
+        boolean isResourceFound = false ;
         for(ResourceHandler resourceHandler: resourceHandlers){
-            boolean isResourceFound = resourceHandler.handleResource(authorizationContext);
+            isResourceFound = resourceHandler.handleResource(authorizationContext);
             if(isResourceFound){
                 break ;
             }
         }
-        List<AuthorizationHandler> authorizationHandlerList = AuthorizationServiceHolder.getInstance().getAuthorizationHandlerList();
-        AuthorizationHandler authorizationHandler = HandlerManager.getInstance().getFirstPriorityHandler(authorizationHandlerList, true);
-        authorizationResult = authorizationHandler.handleAuthorization(authorizationContext);
+        if(isResourceFound) {
+            List<AuthorizationHandler> authorizationHandlerList = AuthorizationServiceHolder.getInstance().getAuthorizationHandlerList();
+            AuthorizationHandler authorizationHandler = HandlerManager.getInstance().getFirstPriorityHandler(authorizationHandlerList, true);
+            authorizationResult = authorizationHandler.handleAuthorization(authorizationContext);
 
+        }else{
+            authorizationResult.setAuthorizationStatus(AuthorizationStatus.GRANT);
+        }
         return authorizationResult ;
     }
 
