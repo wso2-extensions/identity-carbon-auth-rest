@@ -26,13 +26,14 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.identity.auth.service.*;
 import org.wso2.carbon.identity.auth.service.exception.AuthServiceClientException;
-import org.wso2.carbon.identity.auth.service.AuthenticationRequest;
 import org.wso2.carbon.identity.auth.service.factory.AuthenticationRequestBuilderFactory;
 import org.wso2.carbon.identity.auth.valve.internal.AuthenticationValveServiceHolder;
+import org.wso2.carbon.identity.core.handler.HandlerManager;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.List;
 
 
 /**
@@ -40,6 +41,7 @@ import java.io.IOException;
  */
 public class AuthenticationValve extends ValveBase {
 
+    private static final String AUTHENTICATED_USER = "authenticated-user";
     private static final String AUTH_HEADER_NAME = "WWW-Authenticate";
 
     private static final Log log = LogFactory.getLog(AuthenticationValve.class);
@@ -56,11 +58,15 @@ public class AuthenticationValve extends ValveBase {
                 AuthenticationRequest.AuthenticationRequestBuilder requestBuilder =
                         AuthenticationRequestBuilderFactory.getInstance().createRequestBuilder(request, response);
                 AuthenticationContext authenticationContext = new AuthenticationContext(requestBuilder.build());
-                AuthenticationManager authenticationManager = AuthenticationValveServiceHolder.getInstance().getAuthenticationManager();
+                List<AuthenticationManager> authenticationManagers =
+                        AuthenticationValveServiceHolder.getInstance().getAuthenticationManagers();
+
+                AuthenticationManager authenticationManager = HandlerManager.getInstance().getFirstPriorityHandler(authenticationManagers, true);
 
                 authenticationResult = authenticationManager.authenticate(authenticationContext);
                 AuthenticationStatus authenticationStatus = authenticationResult.getAuthenticationStatus();
                 if (authenticationStatus.equals(AuthenticationStatus.SUCCESS)) {
+                    request.setAttribute(AUTHENTICATED_USER, authenticationResult.getAuthenticatedUser());
                     getNext().invoke(request, response);
                 } else {
 

@@ -21,7 +21,10 @@ package org.wso2.carbon.identity.auth.service;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
-import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandlerManager;
+import org.wso2.carbon.identity.auth.service.internal.AuthenticationServiceHolder;
+import org.wso2.carbon.identity.core.handler.HandlerManager;
+import org.wso2.carbon.identity.core.handler.IdentityHandler;
+import org.wso2.carbon.identity.core.handler.InitConfig;
 
 import java.util.List;
 
@@ -30,7 +33,7 @@ import java.util.List;
  * <p/>
  * This is registered as an OSGi service and can consume as a Service.
  */
-public class AuthenticationManager {
+public class AuthenticationManager implements IdentityHandler{
 
     private static Log log = LogFactory.getLog(AuthenticationManager.class);
     private static AuthenticationManager authenticationManager = new AuthenticationManager();
@@ -59,21 +62,41 @@ public class AuthenticationManager {
         }
         AuthenticationResult authenticationResult = new AuthenticationResult(AuthenticationStatus.FAILED);
 
-        List<AuthenticationHandler> authenticationHandlerList = AuthenticationHandlerManager.getInstance().getAuthenticationHandlerList(authenticationContext);
-        for (AuthenticationHandler authenticationHandler : authenticationHandlerList) {
-            if (authenticationHandler.isEnabled(authenticationContext) && authenticationHandler.canHandle(authenticationContext)) {
-                if (log.isDebugEnabled()) {
-                    log.debug("AuthenticationHandler found : " + authenticationHandler.getClass().getName() + ".");
+        List<AuthenticationHandler> authenticationHandlerList = AuthenticationServiceHolder.getInstance().getAuthenticationHandlers();
+        AuthenticationHandler authenticationHandler = HandlerManager.getInstance().getFirstPriorityHandler(authenticationHandlerList, true, authenticationContext);
+
+        if(authenticationHandler != null){
+            if (log.isDebugEnabled()) {
+                log.debug("AuthenticationHandler found : " + authenticationHandler.getClass().getName() + ".");
+            }
+            authenticationResult = authenticationHandler.authenticate(authenticationContext);
+            if (log.isDebugEnabled()) {
+                if (authenticationResult != null) {
+                    log.debug("AuthenticationResult : " + authenticationResult.getAuthenticationStatus() + ".");
                 }
-                authenticationResult = authenticationHandler.authenticate(authenticationContext);
-                if (log.isDebugEnabled()) {
-                    if (authenticationResult != null) {
-                        log.debug("AuthenticationResult : " + authenticationResult.getAuthenticationStatus() + ".");
-                    }
-                }
-                break;
             }
         }
+
         return authenticationResult;
+    }
+
+    @Override
+    public void init(InitConfig initConfig) {
+
+    }
+
+    @Override
+    public String getName() {
+        return "DefaultAuthenticationManager";
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return true;
+    }
+
+    @Override
+    public int getPriority() {
+        return 1;
     }
 }

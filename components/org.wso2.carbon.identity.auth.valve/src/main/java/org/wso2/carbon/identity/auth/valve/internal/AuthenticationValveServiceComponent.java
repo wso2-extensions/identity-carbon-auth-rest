@@ -42,7 +42,7 @@ public class AuthenticationValveServiceComponent {
         if (log.isDebugEnabled()) {
             log.debug("AuthenticationManager acquired");
         }
-        AuthenticationValveServiceHolder.getInstance().setAuthenticationManager(authenticationManager);
+        AuthenticationValveServiceHolder.getInstance().getAuthenticationManagers().add(authenticationManager);
     }
 
     protected void unsetAuthenticationManager(AuthenticationManager authenticationManager) {
