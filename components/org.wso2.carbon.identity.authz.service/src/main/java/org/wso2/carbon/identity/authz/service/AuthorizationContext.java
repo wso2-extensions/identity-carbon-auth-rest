@@ -20,9 +20,6 @@ package org.wso2.carbon.identity.authz.service;
 
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
 
-import java.util.ArrayList;
-import java.util.List;
-
 public class AuthorizationContext extends MessageContext{
 
 

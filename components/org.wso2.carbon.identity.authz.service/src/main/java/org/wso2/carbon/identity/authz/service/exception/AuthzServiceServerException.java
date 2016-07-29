@@ -15,23 +15,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.wso2.carbon.identity.authz.service;
+package org.wso2.carbon.identity.authz.service.exception;
 
-
-public class AuthorizationResult {
-    private AuthorizationStatus authorizationStatus = null ;
-
-    public AuthorizationResult(AuthorizationStatus authorizationStatus) {
-        this.authorizationStatus = authorizationStatus;
+public class AuthzServiceServerException extends Exception{
+    public AuthzServiceServerException() {
     }
 
-    public AuthorizationStatus getAuthorizationStatus() {
-        return authorizationStatus;
+    public AuthzServiceServerException(String message) {
+        super(message);
     }
 
-    public void setAuthorizationStatus(AuthorizationStatus authorizationStatus) {
-        this.authorizationStatus = authorizationStatus;
+    public AuthzServiceServerException(String message, Throwable cause) {
+        super(message, cause);
     }
 
+    public AuthzServiceServerException(Throwable cause) {
+        super(cause);
+    }
 
+    public AuthzServiceServerException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
+        super(message, cause, enableSuppression, writableStackTrace);
+    }
 }

@@ -17,52 +17,60 @@
  */
 package org.wso2.carbon.identity.authz.service.handler;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.CarbonConstants;
 import org.wso2.carbon.identity.authz.service.AuthorizationContext;
 import org.wso2.carbon.identity.authz.service.AuthorizationResult;
 import org.wso2.carbon.identity.authz.service.AuthorizationStatus;
+import org.wso2.carbon.identity.authz.service.exception.AuthzServiceServerException;
 import org.wso2.carbon.identity.authz.service.internal.AuthorizationServiceHolder;
-import org.wso2.carbon.identity.core.bean.context.MessageContext;
 import org.wso2.carbon.identity.core.handler.IdentityHandler;
-import org.wso2.carbon.identity.core.handler.IdentityMessageHandler;
 import org.wso2.carbon.identity.core.handler.InitConfig;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.user.api.AuthorizationManager;
 import org.wso2.carbon.user.api.UserRealm;
 import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.user.core.service.RealmService;
-import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
-
-import java.util.Arrays;
-import java.util.List;
-
-public class AuthorizationHandler implements IdentityHandler{
 
 
-    public AuthorizationResult handleAuthorization(AuthorizationContext authorizationContext){
+/**
+ * AuthorizationHandler can be extended to handle the user permissions.
+ */
+public class AuthorizationHandler implements IdentityHandler {
+    private static final Log log = LogFactory.getLog(AuthorizationHandler.class);
+
+
+    /**
+     * Handle Authorization.
+     *
+     * @param authorizationContext
+     * @return
+     * @throws AuthzServiceServerException
+     */
+    public AuthorizationResult handleAuthorization(AuthorizationContext authorizationContext)
+            throws AuthzServiceServerException {
         AuthorizationResult authorizationResult = new AuthorizationResult(AuthorizationStatus.DENY);
-
         try {
             String userName = authorizationContext.getUserName();
             int tenantId = IdentityTenantUtil.getTenantIdOfUser(userName);
-            String tenantDomain = MultitenantUtils.getTenantDomain(userName);
             String permissionString = authorizationContext.getPermissionString();
 
             RealmService realmService = AuthorizationServiceHolder.getInstance().getRealmService();
             UserRealm tenantUserRealm = realmService.getTenantUserRealm(tenantId);
 
             AuthorizationManager authorizationManager = tenantUserRealm.getAuthorizationManager();
-            boolean userAuthorized = authorizationManager.isUserAuthorized(userName, permissionString, CarbonConstants.UI_PERMISSION_ACTION);
-            if(userAuthorized){
+            boolean isUserAuthorized = authorizationManager.isUserAuthorized(userName,
+                    permissionString, CarbonConstants.UI_PERMISSION_ACTION);
+            if (isUserAuthorized) {
                 authorizationResult.setAuthorizationStatus(AuthorizationStatus.GRANT);
             }
-            //authorizationManager.isUserAuthorized()
-
         } catch (UserStoreException e) {
-            e.printStackTrace();
+            String errorMessage = "Error occurred while trying to authorize, " + e.getMessage();
+            log.error(errorMessage);
+            throw new AuthzServiceServerException(errorMessage, e);
         }
-        return authorizationResult ;
+        return authorizationResult;
     }
 
     @Override
@@ -72,7 +80,7 @@ public class AuthorizationHandler implements IdentityHandler{
 
     @Override
     public String getName() {
-        return null;
+        return "AuthorizationHandler";
     }
 
     @Override
@@ -82,6 +90,6 @@ public class AuthorizationHandler implements IdentityHandler{
 
     @Override
     public int getPriority() {
-        return 0;
+        return 100;
     }
 }

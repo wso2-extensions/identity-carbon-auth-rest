@@ -28,7 +28,7 @@ import org.wso2.carbon.identity.authz.service.AuthorizationContext;
 import org.wso2.carbon.identity.authz.service.AuthorizationManager;
 import org.wso2.carbon.identity.authz.service.AuthorizationResult;
 import org.wso2.carbon.identity.authz.service.AuthorizationStatus;
-import org.wso2.carbon.identity.authz.service.internal.AuthorizationServiceHolder;
+import org.wso2.carbon.identity.authz.service.exception.AuthzServiceServerException;
 import org.wso2.carbon.identity.authz.valve.internal.AuthorizationValveServiceHolder;
 import org.wso2.carbon.identity.core.handler.HandlerManager;
 
@@ -67,17 +67,25 @@ public class AuthorizationValve extends ValveBase {
             List<AuthorizationManager> authorizationManagerList =
                     AuthorizationValveServiceHolder.getInstance().getAuthorizationManagerList();
             AuthorizationManager authorizationManager = HandlerManager.getInstance().getFirstPriorityHandler(authorizationManagerList, true);
-            AuthorizationResult authorizationResult =
-                    authorizationManager.authorize(authorizationContext);
-            if (authorizationResult.getAuthorizationStatus().equals(AuthorizationStatus.GRANT)) {
-                getNext().invoke(request, response);
-            } else {
+            try {
+                AuthorizationResult authorizationResult = authorizationManager.authorize(authorizationContext);
+                if (authorizationResult.getAuthorizationStatus().equals(AuthorizationStatus.GRANT)) {
+                    getNext().invoke(request, response);
+                } else {
+                    StringBuilder value = new StringBuilder(16);
+                    value.append("realm user=\"");
+                    value.append(userName);
+                    value.append('\"');
+                    response.setHeader(AUTH_HEADER_NAME, value.toString());
+                    response.sendError(HttpServletResponse.SC_FORBIDDEN);
+                }
+            } catch (AuthzServiceServerException e) {
                 StringBuilder value = new StringBuilder(16);
                 value.append("realm user=\"");
                 value.append(userName);
                 value.append('\"');
                 response.setHeader(AUTH_HEADER_NAME, value.toString());
-                response.sendError(HttpServletResponse.SC_FORBIDDEN);
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST);
             }
         }else{
             getNext().invoke(request, response);

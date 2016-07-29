@@ -18,7 +18,6 @@
 
 package org.wso2.carbon.identity.authz.service.internal;
 
-import org.wso2.carbon.identity.authz.service.AuthorizationManager;
 import org.wso2.carbon.identity.authz.service.handler.AuthorizationHandler;
 import org.wso2.carbon.identity.authz.service.handler.ResourceHandler;
 import org.wso2.carbon.user.core.service.RealmService;

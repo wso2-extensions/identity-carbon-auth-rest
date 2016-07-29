@@ -26,7 +26,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.identity.auth.service.*;
 import org.wso2.carbon.identity.auth.service.exception.AuthServiceClientException;
-import org.wso2.carbon.identity.auth.service.AuthenticationRequest;
 import org.wso2.carbon.identity.auth.service.factory.AuthenticationRequestBuilderFactory;
 import org.wso2.carbon.identity.auth.valve.internal.AuthenticationValveServiceHolder;
 import org.wso2.carbon.identity.core.handler.HandlerManager;

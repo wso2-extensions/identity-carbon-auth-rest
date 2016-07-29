@@ -18,13 +18,13 @@
 package org.wso2.carbon.identity.authz.service;
 
 
+import org.wso2.carbon.identity.authz.service.exception.AuthzServiceServerException;
 import org.wso2.carbon.identity.authz.service.handler.AuthorizationHandler;
 import org.wso2.carbon.identity.authz.service.handler.ResourceHandler;
 import org.wso2.carbon.identity.authz.service.internal.AuthorizationServiceHolder;
 import org.wso2.carbon.identity.core.handler.HandlerManager;
 import org.wso2.carbon.identity.core.handler.IdentityHandler;
 import org.wso2.carbon.identity.core.handler.InitConfig;
-
 
 import java.util.List;
 
@@ -38,7 +38,7 @@ public class AuthorizationManager implements IdentityHandler{
         return AuthorizationManager.authorizationManager ;
     }
 
-    public AuthorizationResult authorize(AuthorizationContext authorizationContext){
+    public AuthorizationResult authorize(AuthorizationContext authorizationContext) throws AuthzServiceServerException {
 
         AuthorizationResult authorizationResult = new AuthorizationResult(AuthorizationStatus.DENY);
 
@@ -54,7 +54,6 @@ public class AuthorizationManager implements IdentityHandler{
         List<AuthorizationHandler> authorizationHandlerList = AuthorizationServiceHolder.getInstance().getAuthorizationHandlerList();
         AuthorizationHandler authorizationHandler = HandlerManager.getInstance().getFirstPriorityHandler(authorizationHandlerList, true);
         authorizationResult = authorizationHandler.handleAuthorization(authorizationContext);
-
 
         return authorizationResult ;
     }
