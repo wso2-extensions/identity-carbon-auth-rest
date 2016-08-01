@@ -27,7 +27,7 @@
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
-    <artifactId>org.wso2.carbon.identity.auth.server.feature</artifactId>
+    <artifactId>org.wso2.carbon.identity.authz.server.feature</artifactId>
     <packaging>pom</packaging>
     <name>WSO2 Carbon - Authentication Service  Feature</name>
     <url>http://wso2.org</url>
@@ -36,11 +36,11 @@
     <dependencies>
         <dependency>
             <groupId>org.wso2.carbon.identity</groupId>
-            <artifactId>org.wso2.carbon.identity.auth.service</artifactId>
+            <artifactId>org.wso2.carbon.identity.authz.service</artifactId>
         </dependency>
         <dependency>
             <groupId>org.wso2.carbon.identity</groupId>
-            <artifactId>org.wso2.carbon.identity.auth.valve</artifactId>
+            <artifactId>org.wso2.carbon.identity.authz.valve</artifactId>
         </dependency>
     </dependencies>
 
@@ -58,7 +58,7 @@
                             <goal>p2-feature-gen</goal>
                         </goals>
                         <configuration>
-                            <id>org.wso2.carbon.identity.auth.server</id>
+                            <id>org.wso2.carbon.identity.authz.server</id>
                             <propertiesFile>../etc/feature.properties</propertiesFile>
                             <adviceFile>
                                 <properties>
@@ -67,8 +67,8 @@
                                 </properties>
                             </adviceFile>
                             <bundles>
-                                <bundleDef>org.wso2.carbon.identity:org.wso2.carbon.identity.auth.service:${org.wso2.carbon.identity.auth.service.version}</bundleDef>
-                                <bundleDef>org.wso2.carbon.identity:org.wso2.carbon.identity.auth.valve:${org.wso2.carbon.identity.auth.valve.version}</bundleDef>
+                                <bundleDef>org.wso2.carbon.identity:org.wso2.carbon.identity.authz.service:${org.wso2.carbon.identity.authz.service.version}</bundleDef>
+                                <bundleDef>org.wso2.carbon.identity:org.wso2.carbon.identity.authz.valve:${org.wso2.carbon.identity.authz.valve.version}</bundleDef>
                             </bundles>
                             <importFeatures>
                                 <importFeatureDef>org.wso2.carbon.core:compatible:${carbon.kernel.version}</importFeatureDef>

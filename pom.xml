@@ -52,6 +52,7 @@
 	<module>components/org.wso2.carbon.identity.authz.valve</module>
 	
         <module>features/org.wso2.carbon.identity.auth.server.feature</module>
+        <module>features/org.wso2.carbon.identity.authz.server.feature</module>
     </modules>
 
     <repositories>
