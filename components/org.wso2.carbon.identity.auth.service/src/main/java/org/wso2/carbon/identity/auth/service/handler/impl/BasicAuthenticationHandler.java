@@ -24,6 +24,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpHeaders;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
+import org.wso2.carbon.identity.application.common.model.User;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
 import org.wso2.carbon.identity.auth.service.AuthenticationResult;
 import org.wso2.carbon.identity.auth.service.AuthenticationStatus;
@@ -99,12 +100,17 @@ public class BasicAuthenticationHandler implements AuthenticationHandler {
                 String userName = splitCredentials[0];
                 String password = splitCredentials[1];
 
-                authenticationResult.setAuthenticatedUser(userName);
 
                 UserStoreManager userStoreManager = null;
                 try {
                     int tenantId = IdentityTenantUtil.getTenantIdOfUser(userName);
                     String tenantDomain = MultitenantUtils.getTenantDomain(userName);
+
+                    User user = new User();
+                    user.setUserName(MultitenantUtils.getTenantAwareUsername(userName));
+                    user.setTenantDomain(tenantDomain);
+                    authenticationResult.setUser(user);
+
 
                     //TODO: Related to this https://wso2.org/jira/browse/IDENTITY-4752 - Class IdentityMgtEventListener
                     // : Line 563: Have to check whether why we can't continue
