@@ -18,6 +18,7 @@
 package org.wso2.carbon.identity.authz.service;
 
 
+import org.apache.commons.lang.StringUtils;
 import org.wso2.carbon.identity.authz.service.exception.AuthzServiceServerException;
 import org.wso2.carbon.identity.authz.service.handler.AuthorizationHandler;
 import org.wso2.carbon.identity.authz.service.handler.ResourceHandler;
@@ -28,39 +29,48 @@ import org.wso2.carbon.identity.core.handler.InitConfig;
 
 import java.util.List;
 
-public class AuthorizationManager implements IdentityHandler{
+public class AuthorizationManager implements IdentityHandler {
 
     private static AuthorizationManager authorizationManager = new AuthorizationManager();
 
-    private AuthorizationManager(){}
+    private AuthorizationManager() {
+    }
 
-    public static AuthorizationManager getInstance(){
-        return AuthorizationManager.authorizationManager ;
+    public static AuthorizationManager getInstance() {
+        return AuthorizationManager.authorizationManager;
     }
 
     public AuthorizationResult authorize(AuthorizationContext authorizationContext) throws AuthzServiceServerException {
 
         AuthorizationResult authorizationResult = new AuthorizationResult(AuthorizationStatus.DENY);
+        boolean isResourceFound = false;
+        if ( StringUtils.isEmpty(authorizationContext.getPermissionString()) ) {
 
-        List<ResourceHandler> resourceHandlerList =
-                AuthorizationServiceHolder.getInstance().getResourceHandlerList();
-        List<ResourceHandler> resourceHandlers = HandlerManager.getInstance().sortHandlers(resourceHandlerList, true);
-        boolean isResourceFound = false ;
-        for(ResourceHandler resourceHandler: resourceHandlers){
-            isResourceFound = resourceHandler.handleResource(authorizationContext);
-            if(isResourceFound){
-                break ;
+            List<ResourceHandler> resourceHandlerList =
+                    AuthorizationServiceHolder.getInstance().getResourceHandlerList();
+            List<ResourceHandler> resourceHandlers = HandlerManager.getInstance().sortHandlers(resourceHandlerList,
+                    true);
+
+            for ( ResourceHandler resourceHandler : resourceHandlers ) {
+                isResourceFound = resourceHandler.handleResource(authorizationContext);
+                if ( isResourceFound ) {
+                    break;
+                }
             }
+        } else {
+            isResourceFound = true;
         }
-        if(isResourceFound) {
-            List<AuthorizationHandler> authorizationHandlerList = AuthorizationServiceHolder.getInstance().getAuthorizationHandlerList();
-            AuthorizationHandler authorizationHandler = HandlerManager.getInstance().getFirstPriorityHandler(authorizationHandlerList, true);
+        if ( isResourceFound ) {
+            List<AuthorizationHandler> authorizationHandlerList = AuthorizationServiceHolder.getInstance()
+                    .getAuthorizationHandlerList();
+            AuthorizationHandler authorizationHandler = HandlerManager.getInstance().getFirstPriorityHandler
+                    (authorizationHandlerList, true);
             authorizationResult = authorizationHandler.handleAuthorization(authorizationContext);
 
-        }else{
+        } else {
             authorizationResult.setAuthorizationStatus(AuthorizationStatus.GRANT);
         }
-        return authorizationResult ;
+        return authorizationResult;
     }
 
     @Override

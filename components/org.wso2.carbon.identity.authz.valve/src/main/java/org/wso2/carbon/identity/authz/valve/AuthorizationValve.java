@@ -24,7 +24,8 @@ import org.apache.catalina.valves.ValveBase;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.wso2.carbon.identity.application.common.model.User;
+import org.wso2.carbon.identity.auth.service.AuthenticationContext;
+import org.wso2.carbon.identity.auth.service.module.ResourceConfig;
 import org.wso2.carbon.identity.authz.service.AuthorizationContext;
 import org.wso2.carbon.identity.authz.service.AuthorizationManager;
 import org.wso2.carbon.identity.authz.service.AuthorizationResult;
@@ -45,7 +46,7 @@ import java.util.List;
 public class AuthorizationValve extends ValveBase {
 
     private static final String AUTH_HEADER_NAME = "WWW-Authenticate";
-    private static final String AUTHENTICATED_USER = "authenticated-user";
+    private static final String AUTH_CONTEXT = "auth-context";
 
     private static final Log log = LogFactory.getLog(AuthorizationValve.class);
 
@@ -53,43 +54,51 @@ public class AuthorizationValve extends ValveBase {
     public void invoke(Request request, Response response) throws IOException, ServletException {
         String requestURI = request.getRequestURI();
 
-        User user = (User)request.getAttribute(AUTHENTICATED_USER);
-        if(user != null && StringUtils.isNotEmpty(user.getUserName())) {
+        AuthenticationContext authenticationContext = (AuthenticationContext) request.getAttribute(AUTH_CONTEXT);
 
+        if ( authenticationContext.getUser() != null && StringUtils.isNotEmpty(authenticationContext.getUser()
+                .getUserName()) ) {
+            ResourceConfig resourceConfig = authenticationContext.getResourceConfig();
             String contextPath = request.getContextPath();
             String httpMethod = request.getMethod();
 
             AuthorizationContext authorizationContext = new AuthorizationContext();
+            if ( resourceConfig != null && StringUtils.isNotEmpty(resourceConfig.getPermissions()) ) {
+                authorizationContext.setPermissionString(resourceConfig.getPermissions());
+            }
 
             authorizationContext.setContext(contextPath);
             authorizationContext.setHttpMethods(httpMethod);
 
-            authorizationContext.setUserName(user.getUserName());
+            authorizationContext.setUserName(authenticationContext.getUser().getUserName());
             List<AuthorizationManager> authorizationManagerList =
                     AuthorizationValveServiceHolder.getInstance().getAuthorizationManagerList();
-            AuthorizationManager authorizationManager = HandlerManager.getInstance().getFirstPriorityHandler(authorizationManagerList, true);
+            AuthorizationManager authorizationManager = HandlerManager.getInstance().getFirstPriorityHandler
+                    (authorizationManagerList, true);
             try {
                 AuthorizationResult authorizationResult = authorizationManager.authorize(authorizationContext);
-                if (authorizationResult.getAuthorizationStatus().equals(AuthorizationStatus.GRANT)) {
+                if ( authorizationResult.getAuthorizationStatus().equals(AuthorizationStatus.GRANT) ) {
                     getNext().invoke(request, response);
                 } else {
-                    StringBuilder value = new StringBuilder(16);
-                    value.append("realm user=\"");
-                    value.append(user.getUserName());
-                    value.append('\"');
-                    response.setHeader(AUTH_HEADER_NAME, value.toString());
-                    response.sendError(HttpServletResponse.SC_FORBIDDEN);
+                    handleErrorResponse(authenticationContext, response, HttpServletResponse.SC_FORBIDDEN);
                 }
-            } catch (AuthzServiceServerException e) {
-                StringBuilder value = new StringBuilder(16);
-                value.append("realm user=\"");
-                value.append(user.getUserName());
-                value.append('\"');
-                response.setHeader(AUTH_HEADER_NAME, value.toString());
-                response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+            } catch ( AuthzServiceServerException e ) {
+                handleErrorResponse(authenticationContext, response, HttpServletResponse.SC_BAD_REQUEST);
             }
-        }else{
+        } else {
             getNext().invoke(request, response);
         }
+    }
+
+    private void handleErrorResponse(AuthenticationContext authenticationContext, Response response, int error) throws
+            IOException {
+        StringBuilder value = new StringBuilder(16);
+        value.append("realm user=\"");
+        if ( authenticationContext.getUser() != null ) {
+            value.append(authenticationContext.getUser().getUserName());
+        }
+        value.append('\"');
+        response.setHeader(AUTH_HEADER_NAME, value.toString());
+        response.sendError(error);
     }
 }

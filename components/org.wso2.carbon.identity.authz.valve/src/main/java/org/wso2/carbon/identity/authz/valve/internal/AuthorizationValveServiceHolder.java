@@ -24,14 +24,15 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- *
  * Service Holder.
  */
 public class AuthorizationValveServiceHolder {
 
-    private static AuthorizationValveServiceHolder authorizationValveServiceHolder = new AuthorizationValveServiceHolder();
+    private static AuthorizationValveServiceHolder authorizationValveServiceHolder = new
+            AuthorizationValveServiceHolder();
 
     private List<AuthorizationManager> authorizationManagerList = new ArrayList<>();
+
     private AuthorizationValveServiceHolder() {
     }
 

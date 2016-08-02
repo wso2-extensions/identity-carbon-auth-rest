@@ -41,14 +41,15 @@ import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
  * canHandle method will confirm whether this request can be handled by this authenticator or not.
  */
 
-//OAuth2AccessTokenHandler
 public class OAuth2AccessTokenHandler implements AuthenticationHandler {
 
     private static final Log log = LogFactory.getLog(OAuth2AccessTokenHandler.class);
     private final String OAUTH_HEADER = "Bearer";
+    private final String CONSUMER_KEY = "consumer-key";
 
     @Override
     public AuthenticationResult authenticate(MessageContext messageContext) {
+
         AuthenticationResult authenticationResult = new AuthenticationResult(AuthenticationStatus.FAILED);
         AuthenticationContext authenticationContext = (AuthenticationContext) messageContext;
         AuthenticationRequest authenticationRequest = authenticationContext.getAuthenticationRequest();
@@ -77,20 +78,21 @@ public class OAuth2AccessTokenHandler implements AuthenticationHandler {
                 contextParams[0] = contextParam;
                 requestDTO.setContext(contextParams);
 
-                OAuth2ClientApplicationDTO clientApplicationDTO = oAuth2TokenValidationService.findOAuthConsumerIfTokenIsValid
-                        (requestDTO);
+                OAuth2ClientApplicationDTO clientApplicationDTO = oAuth2TokenValidationService
+                        .findOAuthConsumerIfTokenIsValid
+                                (requestDTO);
                 OAuth2TokenValidationResponseDTO responseDTO = clientApplicationDTO.getAccessTokenValidationResponse();
 
-                if (responseDTO.isValid() ) {
+                if ( responseDTO.isValid() ) {
                     authenticationResult.setAuthenticationStatus(AuthenticationStatus.SUCCESS);
                 }
 
                 User user = new User();
                 user.setUserName(MultitenantUtils.getTenantAwareUsername(responseDTO.getAuthorizedUser()));
                 user.setTenantDomain(MultitenantUtils.getTenantDomain(responseDTO.getAuthorizedUser()));
+                authenticationContext.setUser(user);
 
-                //clientApplicationDTO.getConsumerKey()
-                authenticationResult.setUser(user);
+                authenticationContext.addParameter(CONSUMER_KEY, clientApplicationDTO.getConsumerKey());
 
             }
         }
@@ -129,7 +131,6 @@ public class OAuth2AccessTokenHandler implements AuthenticationHandler {
         }
         return false;
     }
-
 
 
 }

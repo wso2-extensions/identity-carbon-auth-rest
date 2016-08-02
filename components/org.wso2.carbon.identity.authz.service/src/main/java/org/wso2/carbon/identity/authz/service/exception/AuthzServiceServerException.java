@@ -17,7 +17,7 @@
  */
 package org.wso2.carbon.identity.authz.service.exception;
 
-public class AuthzServiceServerException extends Exception{
+public class AuthzServiceServerException extends Exception {
     public AuthzServiceServerException() {
     }
 
@@ -33,7 +33,8 @@ public class AuthzServiceServerException extends Exception{
         super(cause);
     }
 
-    public AuthzServiceServerException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
+    public AuthzServiceServerException(String message, Throwable cause, boolean enableSuppression, boolean
+            writableStackTrace) {
         super(message, cause, enableSuppression, writableStackTrace);
     }
 }

@@ -14,7 +14,7 @@
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
   -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
     <parent>
@@ -55,6 +55,10 @@
             <groupId>org.wso2.carbon.identity</groupId>
             <artifactId>org.wso2.carbon.identity.oauth</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.wso2.carbon.identity</groupId>
+            <artifactId>org.wso2.carbon.identity.auth.service</artifactId>
+        </dependency>
     </dependencies>
 
     <build>
@@ -86,7 +90,9 @@
                             org.wso2.carbon.core.*; version="${carbon.kernel.imp.pkg.version.range}",
                             org.wso2.carbon.utils.*; version="${carbon.kernel.imp.pkg.version.range}",
                             org.wso2.carbon.identity.core.*; version="${carbon.identity.package.import.version.range}",
-                            org.wso2.carbon.identity.oauth2.*; version="${org.wso2.carbon.identity.oauth.import.version.range}"
+                            org.wso2.carbon.identity.oauth2.*;
+                            version="${org.wso2.carbon.identity.oauth.import.version.range}",
+                            org.wso2.carbon.identity.auth.service.*;version="${org.wso2.carbon.identity.auth.service.version.range}"
                         </Import-Package>
                         <Export-Package>
                             !org.wso2.carbon.identity.authz.service.internal,

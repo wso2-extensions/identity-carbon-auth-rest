@@ -1,7 +1,13 @@
 package org.wso2.carbon.identity.auth.service.util;
 
-/**
- * Created by harshat on 8/2/16.
- */
+
 public class Constants {
+
+    public final static String RESOURCE_ACCESS_CONTROL_ELE = "ResourceAccessControl";
+    public final static String RESOURCE_ELE = "Resource";
+    public final static String RESOURCE_CONTEXT_ATTR = "context";
+    public final static String RESOURCE_SECURED_ATTR = "secured";
+    public final static String RESOURCE_HTTP_METHOD_ATTR = "http-method";
+    public final static String RESOURCE_PERMISSION_ELE = "Permissions";
+
 }

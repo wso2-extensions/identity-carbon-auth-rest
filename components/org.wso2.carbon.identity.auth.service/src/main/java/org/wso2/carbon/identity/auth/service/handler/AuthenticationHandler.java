@@ -19,12 +19,14 @@
 package org.wso2.carbon.identity.auth.service.handler;
 
 import org.wso2.carbon.identity.auth.service.AuthenticationResult;
+import org.wso2.carbon.identity.auth.service.exception.AuthClientException;
+import org.wso2.carbon.identity.auth.service.exception.AuthenticationFailException;
+import org.wso2.carbon.identity.auth.service.exception.AuthServerException;
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
 import org.wso2.carbon.identity.core.handler.IdentityMessageHandler;
 
 /**
  * AuthenticationHandler provides the interface to implement any authentication.
- *
  */
 public interface AuthenticationHandler extends IdentityMessageHandler {
 
@@ -34,5 +36,5 @@ public interface AuthenticationHandler extends IdentityMessageHandler {
      * @param messageContext
      * @return AuthenticationResult
      */
-    public AuthenticationResult authenticate(MessageContext messageContext);
+    public AuthenticationResult authenticate(MessageContext messageContext) throws AuthServerException, AuthenticationFailException, AuthClientException;
 }

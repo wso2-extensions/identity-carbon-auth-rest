@@ -22,10 +22,12 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.osgi.service.component.ComponentContext;
 import org.wso2.carbon.identity.auth.service.AuthenticationManager;
+import org.wso2.carbon.identity.auth.service.factory.AuthenticationRequestBuilderFactory;
 import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
 import org.wso2.carbon.identity.auth.service.handler.ResourceHandler;
 import org.wso2.carbon.identity.auth.service.handler.impl.BasicAuthenticationHandler;
-import org.wso2.carbon.identity.auth.service.handler.impl.OAuthAuthenticationHandler;
+import org.wso2.carbon.identity.auth.service.handler.impl.OAuth2AccessTokenHandler;
+import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
 import org.wso2.carbon.user.core.service.RealmService;
 
 /**
@@ -47,26 +49,32 @@ public class AuthenticationServiceComponent {
     protected void activate(ComponentContext cxt) {
         try {
             cxt.getBundleContext().registerService(AuthenticationHandler.class, new BasicAuthenticationHandler(), null);
-            cxt.getBundleContext().registerService(AuthenticationHandler.class, new OAuthAuthenticationHandler(), null);
-            cxt.getBundleContext().registerService(AuthenticationManager.class, AuthenticationManager.getInstance(), null);
-            cxt.getBundleContext().registerService(ResourceHandler.class, new ResourceHandler(), null);
+            cxt.getBundleContext().registerService(AuthenticationHandler.class, new OAuth2AccessTokenHandler(), null);
 
-            if (log.isDebugEnabled())
+
+            cxt.getBundleContext().registerService(AuthenticationManager.class, AuthenticationManager.getInstance(),
+                    null);
+            cxt.getBundleContext().registerService(AuthenticationRequestBuilderFactory.class,
+                    AuthenticationRequestBuilderFactory.getInstance(), null);
+
+            AuthConfigurationUtil.getInstance().buildResourceAccessControlData();
+
+            if ( log.isDebugEnabled() )
                 log.debug("AuthenticatorService is activated");
-        } catch (Throwable e) {
+        } catch ( Throwable e ) {
             log.error(e.getMessage(), e);
         }
 
     }
 
     protected void deactivate(ComponentContext context) {
-        if (log.isDebugEnabled()) {
+        if ( log.isDebugEnabled() ) {
             log.debug("AuthenticatorService bundle is deactivated");
         }
     }
 
     protected void setRealmService(RealmService realmService) {
-        if (log.isDebugEnabled()) {
+        if ( log.isDebugEnabled() ) {
             log.debug("RealmService acquired");
         }
         AuthenticationServiceHolder.getInstance().setRealmService(realmService);
@@ -77,7 +85,7 @@ public class AuthenticationServiceComponent {
     }
 
     protected void addAuthenticationHandler(AuthenticationHandler authenticationHandler) {
-        if (log.isDebugEnabled()) {
+        if ( log.isDebugEnabled() ) {
             log.debug("AuthenticationHandler acquired");
         }
         AuthenticationServiceHolder.getInstance().addAuthenticationHandler(authenticationHandler);
@@ -88,7 +96,7 @@ public class AuthenticationServiceComponent {
     }
 
     protected void addResourceHandler(ResourceHandler resourceHandler) {
-        if (log.isDebugEnabled()) {
+        if ( log.isDebugEnabled() ) {
             log.debug("ResourceHandler acquired");
         }
         AuthenticationServiceHolder.getInstance().getResourceHandlers().add(resourceHandler);
@@ -97,5 +105,6 @@ public class AuthenticationServiceComponent {
     protected void removeResourceHandler(ResourceHandler resourceHandler) {
         AuthenticationServiceHolder.getInstance().getResourceHandlers().remove(resourceHandler);
     }
+
 
 }

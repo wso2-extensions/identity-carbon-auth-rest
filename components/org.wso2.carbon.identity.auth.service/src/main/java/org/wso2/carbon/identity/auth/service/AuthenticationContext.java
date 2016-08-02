@@ -18,30 +18,56 @@
 
 package org.wso2.carbon.identity.auth.service;
 
-import org.wso2.carbon.identity.auth.service.exception.AuthServiceRuntimeException;
+import org.wso2.carbon.identity.application.common.model.User;
+import org.wso2.carbon.identity.auth.service.exception.AuthRuntimeException;
+import org.wso2.carbon.identity.auth.service.module.ResourceConfig;
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
 
 
 /**
  * AuthenticationContext which is pass across the authentication flow.
- *
  */
 public class AuthenticationContext extends MessageContext {
     private AuthenticationRequest authenticationRequest = null;
+    private AuthenticationResult authenticationResult = null;
+    private ResourceConfig resourceConfig = null;
+    private User user = null;
 
     /**
-     *
      * @param authenticationRequest
      */
     public AuthenticationContext(AuthenticationRequest authenticationRequest) {
-        if(authenticationRequest == null){
-            throw new AuthServiceRuntimeException("AuthenticationRequest can't be null.");
+        if ( authenticationRequest == null ) {
+            throw new AuthRuntimeException("AuthenticationRequest can't be null.");
         }
         this.authenticationRequest = authenticationRequest;
     }
 
+    public AuthenticationResult getAuthenticationResult() {
+        return authenticationResult;
+    }
+
+    public void setAuthenticationResult(AuthenticationResult authenticationResult) {
+        this.authenticationResult = authenticationResult;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
+
+    public ResourceConfig getResourceConfig() {
+        return resourceConfig;
+    }
+
+    public void setResourceConfig(ResourceConfig resourceConfig) {
+        this.resourceConfig = resourceConfig;
+    }
+
     /**
-     *
      * @return
      */
     public AuthenticationRequest getAuthenticationRequest() {

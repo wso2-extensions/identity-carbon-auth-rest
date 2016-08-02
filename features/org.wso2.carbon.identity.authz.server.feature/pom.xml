@@ -16,7 +16,7 @@
   ~  specific language governing permissions and limitations
   ~  under the License.
   -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
     <parent>
@@ -29,7 +29,7 @@
     <modelVersion>4.0.0</modelVersion>
     <artifactId>org.wso2.carbon.identity.authz.server.feature</artifactId>
     <packaging>pom</packaging>
-    <name>WSO2 Carbon - Authentication Service  Feature</name>
+    <name>WSO2 Carbon - Authentication Service Feature</name>
     <url>http://wso2.org</url>
     <description>This feature contains the bundles required for Common Authentication Service</description>
 
@@ -67,12 +67,19 @@
                                 </properties>
                             </adviceFile>
                             <bundles>
-                                <bundleDef>org.wso2.carbon.identity:org.wso2.carbon.identity.authz.service:${org.wso2.carbon.identity.authz.service.version}</bundleDef>
-                                <bundleDef>org.wso2.carbon.identity:org.wso2.carbon.identity.authz.valve:${org.wso2.carbon.identity.authz.valve.version}</bundleDef>
+                                <bundleDef>
+                                    org.wso2.carbon.identity:org.wso2.carbon.identity.authz.service:${org.wso2.carbon.identity.authz.service.version}
+                                </bundleDef>
+                                <bundleDef>
+                                    org.wso2.carbon.identity:org.wso2.carbon.identity.authz.valve:${org.wso2.carbon.identity.authz.valve.version}
+                                </bundleDef>
                             </bundles>
                             <importFeatures>
-                                <importFeatureDef>org.wso2.carbon.core:compatible:${carbon.kernel.version}</importFeatureDef>
-                                <importFeatureDef>org.wso2.carbon.identity.core:compatible:${identity.framework.version}</importFeatureDef>
+                                <importFeatureDef>org.wso2.carbon.core:compatible:${carbon.kernel.version}
+                                </importFeatureDef>
+                                <importFeatureDef>
+                                    org.wso2.carbon.identity.core:compatible:${identity.framework.version}
+                                </importFeatureDef>
                             </importFeatures>
                         </configuration>
                     </execution>

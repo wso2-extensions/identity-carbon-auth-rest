@@ -18,10 +18,10 @@ public class AuthHandlerManager {
     }
 
     public AuthenticationManager getAuthenticationManager() {
-        List<AuthenticationManager> authenticationManagers =
-                AuthenticationValveServiceHolder.getInstance().getAuthenticationManagers();
-        AuthenticationManager authenticationManager = HandlerManager.getInstance().
-                                                                getFirstPriorityHandler(authenticationManagers, true);
+        List<AuthenticationManager> authenticationManagers = AuthenticationValveServiceHolder.getInstance()
+                .getAuthenticationManagers();
+        AuthenticationManager authenticationManager = HandlerManager.getInstance().getFirstPriorityHandler
+                (authenticationManagers, true);
         return authenticationManager;
     }
 }

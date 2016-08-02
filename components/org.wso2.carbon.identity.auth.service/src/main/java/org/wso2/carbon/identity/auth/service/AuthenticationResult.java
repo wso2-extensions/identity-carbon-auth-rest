@@ -18,36 +18,20 @@
 
 package org.wso2.carbon.identity.auth.service;
 
-import org.wso2.carbon.identity.application.common.model.User;
-
 import java.io.Serializable;
 
 /**
  * AuthenticationResult hold the status.
- *
  */
-public class AuthenticationResult implements Serializable{
+public class AuthenticationResult implements Serializable {
 
     private AuthenticationStatus authenticationStatus = AuthenticationStatus.FAILED;
 
-    private User user = null;
 
-    private String code = null ;
-    private String message = null ;
     /**
-     *
-     *
      * @param authenticationStatus
      */
     public AuthenticationResult(AuthenticationStatus authenticationStatus) {
-        this.authenticationStatus = authenticationStatus;
-    }
-
-    /**
-     *
-     * @param authenticationStatus
-     */
-    public void setAuthenticationStatus(AuthenticationStatus authenticationStatus) {
         this.authenticationStatus = authenticationStatus;
     }
 
@@ -58,27 +42,10 @@ public class AuthenticationResult implements Serializable{
         return authenticationStatus;
     }
 
-    public String getMessage() {
-        return message;
-    }
-
-    public void setMessage(String message) {
-        this.message = message;
-    }
-
-    public String getCode() {
-        return code;
-    }
-
-    public void setCode(String code) {
-        this.code = code;
-    }
-
-    public User getUser() {
-        return user;
-    }
-
-    public void setUser(User user) {
-        this.user = user;
+    /**
+     * @param authenticationStatus
+     */
+    public void setAuthenticationStatus(AuthenticationStatus authenticationStatus) {
+        this.authenticationStatus = authenticationStatus;
     }
 }

@@ -23,25 +23,22 @@ import org.apache.catalina.connector.Response;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.identity.auth.service.AuthenticationRequest;
-import org.wso2.carbon.identity.auth.service.exception.AuthServiceClientException;
-import org.wso2.carbon.utils.multitenancy.MultitenantConstants;
+import org.wso2.carbon.identity.auth.service.exception.AuthClientException;
+import org.wso2.carbon.identity.core.handler.AbstractIdentityHandler;
 
 import javax.servlet.http.Cookie;
 import java.util.Enumeration;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 
 /**
  * Request build factory for tomcat valve and other custom types.
- *
  */
-public class AuthenticationRequestBuilderFactory {
+public class AuthenticationRequestBuilderFactory extends AbstractIdentityHandler {
 
-    private static Log log = LogFactory.getLog(AuthenticationRequestBuilderFactory.class);
-
-    private static AuthenticationRequestBuilderFactory authenticationRequestBuilderFactory = new AuthenticationRequestBuilderFactory();
     public static final String TENANT_DOMAIN_PATTERN = "/t/([^/]+)";
+    private static Log log = LogFactory.getLog(AuthenticationRequestBuilderFactory.class);
+    private static AuthenticationRequestBuilderFactory authenticationRequestBuilderFactory = new
+            AuthenticationRequestBuilderFactory();
 
     public static AuthenticationRequestBuilderFactory getInstance() {
         return AuthenticationRequestBuilderFactory.authenticationRequestBuilderFactory;
@@ -54,44 +51,40 @@ public class AuthenticationRequestBuilderFactory {
      * @param request
      * @param response
      * @return AuthenticationRequest.AuthenticationRequestBuilder
-     * @throws AuthServiceClientException
+     * @throws AuthClientException
      */
     public AuthenticationRequest.AuthenticationRequestBuilder createRequestBuilder(Request request, Response response)
-            throws AuthServiceClientException {
+            throws AuthClientException {
 
-        AuthenticationRequest.AuthenticationRequestBuilder authenticationRequestBuilder = new AuthenticationRequest.AuthenticationRequestBuilder();
+        AuthenticationRequest.AuthenticationRequestBuilder authenticationRequestBuilder = new AuthenticationRequest
+                .AuthenticationRequestBuilder();
 
         Enumeration<String> headerNames = request.getHeaderNames();
-        while (headerNames.hasMoreElements()) {
+        while ( headerNames.hasMoreElements() ) {
             String headerName = headerNames.nextElement();
             authenticationRequestBuilder.addHeader(headerName, request.getHeader(headerName));
         }
-        authenticationRequestBuilder.setParameters(request.getParameterMap());
         Cookie[] cookies = request.getCookies();
-        if (cookies != null) {
-            for (Cookie cookie : cookies) {
-                authenticationRequestBuilder.addCookie(cookie.getName(), cookie);
+        if ( cookies != null ) {
+            for ( Cookie cookie : cookies ) {
+                authenticationRequestBuilder.addCookie(new AuthenticationRequest.CookieKey(cookie.getName(), cookie
+                                .getPath()),
+                        cookie);
             }
         }
-        String requestURI = request.getRequestURI();
-        Pattern pattern = Pattern.compile(TENANT_DOMAIN_PATTERN);
-        Matcher matcher = pattern.matcher(requestURI);
-        if (matcher.find()) {
-            authenticationRequestBuilder.setTenantDomain(matcher.group(1));
-        } else {
-            authenticationRequestBuilder.setTenantDomain(MultitenantConstants.SUPER_TENANT_DOMAIN_NAME);
-        }
-        authenticationRequestBuilder.setContentType(request.getContentType());
         authenticationRequestBuilder.setContextPath(request.getContextPath());
         authenticationRequestBuilder.setMethod(request.getMethod());
-        authenticationRequestBuilder.setPathInfo(request.getPathInfo());
-        authenticationRequestBuilder.setPathTranslated(request.getPathTranslated());
-        authenticationRequestBuilder.setQueryString(request.getQueryString());
-        authenticationRequestBuilder.setRequestURI(requestURI);
-        authenticationRequestBuilder.setRequestURL(request.getRequestURL());
-        authenticationRequestBuilder.setServletPath(request.getServletPath());
 
         return authenticationRequestBuilder;
     }
 
+
+    public boolean canHandle(Request request, Response response) {
+        return true;
+    }
+
+    @Override
+    public int getPriority() {
+        return 10;
+    }
 }

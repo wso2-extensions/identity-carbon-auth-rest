@@ -19,7 +19,7 @@ package org.wso2.carbon.identity.authz.service;
 
 
 public class AuthorizationResult {
-    private AuthorizationStatus authorizationStatus = null ;
+    private AuthorizationStatus authorizationStatus = null;
 
     public AuthorizationResult(AuthorizationStatus authorizationStatus) {
         this.authorizationStatus = authorizationStatus;

@@ -64,10 +64,10 @@ public class AuthorizationHandler implements IdentityHandler {
             boolean isUserAuthorized = authorizationManager.isUserAuthorized(MultitenantUtils.
                             getTenantAwareUsername(userName),
                     permissionString, CarbonConstants.UI_PERMISSION_ACTION);
-            if (isUserAuthorized) {
+            if ( isUserAuthorized ) {
                 authorizationResult.setAuthorizationStatus(AuthorizationStatus.GRANT);
             }
-        } catch (UserStoreException e) {
+        } catch ( UserStoreException e ) {
             String errorMessage = "Error occurred while trying to authorize, " + e.getMessage();
             log.error(errorMessage);
             throw new AuthzServiceServerException(errorMessage, e);

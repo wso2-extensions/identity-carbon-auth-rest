@@ -19,7 +19,7 @@
 package org.wso2.carbon.identity.auth.service;
 
 import org.apache.commons.lang.StringUtils;
-import org.wso2.carbon.identity.auth.service.exception.AuthServiceRuntimeException;
+import org.wso2.carbon.identity.auth.service.exception.AuthRuntimeException;
 
 import javax.servlet.http.Cookie;
 import java.io.Serializable;
@@ -29,10 +29,11 @@ import java.util.*;
  * Generic Request object to pass the request details to the AuthenticationManager.
  * We have to create AuthenticationRequestBuilder and fill the data. Then you can call the build method.
  * AuthenticationRequestConstants can be used to refer the constants.
- *
- * AuthenticationRequest.AuthenticationRequestBuilder requestBuilder = new AuthenticationRequest.AuthenticationRequestBuilder();
+ * <p/>
+ * AuthenticationRequest.AuthenticationRequestBuilder requestBuilder = new AuthenticationRequest
+ * .AuthenticationRequestBuilder();
  * requestBuilder.set...
- *
+ * <p/>
  * AuthenticationRequest request = requestBuilder.build();
  */
 public class AuthenticationRequest implements Serializable
@@ -42,18 +43,16 @@ public class AuthenticationRequest implements Serializable
     private static final long serialVersionUID = 5418537216546873566L;
 
     protected Map<String, String> headers = new HashMap<>();
-    protected Map<String, Cookie> cookies = new HashMap<>();
-    protected Map<String, String[]> parameters = new HashMap<>();
-    protected String tenantDomain;
+    protected Map<CookieKey, Cookie> cookies = new HashMap<>();
     protected String contextPath;
     protected String method;
-    protected String pathInfo;
-    protected String pathTranslated;
-    protected String queryString;
-    protected String requestURI;
-    protected StringBuffer requestURL;
-    protected String servletPath;
-    protected String contentType;
+
+    protected AuthenticationRequest(AuthenticationRequestBuilder builder) {
+        this.headers = builder.headers;
+        this.cookies = builder.cookies;
+        this.contextPath = builder.contextPath;
+        this.method = builder.method;
+    }
 
     public Map<String, String> getHeaderMap() {
         return Collections.unmodifiableMap(headers);
@@ -61,7 +60,7 @@ public class AuthenticationRequest implements Serializable
 
     public Enumeration<String> getHeaders(String name) {
         String headerValue = headers.get(name);
-        if (headerValue != null) {
+        if ( headerValue != null ) {
             String[] multiValuedHeader = headerValue.split(",");
             return Collections.enumeration(Arrays.asList(multiValuedHeader));
         } else {
@@ -74,43 +73,19 @@ public class AuthenticationRequest implements Serializable
     }
 
     public String getHeader(String name) {
-        if (StringUtils.isNotEmpty(name)) {
+        if ( StringUtils.isNotEmpty(name) ) {
             name = name.toLowerCase();
         }
         return headers.get(name);
     }
 
-    public Map<String, Cookie> getCookieMap() {
+    public Map<CookieKey, Cookie> getCookieMap() {
         return Collections.unmodifiableMap(cookies);
     }
 
     public Cookie[] getCookies() {
         Collection<Cookie> cookies = getCookieMap().values();
         return cookies.toArray(new Cookie[cookies.size()]);
-    }
-
-    public Map<String, String[]> getParameterMap() {
-        return Collections.unmodifiableMap(parameters);
-    }
-
-    public Enumeration<String> getParameterNames() {
-        return Collections.enumeration(parameters.keySet());
-    }
-
-    public String[] getParameterValues(String paramName) {
-        return parameters.get(paramName);
-    }
-
-    public String getTenantDomain() {
-        return this.tenantDomain;
-    }
-
-    public String getParameter(String paramName) {
-        String[] values = parameters.get(paramName);
-        if (values != null && values.length > 0) {
-            return values[0];
-        }
-        return null;
     }
 
     public String getContextPath() {
@@ -121,157 +96,19 @@ public class AuthenticationRequest implements Serializable
         return method;
     }
 
-    public String getPathInfo() {
-        return pathInfo;
-    }
-
-    public String getPathTranslated() {
-        return pathTranslated;
-    }
-
-    public String getQueryString() {
-        return queryString;
-    }
-
-    public String getRequestURI() {
-        return requestURI;
-    }
-
-    public StringBuffer getRequestURL() {
-        return requestURL;
-    }
-
-    public String getServletPath() {
-        return servletPath;
-    }
-
-    public String getContentType() {
-        return contentType;
-    }
-
-    protected AuthenticationRequest(AuthenticationRequestBuilder builder) {
-        this.headers = builder.headers;
-        this.cookies = builder.cookies;
-        this.parameters = builder.parameters;
-        this.tenantDomain = builder.tenantDomain;
-        this.contextPath = builder.contextPath;
-        this.method = builder.method;
-        this.pathInfo = builder.pathInfo;
-        this.pathTranslated = builder.pathTranslated;
-        this.queryString = builder.queryString;
-        this.requestURI = builder.requestURI;
-        this.requestURL = builder.requestURL;
-        this.servletPath = builder.servletPath;
-        this.contentType = builder.contentType;
-    }
-
     public static class AuthenticationRequestBuilder {
 
         private Map<String, String> headers = new HashMap<>();
-        private Map<String, Cookie> cookies = new HashMap<>();
-        private Map<String, String[]> parameters = new HashMap<>();
-        private String tenantDomain;
+        private Map<CookieKey, Cookie> cookies = new HashMap<>();
         private String contextPath;
         private String method;
-        private String pathInfo;
-        private String pathTranslated;
-        private String queryString;
-        private String requestURI;
-        private StringBuffer requestURL;
-        private String servletPath;
-        private String contentType;
-
 
         public AuthenticationRequestBuilder() {
 
         }
 
-        public AuthenticationRequestBuilder setHeaders(Map<String, String> responseHeaders) {
-            this.headers = responseHeaders;
-            return this;
-        }
-
-        public AuthenticationRequestBuilder addHeaders(Map<String, String> headers) {
-            for (Map.Entry<String, String> header : headers.entrySet()) {
-                if (this.headers.containsKey(header.getKey())) {
-                    throw new AuthServiceRuntimeException("Headers map trying to override existing " +
-                            "header " + header.getKey());
-                }
-                this.headers.put(header.getKey(), header.getValue());
-            }
-            return this;
-        }
-
-        public AuthenticationRequestBuilder addHeader(String name, String value) {
-            if (this.headers.containsKey(name)) {
-                throw new AuthServiceRuntimeException("Headers map trying to override existing " +
-                        "header " + name);
-            }
-            this.headers.put(name, value);
-            return this;
-        }
-
-        public AuthenticationRequestBuilder setCookies(Map<String, Cookie> cookies) {
-            this.cookies = cookies;
-            return this;
-        }
-
-        public AuthenticationRequestBuilder addCookie(String name, Cookie value) {
-            if (this.cookies.containsKey(name)) {
-                throw new AuthServiceRuntimeException("Cookies map trying to override existing " +
-                        "cookie " + name);
-            }
-            this.cookies.put(name, value);
-            return this;
-        }
-
-        public AuthenticationRequestBuilder addCookies(Map<String, Cookie> cookies) {
-            for (Map.Entry<String, Cookie> cookie : cookies.entrySet()) {
-                if (this.cookies.containsKey(cookie.getKey())) {
-                    throw new AuthServiceRuntimeException("Cookies map trying to override existing " +
-                            "cookie " + cookie.getKey());
-                }
-                this.cookies.put(cookie.getKey(), cookie.getValue());
-            }
-            return this;
-        }
-
-        public AuthenticationRequestBuilder setParameters(Map<String, String[]> parameters) {
-            this.parameters = parameters;
-            return this;
-        }
-
-        public AuthenticationRequestBuilder addParameter(String name, String[] values) {
-            if (this.parameters.containsKey(name)) {
-                throw new AuthServiceRuntimeException("Parameters map trying to override existing " +
-                        "key " + name);
-            }
-            this.parameters.put(name, values);
-            return this;
-        }
-
-        public AuthenticationRequestBuilder addParameter(String name, String value) {
-            if (this.parameters.containsKey(name)) {
-                throw new AuthServiceRuntimeException("Parameters map trying to override existing " +
-                        "key " + name);
-            }
-            this.parameters.put(name, new String[]{value});
-            return this;
-        }
-
-        public AuthenticationRequestBuilder addParameters(Map<String, String[]> parameters) {
-            for (Map.Entry<String, String[]> parameter : parameters.entrySet()) {
-                if (this.parameters.containsKey(parameter.getKey())) {
-                    throw new AuthServiceRuntimeException("Parameters map trying to override existing key " +
-                            parameter.getKey());
-                }
-                this.parameters.put(parameter.getKey(), parameter.getValue());
-            }
-            return this;
-        }
-
-        public AuthenticationRequestBuilder setTenantDomain(String tenantDomain) {
-            this.tenantDomain = tenantDomain;
+        public AuthenticationRequestBuilder setMethod(String method) {
+            this.method = method;
             return this;
         }
 
@@ -280,45 +117,24 @@ public class AuthenticationRequest implements Serializable
             return this;
         }
 
-        public AuthenticationRequestBuilder setMethod(String method) {
-            this.method = method;
+        public AuthenticationRequestBuilder addHeader(String name, String value) {
+            if ( this.headers.containsKey(name) ) {
+                throw new AuthRuntimeException("Headers map trying to override existing " +
+                        "header " + name);
+            }
+            this.headers.put(name, value);
             return this;
         }
 
-        public AuthenticationRequestBuilder setPathInfo(String pathInfo) {
-            this.pathInfo = pathInfo;
+        public AuthenticationRequestBuilder addCookie(CookieKey cookieKey, Cookie value) {
+            if ( this.cookies.containsKey(cookieKey) ) {
+                throw new AuthRuntimeException("Cookies map trying to override existing " +
+                        "cookie " + cookieKey.toString());
+            }
+            this.cookies.put(cookieKey, value);
             return this;
         }
 
-        public AuthenticationRequestBuilder setPathTranslated(String pathTranslated) {
-            this.pathTranslated = pathTranslated;
-            return this;
-        }
-
-        public AuthenticationRequestBuilder setQueryString(String queryString) {
-            this.queryString = queryString;
-            return this;
-        }
-
-        public AuthenticationRequestBuilder setRequestURI(String requestURI) {
-            this.requestURI = requestURI;
-            return this;
-        }
-
-        public AuthenticationRequestBuilder setRequestURL(StringBuffer requestURL) {
-            this.requestURL = requestURL;
-            return this;
-        }
-
-        public AuthenticationRequestBuilder setServletPath(String servletPath) {
-            this.servletPath = servletPath;
-            return this;
-        }
-
-        public AuthenticationRequestBuilder setContentType(String contentType) {
-            this.contentType = contentType;
-            return this;
-        }
 
         public AuthenticationRequest build() {
             return new AuthenticationRequest(this);
@@ -327,7 +143,59 @@ public class AuthenticationRequest implements Serializable
 
     }
 
-    public static class AuthenticationRequestConstants {
 
+    public static class CookieKey {
+
+        private String name;
+        private String path;
+
+        public CookieKey(String name, String path) {
+            this.name = name;
+            this.path = path;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public String getPath() {
+            return path;
+        }
+
+        public void setPath(String path) {
+            this.path = path;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if ( this == o ) return true;
+            if ( o == null || getClass() != o.getClass() ) return false;
+
+            CookieKey cookieKey = (CookieKey) o;
+
+            if ( !name.equals(cookieKey.name) ) return false;
+            return path.equals(cookieKey.path);
+
+        }
+
+        @Override
+        public int hashCode() {
+            int result = name.hashCode();
+            result = 31 * result + path.hashCode();
+            return result;
+        }
+
+        @Override
+        public String toString() {
+            return "CookieKey{" +
+                    "name='" + name + '\'' +
+                    ", path='" + path + '\'' +
+                    '}';
+        }
     }
+
 }

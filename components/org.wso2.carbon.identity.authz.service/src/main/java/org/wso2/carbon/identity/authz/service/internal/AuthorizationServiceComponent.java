@@ -44,25 +44,25 @@ public class AuthorizationServiceComponent {
 
     protected void activate(ComponentContext cxt) {
         try {
-            cxt.getBundleContext().registerService(AuthorizationManager.class, AuthorizationManager.getInstance() , null);
-            cxt.getBundleContext().registerService(AuthorizationHandler.class, new AuthorizationHandler() , null);
-            cxt.getBundleContext().registerService(ResourceHandler.class, new ResourceHandler() , null);
-            if (log.isDebugEnabled())
+            cxt.getBundleContext().registerService(AuthorizationManager.class, AuthorizationManager.getInstance(),
+                    null);
+            cxt.getBundleContext().registerService(AuthorizationHandler.class, new AuthorizationHandler(), null);
+            if ( log.isDebugEnabled() )
                 log.debug("AuthorizationServiceComponent is activated");
-        } catch (Throwable e) {
+        } catch ( Throwable e ) {
             log.error(e.getMessage(), e);
         }
 
     }
 
     protected void deactivate(ComponentContext context) {
-        if (log.isDebugEnabled()) {
+        if ( log.isDebugEnabled() ) {
             log.debug("AuthorizationServiceComponent bundle is deactivated");
         }
     }
 
     protected void setRealmService(RealmService realmService) {
-        if (log.isDebugEnabled()) {
+        if ( log.isDebugEnabled() ) {
             log.debug("RealmService acquired");
         }
         AuthorizationServiceHolder.getInstance().setRealmService(realmService);
@@ -74,7 +74,7 @@ public class AuthorizationServiceComponent {
 
 
     protected void setAuthorizationHandler(AuthorizationHandler authorizationHandler) {
-        if (log.isDebugEnabled()) {
+        if ( log.isDebugEnabled() ) {
             log.debug("AuthorizationHandler acquired");
         }
         AuthorizationServiceHolder.getInstance().getAuthorizationHandlerList().add(authorizationHandler);
@@ -85,9 +85,8 @@ public class AuthorizationServiceComponent {
     }
 
 
-
     protected void setResourceHandler(ResourceHandler resourceHandler) {
-        if (log.isDebugEnabled()) {
+        if ( log.isDebugEnabled() ) {
             log.debug("ResourceHandler acquired");
         }
         AuthorizationServiceHolder.getInstance().getResourceHandlerList().add(resourceHandler);
