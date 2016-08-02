@@ -64,7 +64,7 @@ public class AuthenticationValve extends ValveBase {
             authenticationResult = authenticationManager.authenticate(authenticationContext);
             AuthenticationStatus authenticationStatus = authenticationResult.getAuthenticationStatus();
             if (authenticationStatus.equals(AuthenticationStatus.SUCCESS)) {
-                request.setAttribute(AUTHENTICATED_USER, authenticationResult.getAuthenticatedUser());
+                request.setAttribute(AUTHENTICATED_USER, authenticationResult.getUser());
                 getNext().invoke(request, response);
             }else if(authenticationStatus.equals(AuthenticationStatus.NOTSECURED)) {
                 getNext().invoke(request, response);
@@ -72,8 +72,8 @@ public class AuthenticationValve extends ValveBase {
 
                 StringBuilder value = new StringBuilder(16);
                 value.append("realm user=\"");
-                if (authenticationResult != null) {
-                    value.append(authenticationResult.getAuthenticatedUser());
+                if (authenticationResult != null && authenticationResult.getUser() != null) {
+                    value.append(authenticationResult.getUser().getUserName());
                 }
                 value.append('\"');
                 response.setHeader(AUTH_HEADER_NAME, value.toString());
@@ -82,8 +82,8 @@ public class AuthenticationValve extends ValveBase {
         } catch (AuthServiceClientException e) {
             StringBuilder value = new StringBuilder(16);
             value.append("realm user=\"");
-            if (authenticationResult != null) {
-                value.append(authenticationResult.getAuthenticatedUser());
+            if (authenticationResult != null && authenticationResult.getUser() != null) {
+                value.append(authenticationResult.getUser().getUserName());
             }
             value.append('\"');
             response.setHeader(AUTH_HEADER_NAME, value.toString());

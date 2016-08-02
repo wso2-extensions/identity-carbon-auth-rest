@@ -24,6 +24,7 @@ import org.apache.catalina.valves.ValveBase;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.wso2.carbon.identity.application.common.model.User;
 import org.wso2.carbon.identity.authz.service.AuthorizationContext;
 import org.wso2.carbon.identity.authz.service.AuthorizationManager;
 import org.wso2.carbon.identity.authz.service.AuthorizationResult;
@@ -52,8 +53,8 @@ public class AuthorizationValve extends ValveBase {
     public void invoke(Request request, Response response) throws IOException, ServletException {
         String requestURI = request.getRequestURI();
 
-        String userName = (String)request.getAttribute(AUTHENTICATED_USER);
-        if(StringUtils.isNotEmpty(userName)) {
+        User user = (User)request.getAttribute(AUTHENTICATED_USER);
+        if(user != null && StringUtils.isNotEmpty(user.getUserName())) {
 
             String contextPath = request.getContextPath();
             String httpMethod = request.getMethod();
@@ -63,7 +64,7 @@ public class AuthorizationValve extends ValveBase {
             authorizationContext.setContext(contextPath);
             authorizationContext.setHttpMethods(httpMethod);
 
-            authorizationContext.setUserName(userName);
+            authorizationContext.setUserName(user.getUserName());
             List<AuthorizationManager> authorizationManagerList =
                     AuthorizationValveServiceHolder.getInstance().getAuthorizationManagerList();
             AuthorizationManager authorizationManager = HandlerManager.getInstance().getFirstPriorityHandler(authorizationManagerList, true);
@@ -74,7 +75,7 @@ public class AuthorizationValve extends ValveBase {
                 } else {
                     StringBuilder value = new StringBuilder(16);
                     value.append("realm user=\"");
-                    value.append(userName);
+                    value.append(user.getUserName());
                     value.append('\"');
                     response.setHeader(AUTH_HEADER_NAME, value.toString());
                     response.sendError(HttpServletResponse.SC_FORBIDDEN);
@@ -82,7 +83,7 @@ public class AuthorizationValve extends ValveBase {
             } catch (AuthzServiceServerException e) {
                 StringBuilder value = new StringBuilder(16);
                 value.append("realm user=\"");
-                value.append(userName);
+                value.append(user.getUserName());
                 value.append('\"');
                 response.setHeader(AUTH_HEADER_NAME, value.toString());
                 response.sendError(HttpServletResponse.SC_BAD_REQUEST);

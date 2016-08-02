@@ -22,6 +22,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpHeaders;
+import org.wso2.carbon.identity.application.common.model.User;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
 import org.wso2.carbon.identity.auth.service.AuthenticationRequest;
 import org.wso2.carbon.identity.auth.service.AuthenticationResult;
@@ -34,6 +35,7 @@ import org.wso2.carbon.identity.oauth2.OAuth2TokenValidationService;
 import org.wso2.carbon.identity.oauth2.dto.OAuth2ClientApplicationDTO;
 import org.wso2.carbon.identity.oauth2.dto.OAuth2TokenValidationRequestDTO;
 import org.wso2.carbon.identity.oauth2.dto.OAuth2TokenValidationResponseDTO;
+import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
 /**
  * OAuthAuthenticationHandler is for authenticate the request based on Token.
@@ -55,7 +57,12 @@ public class OAuthAuthenticationHandler implements AuthenticationHandler {
                 String tokenId = authorizationHeader.split(" ")[1];
 
                 AccessTokenInfo tokenMetaData = getTokenMetaData(tokenId);
-                authenticationResult.setAuthenticatedUser(tokenMetaData.getEndUserName());
+                User user = new User();
+                user.setUserName(MultitenantUtils.getTenantAwareUsername(tokenMetaData.getEndUserName()));
+                user.setTenantDomain(MultitenantUtils.getTenantDomain(tokenMetaData.getEndUserName()));
+
+                authenticationResult.setUser(user);
+
                 if (tokenMetaData.isTokenValid()) {
                     authenticationResult.setAuthenticationStatus(AuthenticationStatus.SUCCESS);
                 }
