@@ -22,24 +22,30 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.osgi.service.component.ComponentContext;
 import org.wso2.carbon.identity.auth.service.AuthenticationManager;
+import org.wso2.carbon.identity.auth.service.factory.AuthenticationRequestBuilderFactory;
 
 /**
  * @scr.component name="org.wso2.carbon.identity.auth.valve" immediate="true"
  * @scr.reference name="org.wso2.carbon.identity.auth.service.manager"
  * interface="org.wso2.carbon.identity.auth.service.AuthenticationManager"
  * cardinality="1..1" policy="dynamic" bind="setAuthenticationManager" unbind="unsetAuthenticationManager"
+ * @scr.reference name="org.wso2.carbon.identity.auth.service.factory.auth"
+ * interface="org.wso2.carbon.identity.auth.service.factory.AuthenticationRequestBuilderFactory"
+ * cardinality="0..n" policy="dynamic" bind="addAuthenticationRequestBuilderFactory"
+ * unbind="removeAuthenticationRequestBuilderFactory"
  */
 
 public class AuthenticationValveServiceComponent {
 
     private static final Log log = LogFactory.getLog(AuthenticationValveServiceComponent.class);
+
     protected void activate(ComponentContext cxt) {
-        if (log.isDebugEnabled())
+        if ( log.isDebugEnabled() )
             log.debug("AuthenticationValveServiceComponent is activated");
     }
 
     protected void setAuthenticationManager(AuthenticationManager authenticationManager) {
-        if (log.isDebugEnabled()) {
+        if ( log.isDebugEnabled() ) {
             log.debug("AuthenticationManager acquired");
         }
         AuthenticationValveServiceHolder.getInstance().getAuthenticationManagers().add(authenticationManager);
@@ -47,5 +53,17 @@ public class AuthenticationValveServiceComponent {
 
     protected void unsetAuthenticationManager(AuthenticationManager authenticationManager) {
         setAuthenticationManager(null);
+    }
+
+    protected void addAuthenticationRequestBuilderFactory(AuthenticationRequestBuilderFactory requestBuilderFactory) {
+        if ( log.isDebugEnabled() ) {
+            log.debug("AuthenticationRequestBuilderFactory acquired");
+        }
+        AuthenticationValveServiceHolder.getInstance().getRequestBuilderFactories().add(requestBuilderFactory);
+    }
+
+    protected void removeAuthenticationRequestBuilderFactory(AuthenticationRequestBuilderFactory
+                                                                     requestBuilderFactory) {
+        AuthenticationValveServiceHolder.getInstance().getRequestBuilderFactories().remove(requestBuilderFactory);
     }
 }

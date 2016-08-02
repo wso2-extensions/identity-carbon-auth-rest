@@ -28,7 +28,6 @@ import java.util.List;
 
 /**
  * AuthenticationServiceHolder to hold the services.
- *
  */
 public class AuthenticationServiceHolder {
 
@@ -38,12 +37,14 @@ public class AuthenticationServiceHolder {
     private List<AuthenticationHandler> authenticationHandlers = new ArrayList<>();
     private List<ResourceHandler> resourceHandlers = new ArrayList<>();
 
+
     private AuthenticationServiceHolder() {
 
     }
 
     public static AuthenticationServiceHolder getInstance() {
         return AuthenticationServiceHolder.authenticationServiceHolder;
+
     }
 
     public RealmService getRealmService() {

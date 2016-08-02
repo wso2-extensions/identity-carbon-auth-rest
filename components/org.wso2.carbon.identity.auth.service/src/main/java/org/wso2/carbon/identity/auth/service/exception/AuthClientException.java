@@ -19,23 +19,24 @@
 package org.wso2.carbon.identity.auth.service.exception;
 
 
-public class AuthServiceRuntimeException extends RuntimeException {
-    public AuthServiceRuntimeException() {
+public class AuthClientException extends Exception {
+    public AuthClientException() {
     }
 
-    public AuthServiceRuntimeException(String message) {
+    public AuthClientException(String message) {
         super(message);
     }
 
-    public AuthServiceRuntimeException(String message, Throwable cause) {
+    public AuthClientException(String message, Throwable cause) {
         super(message, cause);
     }
 
-    public AuthServiceRuntimeException(Throwable cause) {
+    public AuthClientException(Throwable cause) {
         super(cause);
     }
 
-    public AuthServiceRuntimeException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
+    public AuthClientException(String message, Throwable cause, boolean enableSuppression, boolean
+            writableStackTrace) {
         super(message, cause, enableSuppression, writableStackTrace);
     }
 }

@@ -16,7 +16,7 @@
   ~ specific language governing permissions and limitations
   ~ under the License.
   -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
     <parent>
@@ -47,10 +47,10 @@
     <modules>
         <module>components/org.wso2.carbon.identity.auth.service</module>
         <module>components/org.wso2.carbon.identity.auth.valve</module>
-       
-	<module>components/org.wso2.carbon.identity.authz.service</module>
-	<module>components/org.wso2.carbon.identity.authz.valve</module>
-	
+
+        <module>components/org.wso2.carbon.identity.authz.service</module>
+        <module>components/org.wso2.carbon.identity.authz.valve</module>
+
         <module>features/org.wso2.carbon.identity.auth.server.feature</module>
         <module>features/org.wso2.carbon.identity.authz.server.feature</module>
     </modules>
@@ -288,30 +288,40 @@
     <properties>
 
         <org.wso2.carbon.identity.auth.cxf.version>1.0.0-SNAPSHOT</org.wso2.carbon.identity.auth.cxf.version>
-        <org.wso2.carbon.identity.auth.cxf.export.version>${org.wso2.carbon.identity.auth.cxf.version}</org.wso2.carbon.identity.auth.cxf.export.version>
-        <org.wso2.carbon.identity.auth.cxf.import.version.range>[1.0.0, 2.0.0)</org.wso2.carbon.identity.auth.cxf.import.version.range>
+        <org.wso2.carbon.identity.auth.cxf.export.version>${org.wso2.carbon.identity.auth.cxf.version}
+        </org.wso2.carbon.identity.auth.cxf.export.version>
+        <org.wso2.carbon.identity.auth.cxf.import.version.range>[1.0.0, 2.0.0)
+        </org.wso2.carbon.identity.auth.cxf.import.version.range>
 
 
-        <org.wso2.carbon.identity.auth.service.version>${project.version}</org.wso2.carbon.identity.auth.service.version>
-        <org.wso2.carbon.identity.auth.service.version.range>[1.0.0, 2.0.0)</org.wso2.carbon.identity.auth.service.version.range>
+        <org.wso2.carbon.identity.auth.service.version>${project.version}
+        </org.wso2.carbon.identity.auth.service.version>
+        <org.wso2.carbon.identity.auth.service.version.range>[1.0.0, 2.0.0)
+        </org.wso2.carbon.identity.auth.service.version.range>
 
         <org.wso2.carbon.identity.auth.valve.version>${project.version}</org.wso2.carbon.identity.auth.valve.version>
-        <org.wso2.carbon.identity.auth.valve.version.range>[1.0.0, 2.0.0)</org.wso2.carbon.identity.auth.valve.version.range>
+        <org.wso2.carbon.identity.auth.valve.version.range>[1.0.0, 2.0.0)
+        </org.wso2.carbon.identity.auth.valve.version.range>
 
-        <org.wso2.carbon.identity.authz.service.version>${project.version}</org.wso2.carbon.identity.authz.service.version>
-        <org.wso2.carbon.identity.authz.service.version.range>[1.0.0, 2.0.0)</org.wso2.carbon.identity.authz.service.version.range>
+        <org.wso2.carbon.identity.authz.service.version>${project.version}
+        </org.wso2.carbon.identity.authz.service.version>
+        <org.wso2.carbon.identity.authz.service.version.range>[1.0.0, 2.0.0)
+        </org.wso2.carbon.identity.authz.service.version.range>
 
         <org.wso2.carbon.identity.authz.valve.version>${project.version}</org.wso2.carbon.identity.authz.valve.version>
-        <org.wso2.carbon.identity.authz.valve.version.range>[1.0.0, 2.0.0)</org.wso2.carbon.identity.authz.valve.version.range>
-	
+        <org.wso2.carbon.identity.authz.valve.version.range>[1.0.0, 2.0.0)
+        </org.wso2.carbon.identity.authz.valve.version.range>
+
         <!--Carbon identity version-->
         <identity.framework.version>5.5.0-SNAPSHOT</identity.framework.version>
         <carbon.identity.package.export.version>${identity.framework.version}</carbon.identity.package.export.version>
         <carbon.identity.package.import.version.range>[5.0.0, 6.0.0)</carbon.identity.package.import.version.range>
 
         <org.wso2.carbon.identity.oauth.version>5.2.0-SNAPSHOT</org.wso2.carbon.identity.oauth.version>
-        <org.wso2.carbon.identity.oauth.export.version>${org.wso2.carbon.identity.oauth.version}</org.wso2.carbon.identity.oauth.export.version>
-        <org.wso2.carbon.identity.oauth.import.version.range>[5.0.0, 6.0.0)</org.wso2.carbon.identity.oauth.import.version.range>
+        <org.wso2.carbon.identity.oauth.export.version>${org.wso2.carbon.identity.oauth.version}
+        </org.wso2.carbon.identity.oauth.export.version>
+        <org.wso2.carbon.identity.oauth.import.version.range>[5.0.0, 6.0.0)
+        </org.wso2.carbon.identity.oauth.import.version.range>
 
         <!-- OSGi framework component version -->
         <osgi.service.component.imp.pkg.version.range>[1.2.0, 2.0.0)</osgi.service.component.imp.pkg.version.range>

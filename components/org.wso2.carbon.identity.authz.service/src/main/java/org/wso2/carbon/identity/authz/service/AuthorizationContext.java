@@ -20,14 +20,13 @@ package org.wso2.carbon.identity.authz.service;
 
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
 
-public class AuthorizationContext extends MessageContext{
+public class AuthorizationContext extends MessageContext {
 
-
-    private String context ;
+    private String context;
     private String httpMethods;
 
-    private String userName ;
-    private String permissionString ;
+    private String userName;
+    private String permissionString;
 
 
     public String getUserName() {
@@ -61,4 +60,6 @@ public class AuthorizationContext extends MessageContext{
     public void setHttpMethods(String httpMethods) {
         this.httpMethods = httpMethods;
     }
+
+
 }

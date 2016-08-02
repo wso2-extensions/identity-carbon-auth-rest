@@ -28,6 +28,9 @@ import org.wso2.carbon.identity.application.common.model.User;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
 import org.wso2.carbon.identity.auth.service.AuthenticationResult;
 import org.wso2.carbon.identity.auth.service.AuthenticationStatus;
+import org.wso2.carbon.identity.auth.service.exception.AuthClientException;
+import org.wso2.carbon.identity.auth.service.exception.AuthenticationFailException;
+import org.wso2.carbon.identity.auth.service.exception.AuthServerException;
 import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
 import org.wso2.carbon.identity.auth.service.internal.AuthenticationServiceHolder;
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
@@ -70,12 +73,13 @@ public class BasicAuthenticationHandler implements AuthenticationHandler {
 
     @Override
     public boolean canHandle(MessageContext messageContext) {
-        if (messageContext instanceof AuthenticationContext) {
+        if ( messageContext instanceof AuthenticationContext ) {
             AuthenticationContext authenticationContext = (AuthenticationContext) messageContext;
-            if (authenticationContext != null && authenticationContext.getAuthenticationRequest() != null) {
+            if ( authenticationContext != null && authenticationContext.getAuthenticationRequest() != null ) {
                 String authorizationHeader = authenticationContext.getAuthenticationRequest().
                         getHeader(HttpHeaders.AUTHORIZATION);
-                if (StringUtils.isNotEmpty(authorizationHeader) && authorizationHeader.startsWith(BASIC_AUTH_HEADER)) {
+                if ( StringUtils.isNotEmpty(authorizationHeader) && authorizationHeader.startsWith(BASIC_AUTH_HEADER)
+                        ) {
                     return true;
                 }
             }
@@ -84,7 +88,7 @@ public class BasicAuthenticationHandler implements AuthenticationHandler {
     }
 
     @Override
-    public AuthenticationResult authenticate(MessageContext messageContext) {
+    public AuthenticationResult authenticate(MessageContext messageContext) throws AuthServerException, AuthenticationFailException, AuthClientException {
 
         AuthenticationResult authenticationResult = new AuthenticationResult(AuthenticationStatus.FAILED);
         AuthenticationContext authenticationContext = (AuthenticationContext) messageContext;
@@ -92,11 +96,11 @@ public class BasicAuthenticationHandler implements AuthenticationHandler {
                 getHeader(HttpHeaders.AUTHORIZATION);
 
         String[] splitAuthorizationHeader = authorizationHeader.split(" ");
-        if (splitAuthorizationHeader != null && splitAuthorizationHeader.length == 2) {
+        if ( splitAuthorizationHeader != null && splitAuthorizationHeader.length == 2 ) {
             byte[] decodedAuthHeader = Base64.decodeBase64(authorizationHeader.split(" ")[1].getBytes());
             String authHeader = new String(decodedAuthHeader, Charset.defaultCharset());
             String[] splitCredentials = authHeader.split(":");
-            if (splitCredentials != null && splitCredentials.length == 2) {
+            if ( splitCredentials != null && splitCredentials.length == 2 ) {
                 String userName = splitCredentials[0];
                 String password = splitCredentials[1];
 
@@ -109,7 +113,8 @@ public class BasicAuthenticationHandler implements AuthenticationHandler {
                     User user = new User();
                     user.setUserName(MultitenantUtils.getTenantAwareUsername(userName));
                     user.setTenantDomain(tenantDomain);
-                    authenticationResult.setUser(user);
+
+                    authenticationContext.setUser(user);
 
 
                     //TODO: Related to this https://wso2.org/jira/browse/IDENTITY-4752 - Class IdentityMgtEventListener
@@ -120,13 +125,13 @@ public class BasicAuthenticationHandler implements AuthenticationHandler {
 
                     UserRealm userRealm = AuthenticationServiceHolder.getInstance().getRealmService().
                             getTenantUserRealm(tenantId);
-                    if (userRealm != null) {
+                    if ( userRealm != null ) {
                         userStoreManager = (UserStoreManager) userRealm.getUserStoreManager();
                         boolean isAuthenticated = userStoreManager.authenticate(MultitenantUtils.
                                 getTenantAwareUsername(userName), password);
-                        if (isAuthenticated) {
+                        if ( isAuthenticated ) {
                             authenticationResult.setAuthenticationStatus(AuthenticationStatus.SUCCESS);
-                            if (log.isDebugEnabled()) {
+                            if ( log.isDebugEnabled() ) {
                                 log.debug("BasicAuthentication success.");
                             }
                         }
@@ -134,24 +139,24 @@ public class BasicAuthenticationHandler implements AuthenticationHandler {
                     } else {
                         String errorMessage = "Error occurred while trying to load the user realm for the tenant.";
                         log.error(errorMessage);
-                        authenticationResult.setMessage(errorMessage);
+                        throw new AuthenticationFailException(errorMessage);
                     }
-                } catch (org.wso2.carbon.user.api.UserStoreException e) {
+                } catch ( org.wso2.carbon.user.api.UserStoreException e ) {
                     String errorMessage = "Error occurred while trying to authenticate, " + e.getMessage();
                     log.error(errorMessage);
-                    authenticationResult.setMessage(errorMessage);
+                    throw new AuthenticationFailException(errorMessage);
                 }
             } else {
                 String errorMessage = "Error occurred while trying to authenticate and  auth user credentials " +
                         "are not define correctly.";
                 log.error(errorMessage);
-                authenticationResult.setMessage(errorMessage);
+                throw new AuthClientException(errorMessage);
             }
         } else {
             String errorMessage = "Error occurred while trying to authenticate and  " + HttpHeaders.AUTHORIZATION
                     + " header values are not define correctly.";
             log.error(errorMessage);
-            authenticationResult.setMessage(errorMessage);
+            throw new AuthClientException(errorMessage);
         }
 
 

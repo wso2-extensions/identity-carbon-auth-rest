@@ -17,70 +17,19 @@
  */
 package org.wso2.carbon.identity.auth.service.handler;
 
-import org.apache.commons.lang.StringUtils;
-import org.wso2.carbon.identity.auth.service.AuthenticationContext;
-import org.wso2.carbon.identity.core.handler.IdentityHandler;
-import org.wso2.carbon.identity.core.handler.InitConfig;
-import org.wso2.carbon.identity.core.model.ResourceAccessControlConfig;
-import org.wso2.carbon.identity.core.util.IdentityUtil;
-
-import java.util.Map;
+import org.wso2.carbon.identity.auth.service.module.ResourceConfig;
+import org.wso2.carbon.identity.auth.service.module.ResourceConfigKey;
+import org.wso2.carbon.identity.core.handler.AbstractIdentityHandler;
 
 /**
  * ResourceHandler can be extended to handle resource context and will execute all the handlers.
- *
  */
-public class ResourceHandler implements IdentityHandler {
-
-    private static final String HTTP_ALL_METHOD = "all";
-
+public abstract class ResourceHandler extends AbstractIdentityHandler {
     /**
      * Handle Resource.
      *
-     * @param authenticationContext
+     * @param resourceConfigKey
      * @return
      */
-    public boolean handleResource(AuthenticationContext authenticationContext) {
-
-        boolean isSecuredResourceFound = false;
-        Map<ResourceAccessControlConfig.ResourceKey, ResourceAccessControlConfig> resourceAccessControlConfigHolder =
-                IdentityUtil.getResourceAccessControlConfigHolder();
-        for (Map.Entry<ResourceAccessControlConfig.ResourceKey, ResourceAccessControlConfig> entry :
-                                                                        resourceAccessControlConfigHolder.entrySet()) {
-            ResourceAccessControlConfig resourceAccessControlConfig = entry.getValue();
-            String configuredContext = resourceAccessControlConfig.getContext();
-            String httpMethods = resourceAccessControlConfig.getHttpMethod();
-
-            if ((configuredContext.endsWith("*") && authenticationContext.getAuthenticationRequest().getContextPath().startsWith(configuredContext.substring(0, configuredContext.length() - 1)) ) ||
-                    configuredContext.equals(authenticationContext.getAuthenticationRequest().getContextPath())) {
-                if (authenticationContext.getAuthenticationRequest().getMethod().contains(httpMethods) || HTTP_ALL_METHOD.equals(httpMethods)
-                        || StringUtils.isNotEmpty(httpMethods)) {
-                    if(resourceAccessControlConfig.isSecured()) {
-                        isSecuredResourceFound = true;
-                    }
-                }
-            }
-        }
-        return isSecuredResourceFound;
-    }
-
-    @Override
-    public void init(InitConfig initConfig) {
-
-    }
-
-    @Override
-    public String getName() {
-        return "ResourceHandler";
-    }
-
-    @Override
-    public boolean isEnabled() {
-        return true;
-    }
-
-    @Override
-    public int getPriority() {
-        return 100;
-    }
+    public abstract ResourceConfig getSecuredResource(ResourceConfigKey resourceConfigKey);
 }

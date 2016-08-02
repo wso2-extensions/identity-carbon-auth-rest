@@ -35,6 +35,7 @@ public class AccessTokenInfo {
     private long validityPeriod;
     private int errorCode;
     private String endUserName;
+    private HashMap<String, Object> parameters = new HashMap<String, Object>();
 
     public String[] getScopes() {
         return scope;
@@ -72,11 +73,17 @@ public class AccessTokenInfo {
         return issuedTime;
     }
 
+    public void setIssuedTime(long issuedTime) {
+        this.issuedTime = issuedTime;
+    }
+
     public long getValidityPeriod() {
         return validityPeriod;
     }
 
-    private HashMap<String, Object> parameters = new HashMap<String, Object>();
+    public void setValidityPeriod(long validityPeriod) {
+        this.validityPeriod = validityPeriod;
+    }
 
     public String getConsumerKey() {
         return consumerKey;
@@ -84,14 +91,6 @@ public class AccessTokenInfo {
 
     public void setConsumerKey(String consumerKey) {
         this.consumerKey = consumerKey;
-    }
-
-    public void setIssuedTime(long issuedTime) {
-        this.issuedTime = issuedTime;
-    }
-
-    public void setValidityPeriod(long validityPeriod) {
-        this.validityPeriod = validityPeriod;
     }
 
     public void addParameter(String paramName, Object paramValue) {

@@ -28,7 +28,6 @@ import java.util.List;
 
 /**
  * AuthorizationServiceHolder to hold the services.
- *
  */
 public class AuthorizationServiceHolder {
 

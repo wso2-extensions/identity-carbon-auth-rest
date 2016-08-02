@@ -20,9 +20,7 @@ package org.wso2.carbon.identity.auth.service;
 
 
 /**
- *
  * Authentication Status.
- *
  */
 public enum AuthenticationStatus {
     SUCCESS,

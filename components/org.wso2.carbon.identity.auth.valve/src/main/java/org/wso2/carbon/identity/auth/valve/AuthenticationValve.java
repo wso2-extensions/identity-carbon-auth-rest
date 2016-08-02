@@ -24,15 +24,17 @@ import org.apache.catalina.valves.ValveBase;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.identity.auth.service.*;
-import org.wso2.carbon.identity.auth.service.exception.AuthServiceClientException;
+import org.wso2.carbon.identity.auth.service.exception.AuthClientException;
+import org.wso2.carbon.identity.auth.service.exception.AuthServerException;
+import org.wso2.carbon.identity.auth.service.exception.AuthenticationFailException;
 import org.wso2.carbon.identity.auth.service.factory.AuthenticationRequestBuilderFactory;
-import org.wso2.carbon.identity.auth.valve.internal.AuthenticationValveServiceHolder;
-import org.wso2.carbon.identity.core.handler.HandlerManager;
+import org.wso2.carbon.identity.auth.service.module.ResourceConfig;
+import org.wso2.carbon.identity.auth.service.module.ResourceConfigKey;
+import org.wso2.carbon.identity.auth.valve.util.AuthHandlerManager;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.List;
 
 
 /**
@@ -40,56 +42,63 @@ import java.util.List;
  */
 public class AuthenticationValve extends ValveBase {
 
-    private static final String AUTHENTICATED_USER = "authenticated-user";
+    private static final String AUTH_CONTEXT = "auth-context";
     private static final String AUTH_HEADER_NAME = "WWW-Authenticate";
 
     private static final Log log = LogFactory.getLog(AuthenticationValve.class);
 
     @Override
     public void invoke(Request request, Response response) throws IOException, ServletException {
-        String requestURI = request.getRequestURI();
-        if (log.isDebugEnabled()) {
-            log.debug("AuthenticationValve hit on " + requestURI);
+
+        AuthenticationManager authenticationManager = AuthHandlerManager.getInstance().getAuthenticationManager();
+        ResourceConfig securedResource = authenticationManager.getSecuredResource(new ResourceConfigKey(request
+                .getRequestURI(), request.getMethod()));
+        if ( securedResource == null ) {
+            getNext().invoke(request, response);
+            return;
         }
+
+        if ( log.isDebugEnabled() ) {
+            log.debug("AuthenticationValve hit on secured resource : " + request.getRequestURI());
+        }
+        AuthenticationContext authenticationContext = null;
         AuthenticationResult authenticationResult = null;
         try {
             AuthenticationRequest.AuthenticationRequestBuilder requestBuilder =
                     AuthenticationRequestBuilderFactory.getInstance().createRequestBuilder(request, response);
-            AuthenticationContext authenticationContext = new AuthenticationContext(requestBuilder.build());
-            List<AuthenticationManager> authenticationManagers =
-                    AuthenticationValveServiceHolder.getInstance().getAuthenticationManagers();
-
-            AuthenticationManager authenticationManager = HandlerManager.getInstance().getFirstPriorityHandler(authenticationManagers, true);
-
+            authenticationContext = new AuthenticationContext(requestBuilder.build());
+            authenticationContext.setResourceConfig(securedResource);
+            //Do authentication.
             authenticationResult = authenticationManager.authenticate(authenticationContext);
-            AuthenticationStatus authenticationStatus = authenticationResult.getAuthenticationStatus();
-            if (authenticationStatus.equals(AuthenticationStatus.SUCCESS)) {
-                request.setAttribute(AUTHENTICATED_USER, authenticationResult.getUser());
-                getNext().invoke(request, response);
-            }else if(authenticationStatus.equals(AuthenticationStatus.NOTSECURED)) {
-                getNext().invoke(request, response);
-            }else{
 
-                StringBuilder value = new StringBuilder(16);
-                value.append("realm user=\"");
-                if (authenticationResult != null && authenticationResult.getUser() != null) {
-                    value.append(authenticationResult.getUser().getUserName());
-                }
-                value.append('\"');
-                response.setHeader(AUTH_HEADER_NAME, value.toString());
-                response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+            AuthenticationStatus authenticationStatus = authenticationResult.getAuthenticationStatus();
+            if ( authenticationStatus.equals(AuthenticationStatus.SUCCESS) ) {
+                //Set the User object as an attribute for further references.
+                request.setAttribute(AUTH_CONTEXT, authenticationContext);
+                getNext().invoke(request, response);
+            } else {
+                handleErrorResponse(authenticationContext, response, HttpServletResponse.SC_UNAUTHORIZED);
             }
-        } catch (AuthServiceClientException e) {
-            StringBuilder value = new StringBuilder(16);
-            value.append("realm user=\"");
-            if (authenticationResult != null && authenticationResult.getUser() != null) {
-                value.append(authenticationResult.getUser().getUserName());
-            }
-            value.append('\"');
-            response.setHeader(AUTH_HEADER_NAME, value.toString());
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+        } catch ( AuthClientException e ) {
+            handleErrorResponse(authenticationContext, response, HttpServletResponse.SC_BAD_REQUEST);
+        } catch ( AuthServerException e ) {
+            handleErrorResponse(authenticationContext, response, HttpServletResponse.SC_BAD_REQUEST);
+        } catch ( AuthenticationFailException e ) {
+            handleErrorResponse(authenticationContext, response, HttpServletResponse.SC_UNAUTHORIZED);
         }
 
 
+    }
+
+    private void handleErrorResponse(AuthenticationContext authenticationContext, Response response, int error) throws
+            IOException {
+        StringBuilder value = new StringBuilder(16);
+        value.append("realm user=\"");
+        if ( authenticationContext.getUser() != null ) {
+            value.append(authenticationContext.getUser().getUserName());
+        }
+        value.append('\"');
+        response.setHeader(AUTH_HEADER_NAME, value.toString());
+        response.sendError(error);
     }
 }

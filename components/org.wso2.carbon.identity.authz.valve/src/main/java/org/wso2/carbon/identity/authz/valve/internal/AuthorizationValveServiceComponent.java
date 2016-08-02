@@ -33,13 +33,14 @@ import org.wso2.carbon.identity.authz.service.AuthorizationManager;
 public class AuthorizationValveServiceComponent {
 
     private static final Log log = LogFactory.getLog(AuthorizationValveServiceComponent.class);
+
     protected void activate(ComponentContext cxt) {
-        if (log.isDebugEnabled())
+        if ( log.isDebugEnabled() )
             log.debug("AuthorizationValveServiceComponent is activated");
     }
 
     protected void setAuthorizationManager(AuthorizationManager authorizationManager) {
-        if (log.isDebugEnabled()) {
+        if ( log.isDebugEnabled() ) {
             log.debug("AuthorizationManager acquired");
         }
         AuthorizationValveServiceHolder.getInstance().getAuthorizationManagerList().add(authorizationManager);

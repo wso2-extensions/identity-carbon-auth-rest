@@ -17,21 +17,15 @@
  */
 package org.wso2.carbon.identity.authz.service.handler;
 
-import org.apache.commons.lang.StringUtils;
 import org.wso2.carbon.identity.authz.service.AuthorizationContext;
 import org.wso2.carbon.identity.core.handler.IdentityHandler;
 import org.wso2.carbon.identity.core.handler.InitConfig;
-import org.wso2.carbon.identity.core.model.ResourceAccessControlConfig;
-import org.wso2.carbon.identity.core.util.IdentityUtil;
-
-import java.util.Map;
 
 /**
  * ResourceHandler can be extended to handle resource permission and will execute all the handlers until it gets the
  * permission strings.
- *
  */
-public class ResourceHandler implements IdentityHandler {
+public abstract class ResourceHandler implements IdentityHandler {
 
     private static final String HTTP_ALL_METHOD = "all";
 
@@ -41,36 +35,7 @@ public class ResourceHandler implements IdentityHandler {
      * @param authorizationContext
      * @return
      */
-    public boolean handleResource(AuthorizationContext authorizationContext) {
-
-        boolean isResourcePermissionFound = false;
-        Map<ResourceAccessControlConfig.ResourceKey, ResourceAccessControlConfig> resourceAccessControlConfigHolder =
-                IdentityUtil.getResourceAccessControlConfigHolder();
-        StringBuilder permissionsBuilder = new StringBuilder();
-        for (Map.Entry<ResourceAccessControlConfig.ResourceKey, ResourceAccessControlConfig> entry :
-                                                                        resourceAccessControlConfigHolder.entrySet()) {
-            ResourceAccessControlConfig resourceAccessControlConfig = entry.getValue();
-            String configuredContext = resourceAccessControlConfig.getContext();
-            String httpMethods = resourceAccessControlConfig.getHttpMethod();
-
-            if ((configuredContext.endsWith("*") && authorizationContext.getContext().startsWith(configuredContext.substring(0,configuredContext.length()-1)) ) ||
-                    configuredContext.equals(authorizationContext.getContext())) {
-                if (authorizationContext.getHttpMethods().contains(httpMethods) || HTTP_ALL_METHOD.equals(httpMethods)
-                        || StringUtils.isNotEmpty(httpMethods)) {
-                    if (StringUtils.isNotEmpty(permissionsBuilder.toString()) &&
-                            StringUtils.isNotEmpty(resourceAccessControlConfig.getPermissions())) {
-                        permissionsBuilder.append(",");
-                    }
-                    if(StringUtils.isNotEmpty(resourceAccessControlConfig.getPermissions())) {
-                        permissionsBuilder.append(resourceAccessControlConfig.getPermissions());
-                        isResourcePermissionFound = true;
-                    }
-                }
-            }
-        }
-        authorizationContext.setPermissionString(permissionsBuilder.toString());
-        return isResourcePermissionFound;
-    }
+    public abstract boolean handleResource(AuthorizationContext authorizationContext);
 
     @Override
     public void init(InitConfig initConfig) {
