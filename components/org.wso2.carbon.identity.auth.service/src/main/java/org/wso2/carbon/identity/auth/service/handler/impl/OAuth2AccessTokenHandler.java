@@ -28,7 +28,6 @@ import org.wso2.carbon.identity.auth.service.AuthenticationRequest;
 import org.wso2.carbon.identity.auth.service.AuthenticationResult;
 import org.wso2.carbon.identity.auth.service.AuthenticationStatus;
 import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
-import org.wso2.carbon.identity.auth.service.module.AccessTokenInfo;
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
 import org.wso2.carbon.identity.core.handler.InitConfig;
 import org.wso2.carbon.identity.oauth2.OAuth2TokenValidationService;
@@ -38,12 +37,14 @@ import org.wso2.carbon.identity.oauth2.dto.OAuth2TokenValidationResponseDTO;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
 /**
- * OAuthAuthenticationHandler is for authenticate the request based on Token.
+ * OAuth2AccessTokenHandler is for authenticate the request based on Token.
  * canHandle method will confirm whether this request can be handled by this authenticator or not.
  */
-public class OAuthAuthenticationHandler implements AuthenticationHandler {
 
-    private static final Log log = LogFactory.getLog(OAuthAuthenticationHandler.class);
+//OAuth2AccessTokenHandler
+public class OAuth2AccessTokenHandler implements AuthenticationHandler {
+
+    private static final Log log = LogFactory.getLog(OAuth2AccessTokenHandler.class);
     private final String OAUTH_HEADER = "Bearer";
 
     @Override
@@ -51,21 +52,46 @@ public class OAuthAuthenticationHandler implements AuthenticationHandler {
         AuthenticationResult authenticationResult = new AuthenticationResult(AuthenticationStatus.FAILED);
         AuthenticationContext authenticationContext = (AuthenticationContext) messageContext;
         AuthenticationRequest authenticationRequest = authenticationContext.getAuthenticationRequest();
-        if (authenticationRequest != null) {
+        if ( authenticationRequest != null ) {
+
             String authorizationHeader = authenticationRequest.getHeader(HttpHeaders.AUTHORIZATION);
-            if (StringUtils.isNotEmpty(authorizationHeader) && authorizationHeader.startsWith(OAUTH_HEADER)) {
-                String tokenId = authorizationHeader.split(" ")[1];
+            if ( StringUtils.isNotEmpty(authorizationHeader) && authorizationHeader.startsWith(OAUTH_HEADER) ) {
+                String accessToken = authorizationHeader.split(" ")[1];
 
-                AccessTokenInfo tokenMetaData = getTokenMetaData(tokenId);
-                User user = new User();
-                user.setUserName(MultitenantUtils.getTenantAwareUsername(tokenMetaData.getEndUserName()));
-                user.setTenantDomain(MultitenantUtils.getTenantDomain(tokenMetaData.getEndUserName()));
+                OAuth2TokenValidationService oAuth2TokenValidationService = new OAuth2TokenValidationService();
+                OAuth2TokenValidationRequestDTO requestDTO = new OAuth2TokenValidationRequestDTO();
+                OAuth2TokenValidationRequestDTO.OAuth2AccessToken token = requestDTO.new OAuth2AccessToken();
 
-                authenticationResult.setUser(user);
+                token.setIdentifier(accessToken);
+                token.setTokenType(OAUTH_HEADER);
+                requestDTO.setAccessToken(token);
 
-                if (tokenMetaData.isTokenValid()) {
+                //TODO: If these values are not set, validation will fail giving an NPE. Need to see why that happens
+                OAuth2TokenValidationRequestDTO.TokenValidationContextParam contextParam = requestDTO.new
+                        TokenValidationContextParam();
+                contextParam.setKey("dummy");
+                contextParam.setValue("dummy");
+
+                OAuth2TokenValidationRequestDTO.TokenValidationContextParam[] contextParams =
+                        new OAuth2TokenValidationRequestDTO.TokenValidationContextParam[1];
+                contextParams[0] = contextParam;
+                requestDTO.setContext(contextParams);
+
+                OAuth2ClientApplicationDTO clientApplicationDTO = oAuth2TokenValidationService.findOAuthConsumerIfTokenIsValid
+                        (requestDTO);
+                OAuth2TokenValidationResponseDTO responseDTO = clientApplicationDTO.getAccessTokenValidationResponse();
+
+                if (responseDTO.isValid() ) {
                     authenticationResult.setAuthenticationStatus(AuthenticationStatus.SUCCESS);
                 }
+
+                User user = new User();
+                user.setUserName(MultitenantUtils.getTenantAwareUsername(responseDTO.getAuthorizedUser()));
+                user.setTenantDomain(MultitenantUtils.getTenantDomain(responseDTO.getAuthorizedUser()));
+
+                //clientApplicationDTO.getConsumerKey()
+                authenticationResult.setUser(user);
+
             }
         }
         return authenticationResult;
@@ -95,9 +121,9 @@ public class OAuthAuthenticationHandler implements AuthenticationHandler {
     public boolean canHandle(MessageContext messageContext) {
         AuthenticationContext authenticationContext = (AuthenticationContext) messageContext;
         AuthenticationRequest authenticationRequest = authenticationContext.getAuthenticationRequest();
-        if (authenticationRequest != null) {
+        if ( authenticationRequest != null ) {
             String authorizationHeader = authenticationRequest.getHeader(HttpHeaders.AUTHORIZATION);
-            if (StringUtils.isNotEmpty(authorizationHeader) && authorizationHeader.startsWith(OAUTH_HEADER)) {
+            if ( StringUtils.isNotEmpty(authorizationHeader) && authorizationHeader.startsWith(OAUTH_HEADER) ) {
                 return true;
             }
         }
@@ -105,54 +131,5 @@ public class OAuthAuthenticationHandler implements AuthenticationHandler {
     }
 
 
-    public AccessTokenInfo getTokenMetaData(String accessToken) {
-
-        AccessTokenInfo tokenInfo = new AccessTokenInfo();
-        OAuth2TokenValidationService oAuth2TokenValidationService = new OAuth2TokenValidationService();
-        OAuth2TokenValidationRequestDTO requestDTO = new OAuth2TokenValidationRequestDTO();
-        OAuth2TokenValidationRequestDTO.OAuth2AccessToken token = requestDTO.new OAuth2AccessToken();
-
-        token.setIdentifier(accessToken);
-        token.setTokenType("bearer");
-        requestDTO.setAccessToken(token);
-
-        //TODO: If these values are not set, validation will fail giving an NPE. Need to see why that happens
-        OAuth2TokenValidationRequestDTO.TokenValidationContextParam contextParam = requestDTO.new
-                TokenValidationContextParam();
-        contextParam.setKey("dummy");
-        contextParam.setValue("dummy");
-
-        OAuth2TokenValidationRequestDTO.TokenValidationContextParam[] contextParams =
-                new OAuth2TokenValidationRequestDTO.TokenValidationContextParam[1];
-        contextParams[0] = contextParam;
-        requestDTO.setContext(contextParams);
-
-        OAuth2ClientApplicationDTO clientApplicationDTO = oAuth2TokenValidationService.findOAuthConsumerIfTokenIsValid
-                (requestDTO);
-        OAuth2TokenValidationResponseDTO responseDTO = clientApplicationDTO.getAccessTokenValidationResponse();
-
-        if (!responseDTO.isValid()) {
-            tokenInfo.setTokenValid(responseDTO.isValid());
-            log.error("Invalid OAuth Token : " + responseDTO.getErrorMsg());
-            return tokenInfo;
-        }
-
-        tokenInfo.setTokenValid(responseDTO.isValid());
-        tokenInfo.setEndUserName(responseDTO.getAuthorizedUser());
-        tokenInfo.setConsumerKey(clientApplicationDTO.getConsumerKey());
-
-        // Convert Expiry Time to milliseconds.
-        if (responseDTO.getExpiryTime() == Long.MAX_VALUE) {
-            tokenInfo.setValidityPeriod(Long.MAX_VALUE);
-        } else {
-            tokenInfo.setValidityPeriod(responseDTO.getExpiryTime() * 1000);
-        }
-
-        tokenInfo.setIssuedTime(System.currentTimeMillis());
-        tokenInfo.setScope(responseDTO.getScope());
-
-
-        return tokenInfo;
-    }
 
 }
