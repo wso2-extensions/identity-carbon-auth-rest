@@ -30,11 +30,13 @@ import org.wso2.carbon.identity.auth.service.exception.AuthenticationFailExcepti
 import org.wso2.carbon.identity.auth.service.factory.AuthenticationRequestBuilderFactory;
 import org.wso2.carbon.identity.auth.service.module.ResourceConfig;
 import org.wso2.carbon.identity.auth.service.module.ResourceConfigKey;
+import org.wso2.carbon.identity.auth.valve.internal.AuthenticationValveServiceHolder;
 import org.wso2.carbon.identity.auth.valve.util.AuthHandlerManager;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.List;
 
 
 /**
@@ -55,7 +57,6 @@ public class AuthenticationValve extends ValveBase {
                 .getRequestURI(), request.getMethod()));
         if ( securedResource == null ) {
             getNext().invoke(request, response);
-            return;
         }
 
         if ( log.isDebugEnabled() ) {
@@ -64,9 +65,10 @@ public class AuthenticationValve extends ValveBase {
         AuthenticationContext authenticationContext = null;
         AuthenticationResult authenticationResult = null;
         try {
-            AuthenticationRequest.AuthenticationRequestBuilder requestBuilder =
-                    AuthenticationRequestBuilderFactory.getInstance().createRequestBuilder(request, response);
-            authenticationContext = new AuthenticationContext(requestBuilder.build());
+
+            AuthenticationRequest.AuthenticationRequestBuilder authenticationRequestBuilder = AuthHandlerManager
+                    .getInstance().getRequestBuilder(request, response).createRequestBuilder(request, response);
+            authenticationContext = new AuthenticationContext(authenticationRequestBuilder.build());
             authenticationContext.setResourceConfig(securedResource);
             //Do authentication.
             authenticationResult = authenticationManager.authenticate(authenticationContext);
