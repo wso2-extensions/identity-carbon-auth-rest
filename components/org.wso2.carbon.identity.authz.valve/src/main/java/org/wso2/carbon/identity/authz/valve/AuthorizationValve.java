@@ -56,7 +56,8 @@ public class AuthorizationValve extends ValveBase {
 
         AuthenticationContext authenticationContext = (AuthenticationContext) request.getAttribute(AUTH_CONTEXT);
 
-        if ( authenticationContext.getUser() != null && StringUtils.isNotEmpty(authenticationContext.getUser()
+        if (authenticationContext != null && authenticationContext.getUser() != null && StringUtils.isNotEmpty
+                (authenticationContext.getUser()
                 .getUserName()) ) {
             ResourceConfig resourceConfig = authenticationContext.getResourceConfig();
             String contextPath = request.getContextPath();

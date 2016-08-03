@@ -1,6 +1,9 @@
 package org.wso2.carbon.identity.auth.valve.util;
 
+import org.apache.catalina.connector.Request;
+import org.apache.catalina.connector.Response;
 import org.wso2.carbon.identity.auth.service.AuthenticationManager;
+import org.wso2.carbon.identity.auth.service.factory.AuthenticationRequestBuilderFactory;
 import org.wso2.carbon.identity.auth.valve.internal.AuthenticationValveServiceHolder;
 import org.wso2.carbon.identity.core.handler.HandlerManager;
 
@@ -23,5 +26,20 @@ public class AuthHandlerManager {
         AuthenticationManager authenticationManager = HandlerManager.getInstance().getFirstPriorityHandler
                 (authenticationManagers, true);
         return authenticationManager;
+    }
+
+    public AuthenticationRequestBuilderFactory getRequestBuilder(Request request, Response response){
+
+        AuthenticationRequestBuilderFactory  requestBuilderFactory = null ;
+        List<AuthenticationRequestBuilderFactory> requestBuilderFactories = AuthenticationValveServiceHolder
+                .getInstance().getRequestBuilderFactories();
+        for (AuthenticationRequestBuilderFactory requestBuilderFactoryTmp :requestBuilderFactories){
+            if(requestBuilderFactoryTmp.canHandle(request, response)){
+                requestBuilderFactory = requestBuilderFactoryTmp ;
+                break ;
+            }
+        }
+        return requestBuilderFactory ;
+
     }
 }
