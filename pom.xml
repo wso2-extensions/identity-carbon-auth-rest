@@ -172,23 +172,23 @@
             <dependency>
                 <groupId>org.wso2.carbon.identity</groupId>
                 <artifactId>org.wso2.carbon.identity.auth.service</artifactId>
-                <version>${org.wso2.carbon.identity.auth.service.version}</version>
+                <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.wso2.carbon.identity</groupId>
                 <artifactId>org.wso2.carbon.identity.authz.service</artifactId>
-                <version>${org.wso2.carbon.identity.authz.service.version}</version>
+                <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>org.wso2.carbon.identity</groupId>
                 <artifactId>org.wso2.carbon.identity.authz.valve</artifactId>
-                <version>${org.wso2.carbon.identity.authz.valve.version}</version>
+                <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.wso2.carbon.identity</groupId>
                 <artifactId>org.wso2.carbon.identity.auth.valve</artifactId>
-                <version>${org.wso2.carbon.identity.auth.valve.version}</version>
+                <version>${project.version}</version>
             </dependency>
 
             <dependency>
