@@ -299,11 +299,11 @@
         </org.wso2.carbon.identity.authz.valve.version.range>
 
         <!--Carbon identity version-->
-        <identity.framework.version>5.5.0-SNAPSHOT</identity.framework.version>
+        <identity.framework.version>5.5.0-m4</identity.framework.version>
         <carbon.identity.package.export.version>${identity.framework.version}</carbon.identity.package.export.version>
         <carbon.identity.package.import.version.range>[5.0.0, 6.0.0)</carbon.identity.package.import.version.range>
 
-        <org.wso2.carbon.identity.oauth.version>5.2.0-SNAPSHOT</org.wso2.carbon.identity.oauth.version>
+        <org.wso2.carbon.identity.oauth.version>5.2.0-m4</org.wso2.carbon.identity.oauth.version>
         <org.wso2.carbon.identity.oauth.export.version>${org.wso2.carbon.identity.oauth.version}
         </org.wso2.carbon.identity.oauth.export.version>
         <org.wso2.carbon.identity.oauth.import.version.range>[5.0.0, 6.0.0)
