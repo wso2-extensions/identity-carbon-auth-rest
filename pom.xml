@@ -197,12 +197,6 @@
                 <version>${org.wso2.carbon.identity.oauth.version}</version>
             </dependency>
 
-            <dependency>
-                <groupId>org.apache.cxf</groupId>
-                <artifactId>cxf-bundle</artifactId>
-                <version>${cxf-version}</version>
-            </dependency>
-
 
         </dependencies>
     </dependencyManagement>
@@ -287,13 +281,6 @@
 
     <properties>
 
-        <org.wso2.carbon.identity.auth.cxf.version>1.0.0-SNAPSHOT</org.wso2.carbon.identity.auth.cxf.version>
-        <org.wso2.carbon.identity.auth.cxf.export.version>${org.wso2.carbon.identity.auth.cxf.version}
-        </org.wso2.carbon.identity.auth.cxf.export.version>
-        <org.wso2.carbon.identity.auth.cxf.import.version.range>[1.0.0, 2.0.0)
-        </org.wso2.carbon.identity.auth.cxf.import.version.range>
-
-
         <org.wso2.carbon.identity.auth.service.version>${project.version}
         </org.wso2.carbon.identity.auth.service.version>
         <org.wso2.carbon.identity.auth.service.version.range>[1.0.0, 2.0.0)
@@ -359,7 +346,6 @@
         <maven.buildnumber.plugin.version>1.4</maven.buildnumber.plugin.version>
         <carbon.p2.plugin.version>1.5.3</carbon.p2.plugin.version>
 
-        <cxf-version>2.7.13</cxf-version>
     </properties>
 
 
