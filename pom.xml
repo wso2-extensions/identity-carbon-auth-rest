@@ -36,13 +36,12 @@
     </description>
     <url>http://wso2.org</url>
 
-    <!--scm>
-        <url>https://github.com/wso2-extensions/identity-carbon-auth-mutual-ssl.git</url>
-        <developerConnection>scm:git:https://github.com/wso2-extensions/identity-carbon-auth-mutual-ssl.git
-        </developerConnection>
-        <connection>scm:git:https://github.com/wso2-extensions/identity-carbon-auth-mutual-ssl.git</connection>
-        <tag>HEAD</tag>
-    </scm-->
+    <scm>
+        <url>https://github.com/wso2-extensions/identity-carbon-auth-rest.git</url>
+        <developerConnection>scm:git:https://github.com/wso2-extensions/identity-carbon-auth-rest.git</developerConnection>
+        <connection>scm:git:https://github.com/wso2-extensions/identity-carbon-auth-rest.git</connection>
+        <tag>v1.0.0-SNAPSHOT</tag>
+    </scm>
 
     <modules>
         <module>components/org.wso2.carbon.identity.auth.service</module>
