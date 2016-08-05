@@ -177,15 +177,15 @@ public class AuthenticationRequest implements Serializable
 
             CookieKey cookieKey = (CookieKey) o;
 
-            if ( !name.equals(cookieKey.name) ) return false;
-            return path.equals(cookieKey.path);
+            if ( name != null ? !name.equals(cookieKey.name) : cookieKey.name != null ) return false;
+            return !(path != null ? !path.equals(cookieKey.path) : cookieKey.path != null);
 
         }
 
         @Override
         public int hashCode() {
-            int result = name.hashCode();
-            result = 31 * result + path.hashCode();
+            int result = name != null ? name.hashCode() : 0;
+            result = 31 * result + (path != null ? path.hashCode() : 0);
             return result;
         }
 
