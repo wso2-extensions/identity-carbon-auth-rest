@@ -26,7 +26,7 @@
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
-    <groupId>org.wso2.carbon.identity</groupId>
+    <groupId>org.wso2.carbon.identity.auth.rest</groupId>
     <artifactId>identity-carbon-auth-rest</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
@@ -163,35 +163,35 @@
             </dependency>
 
             <dependency>
-                <groupId>org.wso2.carbon.identity</groupId>
+                <groupId>org.wso2.carbon.identity.framework</groupId>
                 <artifactId>org.wso2.carbon.identity.core</artifactId>
                 <version>${identity.framework.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>org.wso2.carbon.identity</groupId>
+                <groupId>org.wso2.carbon.identity.auth.rest</groupId>
                 <artifactId>org.wso2.carbon.identity.auth.service</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.wso2.carbon.identity</groupId>
+                <groupId>org.wso2.carbon.identity.auth.rest</groupId>
                 <artifactId>org.wso2.carbon.identity.authz.service</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>org.wso2.carbon.identity</groupId>
+                <groupId>org.wso2.carbon.identity.auth.rest</groupId>
                 <artifactId>org.wso2.carbon.identity.authz.valve</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.wso2.carbon.identity</groupId>
+                <groupId>org.wso2.carbon.identity.auth.rest</groupId>
                 <artifactId>org.wso2.carbon.identity.auth.valve</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>org.wso2.carbon.identity</groupId>
+                <groupId>org.wso2.carbon.identity.inbound.auth.oauth2</groupId>
                 <artifactId>org.wso2.carbon.identity.oauth</artifactId>
                 <version>${org.wso2.carbon.identity.oauth.version}</version>
             </dependency>
