@@ -26,6 +26,7 @@ import org.wso2.carbon.identity.auth.service.factory.AuthenticationRequestBuilde
 import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
 import org.wso2.carbon.identity.auth.service.handler.ResourceHandler;
 import org.wso2.carbon.identity.auth.service.handler.impl.BasicAuthenticationHandler;
+import org.wso2.carbon.identity.auth.service.handler.impl.ClientCertificateBasedAuthenticationHandler;
 import org.wso2.carbon.identity.auth.service.handler.impl.OAuth2AccessTokenHandler;
 import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
 import org.wso2.carbon.user.core.service.RealmService;
@@ -50,7 +51,7 @@ public class AuthenticationServiceComponent {
         try {
             cxt.getBundleContext().registerService(AuthenticationHandler.class, new BasicAuthenticationHandler(), null);
             cxt.getBundleContext().registerService(AuthenticationHandler.class, new OAuth2AccessTokenHandler(), null);
-
+            cxt.getBundleContext().registerService(AuthenticationHandler.class, new ClientCertificateBasedAuthenticationHandler(), null);
 
             cxt.getBundleContext().registerService(AuthenticationManager.class, AuthenticationManager.getInstance(),
                     null);
