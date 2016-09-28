@@ -20,11 +20,9 @@
 
 package org.wso2.carbon.identity.auth.service.handler.impl;
 
-import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.http.HttpHeaders;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.identity.application.common.model.User;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
@@ -34,28 +32,21 @@ import org.wso2.carbon.identity.auth.service.exception.AuthClientException;
 import org.wso2.carbon.identity.auth.service.exception.AuthServerException;
 import org.wso2.carbon.identity.auth.service.exception.AuthenticationFailException;
 import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
-import org.wso2.carbon.identity.auth.service.internal.AuthenticationServiceHolder;
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
 import org.wso2.carbon.identity.core.handler.InitConfig;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
-import org.wso2.carbon.user.api.UserRealm;
-import org.wso2.carbon.user.core.UserStoreManager;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
-import java.nio.charset.Charset;
-
 /**
- *
  * This authentication handler does the the authentication based on client certificate.
  * The client's' SSL certificate should be verified by the HTTP container.
  * This handler checked whether the certificate is verified by the container.
  * If yes, the value of the 'User' HTTP header will be treated as the authenticated user.
- *
  */
 public class ClientCertificateBasedAuthenticationHandler implements AuthenticationHandler {
 
     private static final Log log = LogFactory.getLog(ClientCertificateBasedAuthenticationHandler.class);
-    private final String CLIENT_CERTIFICATE_ATTRIBUTE_NAME = "javax.servlet.request.X509Certificate";
+    private static final String CLIENT_CERTIFICATE_ATTRIBUTE_NAME = "javax.servlet.request.X509Certificate";
 
     @Override
     public void init(InitConfig initConfig) {
@@ -79,13 +70,11 @@ public class ClientCertificateBasedAuthenticationHandler implements Authenticati
 
     @Override
     public boolean canHandle(MessageContext messageContext) {
-        if ( messageContext instanceof AuthenticationContext ) {
+        if (messageContext instanceof AuthenticationContext) {
             AuthenticationContext authenticationContext = (AuthenticationContext) messageContext;
-            if ( authenticationContext != null &&
-                    authenticationContext.getAuthenticationRequest() != null &&
-                    authenticationContext.getAuthenticationRequest().getAttribute(CLIENT_CERTIFICATE_ATTRIBUTE_NAME) != null
-                    ) {
-
+            if (authenticationContext.getAuthenticationRequest() != null &&
+                    authenticationContext.getAuthenticationRequest().
+                            getAttribute(CLIENT_CERTIFICATE_ATTRIBUTE_NAME) != null) {
                 return true;
             }
         }
@@ -93,20 +82,21 @@ public class ClientCertificateBasedAuthenticationHandler implements Authenticati
     }
 
     @Override
-    public AuthenticationResult authenticate(MessageContext messageContext) throws AuthServerException, AuthenticationFailException, AuthClientException {
+    public AuthenticationResult authenticate(MessageContext messageContext)
+            throws AuthServerException, AuthenticationFailException, AuthClientException {
 
         AuthenticationResult authenticationResult = new AuthenticationResult(AuthenticationStatus.FAILED);
 
-        if ( messageContext instanceof AuthenticationContext ) {
+        if (messageContext instanceof AuthenticationContext) {
             AuthenticationContext authenticationContext = (AuthenticationContext) messageContext;
-            if ( authenticationContext != null &&
-                    authenticationContext.getAuthenticationRequest() != null &&
-                    authenticationContext.getAuthenticationRequest().getAttribute(CLIENT_CERTIFICATE_ATTRIBUTE_NAME) != null
+            if (authenticationContext.getAuthenticationRequest() != null &&
+                    authenticationContext.getAuthenticationRequest().
+                            getAttribute(CLIENT_CERTIFICATE_ATTRIBUTE_NAME) != null
                     ) {
 
                 String username = authenticationContext.getAuthenticationRequest().getHeader("WSO2-Identity-User");
 
-                if(StringUtils.isNotEmpty(username)){
+                if (StringUtils.isNotEmpty(username)) {
                     String tenantDomain = MultitenantUtils.getTenantDomain(username);
 
                     User user = new User();
@@ -117,8 +107,14 @@ public class ClientCertificateBasedAuthenticationHandler implements Authenticati
 
                     authenticationResult.setAuthenticationStatus(AuthenticationStatus.SUCCESS);
 
+                    if (log.isDebugEnabled()) {
+                        log.debug(String.format("Client certificate based authentication was successful. " +
+                                "Set '%s' as the user", username));
+                    }
+
                     // Set Carbon context values.
-                    PrivilegedCarbonContext.getThreadLocalCarbonContext().setUsername(MultitenantUtils.getTenantAwareUsername(username));
+                    PrivilegedCarbonContext.getThreadLocalCarbonContext().
+                            setUsername(MultitenantUtils.getTenantAwareUsername(username));
                     PrivilegedCarbonContext.getThreadLocalCarbonContext().setTenantDomain(tenantDomain);
 
                     int tenantId = IdentityTenantUtil.getTenantIdOfUser(username);
