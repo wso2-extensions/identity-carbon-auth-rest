@@ -19,11 +19,11 @@ package org.wso2.carbon.identity.authz.service;
 
 
 import org.apache.commons.lang.StringUtils;
+import org.wso2.carbon.identity.auth.service.handler.HandlerManager;
 import org.wso2.carbon.identity.authz.service.exception.AuthzServiceServerException;
 import org.wso2.carbon.identity.authz.service.handler.AuthorizationHandler;
 import org.wso2.carbon.identity.authz.service.handler.ResourceHandler;
 import org.wso2.carbon.identity.authz.service.internal.AuthorizationServiceHolder;
-import org.wso2.carbon.identity.core.handler.HandlerManager;
 import org.wso2.carbon.identity.core.handler.IdentityHandler;
 import org.wso2.carbon.identity.core.handler.InitConfig;
 
