@@ -111,14 +111,6 @@ public class ClientCertificateBasedAuthenticationHandler implements Authenticati
                         log.debug(String.format("Client certificate based authentication was successful. " +
                                 "Set '%s' as the user", username));
                     }
-
-                    // Set Carbon context values.
-                    PrivilegedCarbonContext.getThreadLocalCarbonContext().
-                            setUsername(MultitenantUtils.getTenantAwareUsername(username));
-                    PrivilegedCarbonContext.getThreadLocalCarbonContext().setTenantDomain(tenantDomain);
-
-                    int tenantId = IdentityTenantUtil.getTenantIdOfUser(username);
-                    PrivilegedCarbonContext.getThreadLocalCarbonContext().setTenantId(tenantId);
                 }
 
             }
