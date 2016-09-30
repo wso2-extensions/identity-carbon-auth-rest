@@ -46,7 +46,7 @@ import java.nio.charset.Charset;
  * BasicAuthenticationHandler is for authenticate the request based on Basic Authentication.
  * canHandle method will confirm whether this request can be handled by this authenticator or not.
  */
-public class BasicAuthenticationHandler implements AuthenticationHandler {
+public class BasicAuthenticationHandler extends AuthenticationHandler {
 
     private static final Log log = LogFactory.getLog(BasicAuthenticationHandler.class);
     private final String BASIC_AUTH_HEADER = "Basic";
@@ -88,7 +88,7 @@ public class BasicAuthenticationHandler implements AuthenticationHandler {
     }
 
     @Override
-    public AuthenticationResult authenticate(MessageContext messageContext) throws AuthServerException, AuthenticationFailException, AuthClientException {
+    protected AuthenticationResult doAuthenticate(MessageContext messageContext) throws AuthServerException, AuthenticationFailException, AuthClientException {
 
         AuthenticationResult authenticationResult = new AuthenticationResult(AuthenticationStatus.FAILED);
         AuthenticationContext authenticationContext = (AuthenticationContext) messageContext;

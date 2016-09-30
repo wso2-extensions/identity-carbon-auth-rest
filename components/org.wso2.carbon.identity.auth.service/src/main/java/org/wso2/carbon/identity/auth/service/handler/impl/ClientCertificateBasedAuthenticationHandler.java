@@ -43,10 +43,11 @@ import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
  * This handler checked whether the certificate is verified by the container.
  * If yes, the value of the 'User' HTTP header will be treated as the authenticated user.
  */
-public class ClientCertificateBasedAuthenticationHandler implements AuthenticationHandler {
+public class ClientCertificateBasedAuthenticationHandler extends AuthenticationHandler {
 
     private static final Log log = LogFactory.getLog(ClientCertificateBasedAuthenticationHandler.class);
     private static final String CLIENT_CERTIFICATE_ATTRIBUTE_NAME = "javax.servlet.request.X509Certificate";
+    private static final String USER_HEADER_NAME = "WSO2-Identity-User";
 
     @Override
     public void init(InitConfig initConfig) {
@@ -82,7 +83,7 @@ public class ClientCertificateBasedAuthenticationHandler implements Authenticati
     }
 
     @Override
-    public AuthenticationResult authenticate(MessageContext messageContext)
+    protected AuthenticationResult doAuthenticate(MessageContext messageContext)
             throws AuthServerException, AuthenticationFailException, AuthClientException {
 
         AuthenticationResult authenticationResult = new AuthenticationResult(AuthenticationStatus.FAILED);
@@ -94,7 +95,7 @@ public class ClientCertificateBasedAuthenticationHandler implements Authenticati
                             getAttribute(CLIENT_CERTIFICATE_ATTRIBUTE_NAME) != null
                     ) {
 
-                String username = authenticationContext.getAuthenticationRequest().getHeader("WSO2-Identity-User");
+                String username = authenticationContext.getAuthenticationRequest().getHeader(USER_HEADER_NAME);
 
                 if (StringUtils.isNotEmpty(username)) {
                     String tenantDomain = MultitenantUtils.getTenantDomain(username);

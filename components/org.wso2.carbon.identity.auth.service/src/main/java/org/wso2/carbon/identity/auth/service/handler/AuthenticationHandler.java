@@ -18,23 +18,87 @@
 
 package org.wso2.carbon.identity.auth.service.handler;
 
+import org.wso2.carbon.context.PrivilegedCarbonContext;
+import org.wso2.carbon.identity.application.common.model.User;
+import org.wso2.carbon.identity.auth.service.AuthenticationContext;
 import org.wso2.carbon.identity.auth.service.AuthenticationResult;
+import org.wso2.carbon.identity.auth.service.AuthenticationStatus;
 import org.wso2.carbon.identity.auth.service.exception.AuthClientException;
 import org.wso2.carbon.identity.auth.service.exception.AuthenticationFailException;
 import org.wso2.carbon.identity.auth.service.exception.AuthServerException;
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
 import org.wso2.carbon.identity.core.handler.IdentityMessageHandler;
+import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
+import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
 /**
- * AuthenticationHandler provides the interface to implement any authentication.
+ * This is the abstract class for custom authentication handlers.
+ *
+ * The custom handlers should implement the doAuthenticate() method and optionally the postAuthenticate() method.
+ *
  */
-public interface AuthenticationHandler extends IdentityMessageHandler {
+public abstract class AuthenticationHandler implements IdentityMessageHandler {
+
 
     /**
-     * Pass MessageContext to authenticate.
+     *
+     * This method is called by the authentication framework.
      *
      * @param messageContext
-     * @return AuthenticationResult
+     * @return
+     * @throws AuthServerException
+     * @throws AuthenticationFailException
+     * @throws AuthClientException
      */
-    public AuthenticationResult authenticate(MessageContext messageContext) throws AuthServerException, AuthenticationFailException, AuthClientException;
+    public final AuthenticationResult authenticate(MessageContext messageContext) throws AuthServerException, AuthenticationFailException, AuthClientException {
+
+        AuthenticationResult authenticationResult = this.doAuthenticate(messageContext);
+        postAuthenticate(messageContext, authenticationResult);
+
+        return authenticationResult;
+
+    }
+
+    /**
+     *
+     * This is where the actual authentication takes place.
+     *
+     * @param messageContext
+     * @return
+     * @throws AuthServerException
+     * @throws AuthenticationFailException
+     * @throws AuthClientException
+     */
+    protected abstract AuthenticationResult doAuthenticate(MessageContext messageContext) throws AuthServerException, AuthenticationFailException, AuthClientException;
+
+    /**
+     *
+     * This is the post authenticate hook.
+     *
+     * A custom authentication handler can provide its own implementation for the hook.
+     *
+     * The default behaviour is to set the user details in {@link org.wso2.carbon.context.CarbonContext}
+     *
+     * @param messageContext
+     */
+    protected void postAuthenticate(MessageContext messageContext, AuthenticationResult authenticationResult){
+
+        AuthenticationContext authenticationContext = (AuthenticationContext) messageContext;
+
+
+        if (AuthenticationStatus.SUCCESS.equals(authenticationResult.getAuthenticationStatus())){
+
+            User user = authenticationContext.getUser();
+
+            // Set the user and tenant in the Carbon context.
+            PrivilegedCarbonContext.getThreadLocalCarbonContext().
+                    setUsername(MultitenantUtils.getTenantAwareUsername(user.getUserName()));
+            PrivilegedCarbonContext.getThreadLocalCarbonContext().setTenantDomain(user.getTenantDomain());
+
+            int tenantId = IdentityTenantUtil.getTenantIdOfUser(user.getUserName());
+            PrivilegedCarbonContext.getThreadLocalCarbonContext().setTenantId(tenantId);
+        }
+
+
+    }
 }

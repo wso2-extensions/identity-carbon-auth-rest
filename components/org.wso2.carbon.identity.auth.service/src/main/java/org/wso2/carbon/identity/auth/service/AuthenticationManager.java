@@ -105,10 +105,6 @@ public class AuthenticationManager implements IdentityHandler {
         }
         AuthenticationResult authenticationResult = authenticationHandler.authenticate(authenticationContext);
 
-        if (AuthenticationStatus.SUCCESS.equals(authenticationResult.getAuthenticationStatus())){
-            setUserInfoInCarbonContext(authenticationContext);
-        }
-
         if ( log.isDebugEnabled() ) {
             if ( authenticationResult != null ) {
                 log.debug("AuthenticationResult : " + authenticationResult.getAuthenticationStatus() + ".");
@@ -136,18 +132,6 @@ public class AuthenticationManager implements IdentityHandler {
     @Override
     public int getPriority() {
         return 1;
-    }
-
-    private void setUserInfoInCarbonContext(AuthenticationContext authenticationContext) {
-        User user = authenticationContext.getUser();
-
-        // Set the user and tenant in the Carbon context.
-        PrivilegedCarbonContext.getThreadLocalCarbonContext().
-                setUsername(MultitenantUtils.getTenantAwareUsername(user.getUserName()));
-        PrivilegedCarbonContext.getThreadLocalCarbonContext().setTenantDomain(user.getTenantDomain());
-
-        int tenantId = IdentityTenantUtil.getTenantIdOfUser(user.getUserName());
-        PrivilegedCarbonContext.getThreadLocalCarbonContext().setTenantId(tenantId);
     }
 
 }
