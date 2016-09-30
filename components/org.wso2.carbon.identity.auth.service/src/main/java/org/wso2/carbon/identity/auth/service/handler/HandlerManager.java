@@ -120,12 +120,12 @@ public class HandlerManager {
      * Get the first priority handler after sort and filter the enabled handlers.
      *
      * @param identityMessageHandlers
-     * @param isEnableHandlersOnly
+     * @param checkEnabledHandlersOnly
      * @param messageContext
      * @return IdentityMessageHandler
      */
     public <T1 extends IdentityMessageHandler, T2 extends MessageContext> T1
-            getFirstPriorityHandler(List<T1> identityMessageHandlers, boolean isEnableHandlersOnly, T2 messageContext) {
+            getFirstPriorityHandler(List<T1> identityMessageHandlers, boolean checkEnabledHandlersOnly, T2 messageContext) {
         if (log.isDebugEnabled()) {
             log.debug("Get first priority handler for the given handler list and the context");
         }
@@ -137,7 +137,7 @@ public class HandlerManager {
         sort(identityMessageHandlers, new MessageHandlerComparator(messageContext));
 
         for (T1 identityHandlerTmp : identityMessageHandlers) {
-            if (isEnableHandlersOnly) {
+            if (checkEnabledHandlersOnly) {
                 if (identityHandlerTmp.isEnabled(messageContext)) {
                     if (identityHandlerTmp.canHandle(messageContext)) {
                         identityMessageHandler = identityHandlerTmp;
