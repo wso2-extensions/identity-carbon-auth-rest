@@ -163,12 +163,12 @@ public class HandlerManager {
      * Sort and filter enabled handlers.
      *
      * @param identityMessageHandlers
-     * @param isEnableHandlersOnly
+     * @param checkEnabledHandlersOnly
      * @param messageContext
      * @return List<IdentityMessageHandler>
      */
     public <T1 extends IdentityMessageHandler, T2 extends MessageContext> List<T1> sortHandlers
-                        (List<T1> identityMessageHandlers, boolean isEnableHandlersOnly, T2 messageContext) {
+                        (List<T1> identityMessageHandlers, boolean checkEnabledHandlersOnly, T2 messageContext) {
 
         if (log.isDebugEnabled()) {
             log.debug("Sort the handler list with the context.");
@@ -178,7 +178,7 @@ public class HandlerManager {
         }
         List<T1> identityMessageHandlerList = identityMessageHandlers;
         sort(identityMessageHandlerList, new MessageHandlerComparator(messageContext));
-        if (isEnableHandlersOnly) {
+        if (checkEnabledHandlersOnly) {
             identityMessageHandlerList = new ArrayList<>();
             for (T1 identityMessageHandler : identityMessageHandlers) {
                 if (identityMessageHandler.isEnabled(messageContext)) {
