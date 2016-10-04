@@ -28,7 +28,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.wso2.carbon.identity.auth.rest</groupId>
     <artifactId>identity-carbon-auth-rest</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>0.1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>WSO2 Carbon - Auth/Authz Modules</name>
     <description>
@@ -40,7 +40,7 @@
         <url>https://github.com/wso2-extensions/identity-carbon-auth-rest.git</url>
         <developerConnection>scm:git:https://github.com/wso2-extensions/identity-carbon-auth-rest.git</developerConnection>
         <connection>scm:git:https://github.com/wso2-extensions/identity-carbon-auth-rest.git</connection>
-        <tag>v1.0.0-SNAPSHOT</tag>
+        <tag>HEAD</tag>
     </scm>
 
     <modules>
@@ -282,30 +282,28 @@
 
         <org.wso2.carbon.identity.auth.service.version>${project.version}
         </org.wso2.carbon.identity.auth.service.version>
-        <org.wso2.carbon.identity.auth.service.version.range>[1.0.0, 2.0.0)
+        <org.wso2.carbon.identity.auth.service.version.range>[0.0.0, 1.0.0)
         </org.wso2.carbon.identity.auth.service.version.range>
 
         <org.wso2.carbon.identity.auth.valve.version>${project.version}</org.wso2.carbon.identity.auth.valve.version>
-        <org.wso2.carbon.identity.auth.valve.version.range>[1.0.0, 2.0.0)
+        <org.wso2.carbon.identity.auth.valve.version.range>[0.0.0, 1.0.0)
         </org.wso2.carbon.identity.auth.valve.version.range>
 
         <org.wso2.carbon.identity.authz.service.version>${project.version}
         </org.wso2.carbon.identity.authz.service.version>
-        <org.wso2.carbon.identity.authz.service.version.range>[1.0.0, 2.0.0)
+        <org.wso2.carbon.identity.authz.service.version.range>[0.0.0, 1.0.0)
         </org.wso2.carbon.identity.authz.service.version.range>
 
         <org.wso2.carbon.identity.authz.valve.version>${project.version}</org.wso2.carbon.identity.authz.valve.version>
-        <org.wso2.carbon.identity.authz.valve.version.range>[1.0.0, 2.0.0)
+        <org.wso2.carbon.identity.authz.valve.version.range>[0.0.0, 1.0.0)
         </org.wso2.carbon.identity.authz.valve.version.range>
 
         <!--Carbon identity version-->
-        <identity.framework.version>5.5.0-SNAPSHOT</identity.framework.version>
+        <identity.framework.version>5.5.0</identity.framework.version>
         <carbon.identity.package.export.version>${identity.framework.version}</carbon.identity.package.export.version>
         <carbon.identity.package.import.version.range>[5.0.0, 6.0.0)</carbon.identity.package.import.version.range>
 
-        <org.wso2.carbon.identity.oauth.version>5.2.0-SNAPSHOT</org.wso2.carbon.identity.oauth.version>
-        <org.wso2.carbon.identity.oauth.export.version>${org.wso2.carbon.identity.oauth.version}
-        </org.wso2.carbon.identity.oauth.export.version>
+        <org.wso2.carbon.identity.oauth.version>5.2.0</org.wso2.carbon.identity.oauth.version>
         <org.wso2.carbon.identity.oauth.import.version.range>[5.0.0, 6.0.0)
         </org.wso2.carbon.identity.oauth.import.version.range>
 
