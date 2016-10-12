@@ -57,6 +57,7 @@ public class AuthenticationValve extends ValveBase {
                 .getRequestURI(), request.getMethod()));
         if ( securedResource == null ) {
             getNext().invoke(request, response);
+            return;
         }
 
         if ( log.isDebugEnabled() ) {

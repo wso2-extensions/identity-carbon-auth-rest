@@ -4,8 +4,8 @@ import org.apache.catalina.connector.Request;
 import org.apache.catalina.connector.Response;
 import org.wso2.carbon.identity.auth.service.AuthenticationManager;
 import org.wso2.carbon.identity.auth.service.factory.AuthenticationRequestBuilderFactory;
+import org.wso2.carbon.identity.auth.service.handler.HandlerManager;
 import org.wso2.carbon.identity.auth.valve.internal.AuthenticationValveServiceHolder;
-import org.wso2.carbon.identity.core.handler.HandlerManager;
 
 import java.util.List;
 

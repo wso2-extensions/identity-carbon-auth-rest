@@ -59,6 +59,12 @@ public class AuthenticationRequestBuilderFactory extends AbstractIdentityHandler
         AuthenticationRequest.AuthenticationRequestBuilder authenticationRequestBuilder = new AuthenticationRequest
                 .AuthenticationRequestBuilder();
 
+        Enumeration<String> attributeNames = request.getAttributeNames();
+        while ( attributeNames.hasMoreElements() ) {
+            String attributeName = attributeNames.nextElement();
+            authenticationRequestBuilder.addAttribute(attributeName, request.getAttribute(attributeName));
+        }
+
         Enumeration<String> headerNames = request.getHeaderNames();
         while ( headerNames.hasMoreElements() ) {
             String headerName = headerNames.nextElement();

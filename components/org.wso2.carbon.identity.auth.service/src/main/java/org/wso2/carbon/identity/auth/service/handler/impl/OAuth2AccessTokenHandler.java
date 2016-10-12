@@ -41,14 +41,14 @@ import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
  * canHandle method will confirm whether this request can be handled by this authenticator or not.
  */
 
-public class OAuth2AccessTokenHandler implements AuthenticationHandler {
+public class OAuth2AccessTokenHandler extends AuthenticationHandler {
 
     private static final Log log = LogFactory.getLog(OAuth2AccessTokenHandler.class);
     private final String OAUTH_HEADER = "Bearer";
     private final String CONSUMER_KEY = "consumer-key";
 
     @Override
-    public AuthenticationResult authenticate(MessageContext messageContext) {
+    protected AuthenticationResult doAuthenticate(MessageContext messageContext) {
 
         AuthenticationResult authenticationResult = new AuthenticationResult(AuthenticationStatus.FAILED);
         AuthenticationContext authenticationContext = (AuthenticationContext) messageContext;

@@ -42,16 +42,30 @@ public class AuthenticationRequest implements Serializable
 
     private static final long serialVersionUID = 5418537216546873566L;
 
+    protected Map<String, Object> attributes = new HashMap<>();
     protected Map<String, String> headers = new HashMap<>();
     protected Map<CookieKey, Cookie> cookies = new HashMap<>();
     protected String contextPath;
     protected String method;
 
     protected AuthenticationRequest(AuthenticationRequestBuilder builder) {
+        this.attributes = builder.attributes;
         this.headers = builder.headers;
         this.cookies = builder.cookies;
         this.contextPath = builder.contextPath;
         this.method = builder.method;
+    }
+
+    public Map<String, Object> getAttributeMap() {
+        return Collections.unmodifiableMap(attributes);
+    }
+
+    public Enumeration<String> getAttributeNames() {
+        return Collections.enumeration(attributes.keySet());
+    }
+
+    public Object getAttribute(String name) {
+        return attributes.get(name);
     }
 
     public Map<String, String> getHeaderMap() {
@@ -98,6 +112,7 @@ public class AuthenticationRequest implements Serializable
 
     public static class AuthenticationRequestBuilder {
 
+        public Map<String, Object> attributes = new HashMap<>();
         private Map<String, String> headers = new HashMap<>();
         private Map<CookieKey, Cookie> cookies = new HashMap<>();
         private String contextPath;
@@ -114,6 +129,15 @@ public class AuthenticationRequest implements Serializable
 
         public AuthenticationRequestBuilder setContextPath(String contextPath) {
             this.contextPath = contextPath;
+            return this;
+        }
+
+        public AuthenticationRequestBuilder addAttribute(String name, Object value) {
+            if ( this.attributes.containsKey(name) ) {
+                throw new AuthRuntimeException("Attributes map trying to override existing " +
+                        "attribute " + name);
+            }
+            this.attributes.put(name, value);
             return this;
         }
 
@@ -139,7 +163,6 @@ public class AuthenticationRequest implements Serializable
         public AuthenticationRequest build() {
             return new AuthenticationRequest(this);
         }
-
 
     }
 
