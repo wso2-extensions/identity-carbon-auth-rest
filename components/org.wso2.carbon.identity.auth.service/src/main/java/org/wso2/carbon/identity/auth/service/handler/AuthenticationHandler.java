@@ -91,8 +91,7 @@ public abstract class AuthenticationHandler implements IdentityMessageHandler {
             User user = authenticationContext.getUser();
 
             // Set the user and tenant in the Carbon context.
-            PrivilegedCarbonContext.getThreadLocalCarbonContext().
-                    setUsername(MultitenantUtils.getTenantAwareUsername(user.getUserName()));
+            PrivilegedCarbonContext.getThreadLocalCarbonContext().setUsername(user.getUserName());
             PrivilegedCarbonContext.getThreadLocalCarbonContext().setTenantDomain(user.getTenantDomain());
 
             int tenantId = IdentityTenantUtil.getTenantIdOfUser(user.getUserName());
