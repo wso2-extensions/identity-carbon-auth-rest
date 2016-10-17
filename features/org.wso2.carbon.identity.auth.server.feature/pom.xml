@@ -20,7 +20,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
     <parent>
-        <groupId>org.wso2.carbon.identity.auth.rest</groupId>
+        <groupId>org.wso2.carbon.identity</groupId>
         <artifactId>identity-carbon-auth-rest</artifactId>
         <relativePath>../../pom.xml</relativePath>
         <version>1.0.0-SNAPSHOT</version>
@@ -35,11 +35,11 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.wso2.carbon.identity.auth.rest</groupId>
+            <groupId>org.wso2.carbon.identity</groupId>
             <artifactId>org.wso2.carbon.identity.auth.service</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.wso2.carbon.identity.auth.rest</groupId>
+            <groupId>org.wso2.carbon.identity</groupId>
             <artifactId>org.wso2.carbon.identity.auth.valve</artifactId>
         </dependency>
     </dependencies>
@@ -68,10 +68,10 @@
                             </adviceFile>
                             <bundles>
                                 <bundleDef>
-                                    org.wso2.carbon.identity.auth.rest:org.wso2.carbon.identity.auth.service:${org.wso2.carbon.identity.auth.service.version}
+                                    org.wso2.carbon.identity:org.wso2.carbon.identity.auth.service:${org.wso2.carbon.identity.auth.service.version}
                                 </bundleDef>
                                 <bundleDef>
-                                    org.wso2.carbon.identity.auth.rest:org.wso2.carbon.identity.auth.valve:${org.wso2.carbon.identity.auth.valve.version}
+                                    org.wso2.carbon.identity:org.wso2.carbon.identity.auth.valve:${org.wso2.carbon.identity.auth.valve.version}
                                 </bundleDef>
                             </bundles>
                             <importFeatures>
