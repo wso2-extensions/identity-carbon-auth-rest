@@ -22,7 +22,11 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.osgi.service.component.ComponentContext;
 import org.wso2.carbon.identity.authz.service.AuthorizationManager;
+import org.wso2.carbon.identity.core.handler.HandlerComparator;
 
+import java.util.List;
+
+import static java.util.Collections.sort;
 /**
  * @scr.component name="org.wso2.carbon.identity.authz.valve" immediate="true"
  * @scr.reference name="org.wso2.carbon.identity.authz.service.manager.consume"
@@ -43,7 +47,9 @@ public class AuthorizationValveServiceComponent {
         if ( log.isDebugEnabled() ) {
             log.debug("AuthorizationManager acquired");
         }
-        AuthorizationValveServiceHolder.getInstance().getAuthorizationManagerList().add(authorizationManager);
+        List<AuthorizationManager> authorizationManagerList = AuthorizationValveServiceHolder.getInstance().getAuthorizationManagerList();
+        authorizationManagerList.add(authorizationManager);
+        sort(authorizationManagerList,new HandlerComparator());
     }
 
     protected void unsetAuthorizationManager(AuthorizationManager authorizationManager) {

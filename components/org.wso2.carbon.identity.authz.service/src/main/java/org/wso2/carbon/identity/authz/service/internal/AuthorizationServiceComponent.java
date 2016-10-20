@@ -24,7 +24,11 @@ import org.osgi.service.component.ComponentContext;
 import org.wso2.carbon.identity.authz.service.AuthorizationManager;
 import org.wso2.carbon.identity.authz.service.handler.AuthorizationHandler;
 import org.wso2.carbon.identity.authz.service.handler.ResourceHandler;
+import org.wso2.carbon.identity.core.handler.HandlerComparator;
 import org.wso2.carbon.user.core.service.RealmService;
+
+import java.util.Collections;
+import java.util.List;
 
 /**
  * @scr.component name="org.wso2.carbon.identity.authz.service" immediate="true"
@@ -77,7 +81,9 @@ public class AuthorizationServiceComponent {
         if ( log.isDebugEnabled() ) {
             log.debug("AuthorizationHandler acquired");
         }
-        AuthorizationServiceHolder.getInstance().getAuthorizationHandlerList().add(authorizationHandler);
+        List<AuthorizationHandler> authorizationHandlerList = AuthorizationServiceHolder.getInstance().getAuthorizationHandlerList();
+        authorizationHandlerList.add(authorizationHandler);
+        Collections.sort(authorizationHandlerList, new HandlerComparator());
     }
 
     protected void unsetAuthorizationHandler(AuthorizationHandler authorizationHandler) {
@@ -89,7 +95,9 @@ public class AuthorizationServiceComponent {
         if ( log.isDebugEnabled() ) {
             log.debug("ResourceHandler acquired");
         }
-        AuthorizationServiceHolder.getInstance().getResourceHandlerList().add(resourceHandler);
+        List<ResourceHandler> resourceHandlerList = AuthorizationServiceHolder.getInstance().getResourceHandlerList();
+        resourceHandlerList.add(resourceHandler);
+        Collections.sort(resourceHandlerList, new HandlerComparator());
     }
 
     protected void unsetResourceHandler(ResourceHandler resourceHandler) {
