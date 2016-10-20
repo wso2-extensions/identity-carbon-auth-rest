@@ -132,8 +132,6 @@ public class HandlerManager {
         }
         T1 identityMessageHandler = null;
 
-        sort(identityMessageHandlers, new MessageHandlerComparator(messageContext));
-
         for (T1 identityHandlerTmp : identityMessageHandlers) {
             if (checkEnabledHandlersOnly) {
                 if (identityHandlerTmp.isEnabled(messageContext)) {
