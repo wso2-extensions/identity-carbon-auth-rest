@@ -20,11 +20,13 @@ package org.wso2.carbon.identity.auth.service.internal;
 
 import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
 import org.wso2.carbon.identity.auth.service.handler.ResourceHandler;
+import org.wso2.carbon.identity.core.handler.MessageHandlerComparator;
 import org.wso2.carbon.user.core.service.RealmService;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import static java.util.Collections.sort;
 
 /**
  * AuthenticationServiceHolder to hold the services.
@@ -57,6 +59,7 @@ public class AuthenticationServiceHolder {
 
     public void addAuthenticationHandler(AuthenticationHandler authenticationHandler) {
         authenticationHandlers.add(authenticationHandler);
+        sort(authenticationHandlers, new MessageHandlerComparator(null));
     }
 
     public List<ResourceHandler> getResourceHandlers() {
