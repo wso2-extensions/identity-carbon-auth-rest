@@ -68,8 +68,6 @@ public class HandlerManager {
         }
         T identityHandler = null;
 
-        sort(identityHandlers, new HandlerComparator());
-
         for (T identityHandlerTmp : identityHandlers) {
             if (isEnableHandlersOnly) {
                 if (identityHandlerTmp.isEnabled()) {
