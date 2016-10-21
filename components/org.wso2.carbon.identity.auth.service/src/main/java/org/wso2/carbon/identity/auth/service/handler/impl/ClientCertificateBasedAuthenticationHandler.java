@@ -35,6 +35,7 @@ import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
 import org.wso2.carbon.identity.core.handler.InitConfig;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
+import org.wso2.carbon.utils.multitenancy.MultitenantConstants;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
 /**
@@ -100,8 +101,18 @@ public class ClientCertificateBasedAuthenticationHandler extends AuthenticationH
                 if (StringUtils.isNotEmpty(username)) {
                     String tenantDomain = MultitenantUtils.getTenantDomain(username);
 
+                    // Get rid of the tenant domain name suffix, if the user belongs to the super tenant.
+                    if (MultitenantConstants.SUPER_TENANT_DOMAIN_NAME.equals(tenantDomain)) {
+
+                        String superTenantSuffix = "@" + MultitenantConstants.SUPER_TENANT_DOMAIN_NAME;
+
+                        if (username.endsWith(superTenantSuffix)) {
+                            username = username.substring(0, username.length() - superTenantSuffix.length());
+                        }
+                    }
+
                     User user = new User();
-                    user.setUserName(MultitenantUtils.getTenantAwareUsername(username));
+                    user.setUserName(username);
                     user.setTenantDomain(tenantDomain);
 
                     authenticationContext.setUser(user);
