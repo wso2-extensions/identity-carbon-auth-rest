@@ -29,7 +29,11 @@ import org.wso2.carbon.identity.auth.service.handler.impl.BasicAuthenticationHan
 import org.wso2.carbon.identity.auth.service.handler.impl.ClientCertificateBasedAuthenticationHandler;
 import org.wso2.carbon.identity.auth.service.handler.impl.OAuth2AccessTokenHandler;
 import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
+import org.wso2.carbon.identity.core.handler.HandlerComparator;
 import org.wso2.carbon.user.core.service.RealmService;
+
+import java.util.Collections;
+import java.util.List;
 
 /**
  * @scr.component name="org.wso2.carbon.identity.auth.service" immediate="true"
@@ -100,7 +104,9 @@ public class AuthenticationServiceComponent {
         if ( log.isDebugEnabled() ) {
             log.debug("ResourceHandler acquired");
         }
-        AuthenticationServiceHolder.getInstance().getResourceHandlers().add(resourceHandler);
+        List<ResourceHandler> resourceHandlers = AuthenticationServiceHolder.getInstance().getResourceHandlers();
+        resourceHandlers.add(resourceHandler);
+        Collections.sort(resourceHandlers, new HandlerComparator());
     }
 
     protected void removeResourceHandler(ResourceHandler resourceHandler) {

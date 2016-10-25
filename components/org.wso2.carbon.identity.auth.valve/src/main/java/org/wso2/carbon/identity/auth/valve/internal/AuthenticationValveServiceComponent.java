@@ -23,6 +23,11 @@ import org.apache.commons.logging.LogFactory;
 import org.osgi.service.component.ComponentContext;
 import org.wso2.carbon.identity.auth.service.AuthenticationManager;
 import org.wso2.carbon.identity.auth.service.factory.AuthenticationRequestBuilderFactory;
+import org.wso2.carbon.identity.core.handler.HandlerComparator;
+
+import java.util.List;
+
+import static java.util.Collections.sort;
 
 /**
  * @scr.component name="org.wso2.carbon.identity.auth.valve" immediate="true"
@@ -48,7 +53,9 @@ public class AuthenticationValveServiceComponent {
         if ( log.isDebugEnabled() ) {
             log.debug("AuthenticationManager acquired");
         }
-        AuthenticationValveServiceHolder.getInstance().getAuthenticationManagers().add(authenticationManager);
+        List<AuthenticationManager> authenticationManagers = AuthenticationValveServiceHolder.getInstance().getAuthenticationManagers();
+        authenticationManagers.add(authenticationManager);
+        sort(authenticationManagers, new HandlerComparator());
     }
 
     protected void unsetAuthenticationManager(AuthenticationManager authenticationManager) {
