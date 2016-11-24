@@ -48,9 +48,13 @@
 
         <module>components/org.wso2.carbon.identity.authz.service</module>
         <module>components/org.wso2.carbon.identity.authz.valve</module>
+        <module>components/org.wso2.carbon.identity.context.rewrite.valve</module>
+
 
         <module>features/org.wso2.carbon.identity.auth.server.feature</module>
         <module>features/org.wso2.carbon.identity.authz.server.feature</module>
+        <module>features/org.wso2.carbon.identity.context.rewrite.server.feature</module>
+
     </modules>
 
     <repositories>
@@ -183,6 +187,13 @@
                 <artifactId>org.wso2.carbon.identity.authz.valve</artifactId>
                 <version>${project.version}</version>
             </dependency>
+
+            <dependency>
+                <groupId>org.wso2.carbon.identity.auth.rest</groupId>
+                <artifactId>org.wso2.carbon.identity.context.rewrite.valve</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
             <dependency>
                 <groupId>org.wso2.carbon.identity.auth.rest</groupId>
                 <artifactId>org.wso2.carbon.identity.auth.valve</artifactId>
@@ -296,6 +307,8 @@
         <org.wso2.carbon.identity.authz.valve.version>${project.version}</org.wso2.carbon.identity.authz.valve.version>
         <org.wso2.carbon.identity.authz.valve.version.range>[0.0.0, 1.0.0)
         </org.wso2.carbon.identity.authz.valve.version.range>
+
+        <org.wso2.carbon.identity.context.rewrite.valve.version>${project.version}</org.wso2.carbon.identity.context.rewrite.valve.version>
 
         <!--Carbon identity version-->
         <identity.framework.version>5.5.0</identity.framework.version>
