@@ -1,5 +1,8 @@
 package org.wso2.carbon.identity.auth.service.module;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 public class ResourceConfigKey {
 
     private String contextPath;
@@ -33,13 +36,10 @@ public class ResourceConfigKey {
         if ( o == null || getClass() != o.getClass() ) return false;
 
         ResourceConfigKey that = (ResourceConfigKey) o;
-        if ( contextPath.trim().endsWith("*") ) {
-            String contextPathRemovedRegEx = contextPath.trim().substring(0, contextPath.trim().length() - 1);
-            if ( !that.contextPath.startsWith(contextPathRemovedRegEx) ) {
-                return false;
-            }
-        } else if ( !contextPath.equals(that.contextPath) ) {
-            return false;
+        Pattern compile = Pattern.compile(contextPath);
+        Matcher matcher = compile.matcher(that.contextPath);
+        if ( !matcher.matches() ) {
+           return false;
         }
 
         if ( httpMethod.equalsIgnoreCase("all") )
