@@ -25,6 +25,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.identity.auth.service.*;
 import org.wso2.carbon.identity.auth.service.exception.AuthClientException;
+import org.wso2.carbon.identity.auth.service.exception.AuthRuntimeException;
 import org.wso2.carbon.identity.auth.service.exception.AuthServerException;
 import org.wso2.carbon.identity.auth.service.exception.AuthenticationFailException;
 import org.wso2.carbon.identity.auth.service.factory.AuthenticationRequestBuilderFactory;
@@ -87,6 +88,8 @@ public class AuthenticationValve extends ValveBase {
         } catch ( AuthServerException e ) {
             handleErrorResponse(authenticationContext, response, HttpServletResponse.SC_BAD_REQUEST);
         } catch ( AuthenticationFailException e ) {
+            handleErrorResponse(authenticationContext, response, HttpServletResponse.SC_UNAUTHORIZED);
+        } catch (AuthRuntimeException e) {
             handleErrorResponse(authenticationContext, response, HttpServletResponse.SC_UNAUTHORIZED);
         }
 
