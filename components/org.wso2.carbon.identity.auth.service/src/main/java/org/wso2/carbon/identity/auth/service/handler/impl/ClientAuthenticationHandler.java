@@ -23,33 +23,30 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpHeaders;
-import org.wso2.carbon.context.PrivilegedCarbonContext;
-import org.wso2.carbon.identity.application.common.model.User;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
 import org.wso2.carbon.identity.auth.service.AuthenticationResult;
 import org.wso2.carbon.identity.auth.service.AuthenticationStatus;
 import org.wso2.carbon.identity.auth.service.exception.AuthClientException;
-import org.wso2.carbon.identity.auth.service.exception.AuthenticationFailException;
 import org.wso2.carbon.identity.auth.service.exception.AuthServerException;
+import org.wso2.carbon.identity.auth.service.exception.AuthenticationFailException;
 import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
-import org.wso2.carbon.identity.auth.service.internal.AuthenticationServiceHolder;
+import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
 import org.wso2.carbon.identity.core.handler.InitConfig;
-import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
-import org.wso2.carbon.user.api.UserRealm;
-import org.wso2.carbon.user.core.UserStoreManager;
-import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
 import java.nio.charset.Charset;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 /**
- * BasicAuthenticationHandler is for authenticate the request based on Basic Authentication.
+ * ClientAuthenticationHandler is for authenticate the request based on Client Authentication.
  * canHandle method will confirm whether this request can be handled by this authenticator or not.
  */
-public class BasicAuthenticationHandler extends AuthenticationHandler {
+public class ClientAuthenticationHandler extends AuthenticationHandler {
 
-    private static final Log log = LogFactory.getLog(BasicAuthenticationHandler.class);
-    private final String BASIC_AUTH_HEADER = "Basic";
+    private static final Log log = LogFactory.getLog(ClientAuthenticationHandler.class);
+    private final String CLIENT_AUTH_HEADER = "Client";
+    private final String hashingFunction = "SHA-256";
 
     @Override
     public void init(InitConfig initConfig) {
@@ -58,7 +55,7 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
 
     @Override
     public String getName() {
-        return "BasicAuthentication";
+        return "ClientAuthentication";
     }
 
     @Override
@@ -68,17 +65,17 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
 
     @Override
     public int getPriority(MessageContext messageContext) {
-        return 100;
+        return 130;
     }
 
     @Override
     public boolean canHandle(MessageContext messageContext) {
-        if ( messageContext instanceof AuthenticationContext ) {
+        if (messageContext instanceof AuthenticationContext) {
             AuthenticationContext authenticationContext = (AuthenticationContext) messageContext;
-            if ( authenticationContext != null && authenticationContext.getAuthenticationRequest() != null ) {
+            if (authenticationContext != null && authenticationContext.getAuthenticationRequest() != null) {
                 String authorizationHeader = authenticationContext.getAuthenticationRequest().
                         getHeader(HttpHeaders.AUTHORIZATION);
-                if ( StringUtils.isNotEmpty(authorizationHeader) && authorizationHeader.startsWith(BASIC_AUTH_HEADER)
+                if (StringUtils.isNotEmpty(authorizationHeader) && authorizationHeader.startsWith(CLIENT_AUTH_HEADER)
                         ) {
                     return true;
                 }
@@ -96,61 +93,49 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
                 getHeader(HttpHeaders.AUTHORIZATION);
 
         String[] splitAuthorizationHeader = authorizationHeader.split(" ");
-        if ( splitAuthorizationHeader != null && splitAuthorizationHeader.length == 2 ) {
+        if (splitAuthorizationHeader != null && splitAuthorizationHeader.length == 2) {
             byte[] decodedAuthHeader = Base64.decodeBase64(authorizationHeader.split(" ")[1].getBytes());
             String authHeader = new String(decodedAuthHeader, Charset.defaultCharset());
             String[] splitCredentials = authHeader.split(":");
-            if ( splitCredentials != null && splitCredentials.length == 2 ) {
-                String userName = splitCredentials[0];
+            if (splitCredentials != null && splitCredentials.length == 2) {
+                String appName = splitCredentials[0];
                 String password = splitCredentials[1];
+                String hash = AuthConfigurationUtil.getInstance().getClientAuthenticationHash(appName);
 
+                if (StringUtils.isNotBlank(hash)) {
 
-                UserStoreManager userStoreManager = null;
-                try {
-                    int tenantId = IdentityTenantUtil.getTenantIdOfUser(userName);
-                    String tenantDomain = MultitenantUtils.getTenantDomain(userName);
+                    MessageDigest dgst;
+                    try {
+                        dgst = MessageDigest.getInstance(hashingFunction);
 
-                    User user = new User();
-                    user.setUserName(MultitenantUtils.getTenantAwareUsername(userName));
-                    user.setTenantDomain(tenantDomain);
+                        byte[] byteValue = dgst.digest(password.getBytes());
 
-                    authenticationContext.setUser(user);
-
-
-                    //TODO: Related to this https://wso2.org/jira/browse/IDENTITY-4752 - Class IdentityMgtEventListener
-                    // : Line 563: Have to check whether why we can't continue
-                    //without following lines as previous code.
-                    PrivilegedCarbonContext.startTenantFlow();
-                    PrivilegedCarbonContext.getThreadLocalCarbonContext().setTenantDomain(tenantDomain);
-                    PrivilegedCarbonContext.getThreadLocalCarbonContext().setTenantId(tenantId);
-
-                    UserRealm userRealm = AuthenticationServiceHolder.getInstance().getRealmService().
-                            getTenantUserRealm(tenantId);
-                    if ( userRealm != null ) {
-                        userStoreManager = (UserStoreManager) userRealm.getUserStoreManager();
-                        boolean isAuthenticated = userStoreManager.authenticate(MultitenantUtils.
-                                getTenantAwareUsername(userName), password);
-                        if ( isAuthenticated ) {
-                            authenticationResult.setAuthenticationStatus(AuthenticationStatus.SUCCESS);
-                            if ( log.isDebugEnabled() ) {
-                                log.debug("BasicAuthentication success.");
-                            }
+                        //convert the byte to hex format
+                        StringBuffer sb = new StringBuffer();
+                        for (int i = 0; i < byteValue.length; i++) {
+                            sb.append(Integer.toString((byteValue[i] & 0xff) + 0x100, 16).substring(1));
                         }
 
-                    } else {
-                        String errorMessage = "Error occurred while trying to load the user realm for the tenant.";
-                        log.error(errorMessage);
+                        String hashFromRequest = sb.toString();
+                        if (hash.equals(hashFromRequest)) {
+                            authenticationResult.setAuthenticationStatus(AuthenticationStatus.SUCCESS);
+                            if (log.isDebugEnabled()) {
+                                log.debug("ClientAuthentication Success.");
+                            }
+                        }
+                    } catch (NoSuchAlgorithmException e) {
+                        String errorMessage = "Error occurred while hashing the app data.";
+                        log.error(errorMessage, e);
                         throw new AuthenticationFailException(errorMessage);
                     }
-                } catch ( org.wso2.carbon.user.api.UserStoreException e ) {
-                    String errorMessage = "Error occurred while trying to authenticate, " + e.getMessage();
-                    log.error(errorMessage);
-                    throw new AuthenticationFailException(errorMessage);
-                } finally {
-                    PrivilegedCarbonContext.endTenantFlow();
+                } else {
+                    if (log.isDebugEnabled()) {
+                        log.debug("No matching application configuration fould for :" + appName);
+                    }
                 }
+
             } else {
-                String errorMessage = "Error occurred while trying to authenticate and  auth user credentials " +
+                String errorMessage = "Error occurred while trying to authenticate and  auth application credentials " +
                         "are not define correctly.";
                 log.error(errorMessage);
                 throw new AuthClientException(errorMessage);

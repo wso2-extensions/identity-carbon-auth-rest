@@ -81,24 +81,23 @@ public abstract class AuthenticationHandler implements IdentityMessageHandler {
      *
      * @param messageContext
      */
-    protected void postAuthenticate(MessageContext messageContext, AuthenticationResult authenticationResult){
+    protected void postAuthenticate(MessageContext messageContext, AuthenticationResult authenticationResult) {
 
         AuthenticationContext authenticationContext = (AuthenticationContext) messageContext;
 
 
-        if (AuthenticationStatus.SUCCESS.equals(authenticationResult.getAuthenticationStatus())){
+        if (AuthenticationStatus.SUCCESS.equals(authenticationResult.getAuthenticationStatus())) {
 
             User user = authenticationContext.getUser();
+            if (user != null) {
+                // Set the user and tenant in the Carbon context.
+                PrivilegedCarbonContext.getThreadLocalCarbonContext().
+                        setUsername(MultitenantUtils.getTenantAwareUsername(user.getUserName()));
+                PrivilegedCarbonContext.getThreadLocalCarbonContext().setTenantDomain(user.getTenantDomain());
 
-            // Set the user and tenant in the Carbon context.
-            PrivilegedCarbonContext.getThreadLocalCarbonContext().
-                    setUsername(MultitenantUtils.getTenantAwareUsername(user.getUserName()));
-            PrivilegedCarbonContext.getThreadLocalCarbonContext().setTenantDomain(user.getTenantDomain());
-
-            int tenantId = IdentityTenantUtil.getTenantIdOfUser(user.getUserName());
-            PrivilegedCarbonContext.getThreadLocalCarbonContext().setTenantId(tenantId);
+                int tenantId = IdentityTenantUtil.getTenantIdOfUser(user.getUserName());
+                PrivilegedCarbonContext.getThreadLocalCarbonContext().setTenantId(tenantId);
+            }
         }
-
-
     }
 }
