@@ -121,6 +121,9 @@ public class ClientCertificateBasedAuthenticationHandler extends AuthenticationH
                         log.debug(String.format("Client certificate based authentication was successful. " +
                                 "Set '%s' as the user", username));
                     }
+                } else {
+                    //Server to server authentication. No user involves
+                    authenticationResult.setAuthenticationStatus(AuthenticationStatus.SUCCESS);
                 }
 
             }

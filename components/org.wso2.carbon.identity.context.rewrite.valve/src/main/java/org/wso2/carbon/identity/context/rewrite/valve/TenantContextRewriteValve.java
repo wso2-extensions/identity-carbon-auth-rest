@@ -89,7 +89,7 @@ public class TenantContextRewriteValve extends ValveBase {
 
     private List<String> getContextsToRewrite() {
         Map<String, Object> configuration = IdentityConfigParser.getInstance().getConfiguration();
-        Object value = configuration.get("TenantContextsToRewrite.context");
+        Object value = configuration.get("TenantContextsToRewrite.Context");
         if (value == null) {
             return new ArrayList<>();
         }

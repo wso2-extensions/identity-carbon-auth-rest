@@ -18,6 +18,7 @@ public class AuthConfigurationUtil {
     private static AuthConfigurationUtil authConfigurationUtil = new AuthConfigurationUtil();
 
     private Map<ResourceConfigKey, ResourceConfig> resourceConfigMap = new HashMap<>();
+    private Map<String, String> applicationConfigMap = new HashMap<>();
 
 
     private AuthConfigurationUtil() {
@@ -91,4 +92,30 @@ public class AuthConfigurationUtil {
         }
     }
 
+
+    /**
+     * Build rest api resource control config.
+     */
+    public void buildClientAuthenticationHandlerControlData() {
+
+        OMElement resourceAccessControl = IdentityConfigParser.getInstance().getConfigElement(Constants
+                .CLIENT_APP_AUTHENTICATION_ELE);
+        if ( resourceAccessControl != null ) {
+
+            Iterator<OMElement> applications = resourceAccessControl.getChildrenWithName(
+                    new QName(IdentityCoreConstants.IDENTITY_DEFAULT_NAMESPACE, Constants.APPLICATION_ELE));
+            if ( applications != null ) {
+                while ( applications.hasNext() ) {
+                    OMElement resource = applications.next();
+                    String appName = resource.getAttributeValue(new QName(Constants.APPLICATION_NAME_ATTR));
+                    String hash = resource.getAttributeValue(new QName(Constants.APPLICATION_HASH_ATTR));
+                    applicationConfigMap.put(appName, hash);
+                }
+            }
+        }
+    }
+
+    public String getClientAuthenticationHash(String appName) {
+        return applicationConfigMap.get(appName);
+    }
 }
