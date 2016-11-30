@@ -20,6 +20,7 @@ package org.wso2.carbon.identity.authz.service.handler;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.CarbonConstants;
+import org.wso2.carbon.identity.application.common.model.User;
 import org.wso2.carbon.identity.authz.service.AuthorizationContext;
 import org.wso2.carbon.identity.authz.service.AuthorizationResult;
 import org.wso2.carbon.identity.authz.service.AuthorizationStatus;
@@ -53,16 +54,15 @@ public class AuthorizationHandler implements IdentityHandler {
             throws AuthzServiceServerException {
         AuthorizationResult authorizationResult = new AuthorizationResult(AuthorizationStatus.DENY);
         try {
-            String userName = authorizationContext.getUserName();
-            int tenantId = IdentityTenantUtil.getTenantIdOfUser(userName);
+            User user = authorizationContext.getUser();
+            int tenantId = IdentityTenantUtil.getTenantId(user.getTenantDomain());
             String permissionString = authorizationContext.getPermissionString();
 
             RealmService realmService = AuthorizationServiceHolder.getInstance().getRealmService();
             UserRealm tenantUserRealm = realmService.getTenantUserRealm(tenantId);
 
             AuthorizationManager authorizationManager = tenantUserRealm.getAuthorizationManager();
-            boolean isUserAuthorized = authorizationManager.isUserAuthorized(MultitenantUtils.
-                            getTenantAwareUsername(userName),
+            boolean isUserAuthorized = authorizationManager.isUserAuthorized(user.getUserName(),
                     permissionString, CarbonConstants.UI_PERMISSION_ACTION);
             if ( isUserAuthorized ) {
                 authorizationResult.setAuthorizationStatus(AuthorizationStatus.GRANT);

@@ -18,6 +18,7 @@
 package org.wso2.carbon.identity.authz.service;
 
 
+import org.wso2.carbon.identity.application.common.model.User;
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
 
 public class AuthorizationContext extends MessageContext {
@@ -25,16 +26,16 @@ public class AuthorizationContext extends MessageContext {
     private String context;
     private String httpMethods;
 
-    private String userName;
+    private User user;
     private String permissionString;
 
 
-    public String getUserName() {
-        return userName;
+    public User getUser() {
+        return user;
     }
 
-    public void setUserName(String userName) {
-        this.userName = userName;
+    public void setUser(User user) {
+        this.user = user;
     }
 
     public String getPermissionString() {

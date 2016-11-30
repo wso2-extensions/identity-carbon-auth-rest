@@ -71,7 +71,7 @@ public class AuthorizationValve extends ValveBase {
             authorizationContext.setContext(contextPath);
             authorizationContext.setHttpMethods(httpMethod);
 
-            authorizationContext.setUserName(authenticationContext.getUser().getUserName());
+            authorizationContext.setUser(authenticationContext.getUser());
             List<AuthorizationManager> authorizationManagerList =
                     AuthorizationValveServiceHolder.getInstance().getAuthorizationManagerList();
             AuthorizationManager authorizationManager = HandlerManager.getInstance().getFirstPriorityHandler
