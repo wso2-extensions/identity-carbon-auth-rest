@@ -33,7 +33,7 @@ import org.wso2.carbon.identity.authz.service.AuthorizationResult;
 import org.wso2.carbon.identity.authz.service.AuthorizationStatus;
 import org.wso2.carbon.identity.authz.service.exception.AuthzServiceServerException;
 import org.wso2.carbon.identity.authz.valve.internal.AuthorizationValveServiceHolder;
-
+import org.wso2.carbon.identity.authz.valve.util.Utils;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -52,7 +52,6 @@ public class AuthorizationValve extends ValveBase {
 
     @Override
     public void invoke(Request request, Response response) throws IOException, ServletException {
-        String requestURI = request.getRequestURI();
 
         AuthenticationContext authenticationContext = (AuthenticationContext) request.getAttribute(AUTH_CONTEXT);
 
@@ -62,16 +61,18 @@ public class AuthorizationValve extends ValveBase {
             ResourceConfig resourceConfig = authenticationContext.getResourceConfig();
             String contextPath = request.getContextPath();
             String httpMethod = request.getMethod();
-
+            String tenantDomainFromURLMapping = Utils.getTenantDomainFromURLMapping(request);
             AuthorizationContext authorizationContext = new AuthorizationContext();
             if ( resourceConfig != null && StringUtils.isNotEmpty(resourceConfig.getPermissions()) ) {
                 authorizationContext.setPermissionString(resourceConfig.getPermissions());
             }
-
+            if (resourceConfig != null) {
+                authorizationContext.setIsCrossTenantAllowed(resourceConfig.isCrossTenantAllowed());
+            }
             authorizationContext.setContext(contextPath);
             authorizationContext.setHttpMethods(httpMethod);
-
             authorizationContext.setUser(authenticationContext.getUser());
+            authorizationContext.setTenantDomainFromURLMapping(tenantDomainFromURLMapping);
             List<AuthorizationManager> authorizationManagerList =
                     AuthorizationValveServiceHolder.getInstance().getAuthorizationManagerList();
             AuthorizationManager authorizationManager = HandlerManager.getInstance().getFirstPriorityHandler

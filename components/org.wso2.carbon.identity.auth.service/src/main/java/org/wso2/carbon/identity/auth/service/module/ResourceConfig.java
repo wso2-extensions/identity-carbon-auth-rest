@@ -27,6 +27,7 @@ public class ResourceConfig implements Serializable {
     private String context;
     private String httpMethod;
     private boolean isSecured;
+    private boolean isCrossTenantAllowed;
     private String permissions;
 
     public String getContext() {
@@ -53,6 +54,14 @@ public class ResourceConfig implements Serializable {
         this.isSecured = isSecured;
     }
 
+    public boolean isCrossTenantAllowed() {
+        return isCrossTenantAllowed;
+    }
+
+    public void setIsCrossTenantAllowed(boolean isCrossTenantAllowed) {
+        this.isCrossTenantAllowed = isCrossTenantAllowed;
+    }
+
     public String getPermissions() {
         return permissions;
     }
@@ -60,6 +69,5 @@ public class ResourceConfig implements Serializable {
     public void setPermissions(String permissions) {
         this.permissions = permissions;
     }
-
 
 }
