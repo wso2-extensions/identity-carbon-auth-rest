@@ -28,6 +28,8 @@ public class AuthorizationContext extends MessageContext {
 
     private User user;
     private String permissionString;
+    private boolean isCrossTenantAllowed;
+    private String tenantDomainFromURLMapping;
 
 
     public User getUser() {
@@ -46,6 +48,14 @@ public class AuthorizationContext extends MessageContext {
         this.permissionString = permissionString;
     }
 
+    public boolean isCrossTenantAllowed() {
+        return isCrossTenantAllowed;
+    }
+
+    public void setIsCrossTenantAllowed(boolean isCrossTenantAllowed) {
+        this.isCrossTenantAllowed = isCrossTenantAllowed;
+    }
+
     public String getContext() {
         return context;
     }
@@ -62,5 +72,12 @@ public class AuthorizationContext extends MessageContext {
         this.httpMethods = httpMethods;
     }
 
+    public String getTenantDomainFromURLMapping() {
+        return tenantDomainFromURLMapping;
+    }
+
+    public void setTenantDomainFromURLMapping(String tenantDomainFromURLMapping) {
+        this.tenantDomainFromURLMapping = tenantDomainFromURLMapping;
+    }
 
 }

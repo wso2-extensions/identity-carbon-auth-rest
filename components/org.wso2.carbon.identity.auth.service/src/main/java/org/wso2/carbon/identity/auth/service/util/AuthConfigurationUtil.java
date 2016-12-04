@@ -58,9 +58,8 @@ public class AuthConfigurationUtil {
                     String httpMethod = resource.getAttributeValue(
                             new QName(Constants.RESOURCE_HTTP_METHOD_ATTR));
                     String context = resource.getAttributeValue(new QName(Constants.RESOURCE_CONTEXT_ATTR));
-
-
                     String isSecured = resource.getAttributeValue(new QName(Constants.RESOURCE_SECURED_ATTR));
+                    String isCrossTenantAllowed = resource.getAttributeValue(new QName(Constants.RESOURCE_CROSS_TENANT_ATTR));
 
                     StringBuilder permissionBuilder = new StringBuilder();
                     Iterator<OMElement> permissionsIterator = resource.getChildrenWithName(
@@ -84,6 +83,10 @@ public class AuthConfigurationUtil {
                     if ( StringUtils.isNotEmpty(isSecured) && (Boolean.TRUE.toString().equals(isSecured) ||
                             Boolean.FALSE.toString().equals(isSecured)) ) {
                         resourceConfig.setIsSecured(Boolean.parseBoolean(isSecured));
+                    }
+                    if (StringUtils.isNotEmpty(isCrossTenantAllowed) && (Boolean.TRUE.toString().equals(isCrossTenantAllowed) ||
+                            Boolean.FALSE.toString().equals(isCrossTenantAllowed))) {
+                        resourceConfig.setIsCrossTenantAllowed(Boolean.parseBoolean(isCrossTenantAllowed));
                     }
                     resourceConfig.setPermissions(permissionBuilder.toString());
                     resourceConfigMap.put(new ResourceConfigKey(context, httpMethod), resourceConfig);

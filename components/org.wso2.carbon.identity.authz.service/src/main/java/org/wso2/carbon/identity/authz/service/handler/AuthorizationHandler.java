@@ -33,7 +33,6 @@ import org.wso2.carbon.user.api.AuthorizationManager;
 import org.wso2.carbon.user.api.UserRealm;
 import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.user.core.service.RealmService;
-import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
 
 /**
@@ -55,8 +54,11 @@ public class AuthorizationHandler implements IdentityHandler {
         AuthorizationResult authorizationResult = new AuthorizationResult(AuthorizationStatus.DENY);
         try {
             User user = authorizationContext.getUser();
-            int tenantId = IdentityTenantUtil.getTenantId(user.getTenantDomain());
+            String userDomain = user.getTenantDomain();
+            String tenantDomainFromURLMapping = authorizationContext.getTenantDomainFromURLMapping();
+            int tenantId = IdentityTenantUtil.getTenantId(userDomain);
             String permissionString = authorizationContext.getPermissionString();
+            boolean isCrossTenantAllowed = authorizationContext.isCrossTenantAllowed();
 
             RealmService realmService = AuthorizationServiceHolder.getInstance().getRealmService();
             UserRealm tenantUserRealm = realmService.getTenantUserRealm(tenantId);
@@ -64,10 +66,10 @@ public class AuthorizationHandler implements IdentityHandler {
             AuthorizationManager authorizationManager = tenantUserRealm.getAuthorizationManager();
             boolean isUserAuthorized = authorizationManager.isUserAuthorized(user.getUserName(),
                     permissionString, CarbonConstants.UI_PERMISSION_ACTION);
-            if ( isUserAuthorized ) {
+            if (isUserAuthorized && (isCrossTenantAllowed || tenantDomainFromURLMapping.equals(userDomain))) {
                 authorizationResult.setAuthorizationStatus(AuthorizationStatus.GRANT);
             }
-        } catch ( UserStoreException e ) {
+        } catch (UserStoreException e) {
             String errorMessage = "Error occurred while trying to authorize, " + e.getMessage();
             log.error(errorMessage);
             throw new AuthzServiceServerException(errorMessage, e);
