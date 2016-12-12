@@ -23,6 +23,7 @@ import org.apache.catalina.connector.Response;
 import org.apache.catalina.valves.ValveBase;
 import org.apache.commons.lang.StringUtils;
 import org.wso2.carbon.base.MultitenantConstants;
+import org.wso2.carbon.base.ServerConfiguration;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.identity.context.rewrite.bean.RewriteContext;
 import org.wso2.carbon.identity.context.rewrite.util.Utils;
@@ -85,6 +86,10 @@ public class TenantContextRewriteValve extends ValveBase {
                         (request, response);
 
             } else {
+                String carbonWebContext = ServerConfiguration.getInstance().getFirstProperty("WebContextRoot");
+                if (requestURI.contains(carbonWebContext)) {
+                    requestURI = requestURI.replace(carbonWebContext + "/", "");
+                }
                 //Servlet
                 requestURI = requestURI.replace("/t/" + tenantDomain, "");
                 request.getRequestDispatcher(requestURI).forward(request, response);
