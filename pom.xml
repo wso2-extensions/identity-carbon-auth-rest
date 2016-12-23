@@ -27,7 +27,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.wso2.carbon.identity.auth.rest</groupId>
     <artifactId>identity-carbon-auth-rest</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>WSO2 Carbon - Auth/Authz Modules</name>
     <description>
@@ -292,20 +292,20 @@
 
         <org.wso2.carbon.identity.auth.service.version>${project.version}
         </org.wso2.carbon.identity.auth.service.version>
-        <org.wso2.carbon.identity.auth.service.version.range>[1.0.0, 2.0.0)
+        <org.wso2.carbon.identity.auth.service.version.range>[1.1.0, 2.0.0)
         </org.wso2.carbon.identity.auth.service.version.range>
 
         <org.wso2.carbon.identity.auth.valve.version>${project.version}</org.wso2.carbon.identity.auth.valve.version>
-        <org.wso2.carbon.identity.auth.valve.version.range>[1.0.0, 2.0.0)
+        <org.wso2.carbon.identity.auth.valve.version.range>[1.1.0, 2.0.0)
         </org.wso2.carbon.identity.auth.valve.version.range>
 
         <org.wso2.carbon.identity.authz.service.version>${project.version}
         </org.wso2.carbon.identity.authz.service.version>
-        <org.wso2.carbon.identity.authz.service.version.range>[1.0.0, 2.0.0)
+        <org.wso2.carbon.identity.authz.service.version.range>[1.1.0, 2.0.0)
         </org.wso2.carbon.identity.authz.service.version.range>
 
         <org.wso2.carbon.identity.authz.valve.version>${project.version}</org.wso2.carbon.identity.authz.valve.version>
-        <org.wso2.carbon.identity.authz.valve.version.range>[1.0.0, 2.0.0)
+        <org.wso2.carbon.identity.authz.valve.version.range>[1.1.0, 2.0.0)
         </org.wso2.carbon.identity.authz.valve.version.range>
 
         <org.wso2.carbon.identity.context.rewrite.valve.version>${project.version}</org.wso2.carbon.identity.context.rewrite.valve.version>
