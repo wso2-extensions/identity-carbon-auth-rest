@@ -18,6 +18,7 @@
 
 package org.wso2.carbon.identity.auth.service.handler;
 
+import org.wso2.carbon.base.MultitenantConstants;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.identity.application.common.model.User;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
@@ -29,6 +30,7 @@ import org.wso2.carbon.identity.auth.service.exception.AuthServerException;
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
 import org.wso2.carbon.identity.core.handler.IdentityMessageHandler;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
+import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
 /**
@@ -82,6 +84,22 @@ public abstract class AuthenticationHandler implements IdentityMessageHandler {
      * @param messageContext
      */
     protected void postAuthenticate(MessageContext messageContext, AuthenticationResult authenticationResult) {
-        //No post authentication tasks
+
+        AuthenticationContext authenticationContext = (AuthenticationContext) messageContext;
+
+        if (AuthenticationStatus.SUCCESS.equals(authenticationResult.getAuthenticationStatus())) {
+
+            User user = authenticationContext.getUser();
+            if (user != null) {
+                // Set the user in to the Carbon context if the user belongs to same tenant. Skip this for cross tenant
+                // scenarios.
+
+                if (user.getTenantDomain() != null && user.getTenantDomain().equalsIgnoreCase(PrivilegedCarbonContext
+                        .getThreadLocalCarbonContext().getTenantDomain())) {
+                    PrivilegedCarbonContext.getThreadLocalCarbonContext().setUsername(IdentityUtil.addDomainToName
+                            (user.getUserName(), user.getUserStoreDomain()));
+                }
+            }
+        }
     }
 }
