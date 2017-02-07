@@ -18,10 +18,10 @@
 
 package org.wso2.carbon.identity.auth.service;
 
-import org.wso2.carbon.identity.application.common.model.User;
 import org.wso2.carbon.identity.auth.service.exception.AuthRuntimeException;
 import org.wso2.carbon.identity.auth.service.module.ResourceConfig;
-import org.wso2.carbon.identity.core.bean.context.MessageContext;
+import org.wso2.carbon.identity.common.base.message.MessageContext;
+import org.wso2.carbon.identity.mgt.User;
 
 
 /**

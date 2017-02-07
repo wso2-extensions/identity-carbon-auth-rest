@@ -18,10 +18,8 @@
 
 package org.wso2.carbon.identity.auth.service;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.wso2.carbon.context.PrivilegedCarbonContext;
-import org.wso2.carbon.identity.application.common.model.User;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.wso2.carbon.identity.auth.service.exception.AuthClientException;
 import org.wso2.carbon.identity.auth.service.exception.AuthRuntimeException;
 import org.wso2.carbon.identity.auth.service.exception.AuthServerException;
@@ -33,10 +31,10 @@ import org.wso2.carbon.identity.auth.service.internal.AuthenticationServiceHolde
 import org.wso2.carbon.identity.auth.service.module.ResourceConfig;
 import org.wso2.carbon.identity.auth.service.module.ResourceConfigKey;
 import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
-import org.wso2.carbon.identity.core.handler.IdentityHandler;
-import org.wso2.carbon.identity.core.handler.InitConfig;
-import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
-import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
+import org.wso2.carbon.identity.common.base.handler.Handler;
+import org.wso2.carbon.identity.common.base.handler.InitConfig;
+//import org.wso2.carbon.identity.core.handler.IdentityHandler;
+//import org.wso2.carbon.identity.core.handler.InitConfig;
 
 import java.util.List;
 
@@ -45,9 +43,9 @@ import java.util.List;
  * <p/>
  * This is registered as an OSGi service and can consume as a Service.
  */
-public class AuthenticationManager implements IdentityHandler {
+public class AuthenticationManager implements Handler {
 
-    private static Log log = LogFactory.getLog(AuthenticationManager.class);
+    private static Logger log = LoggerFactory.getLogger(AuthenticationManager.class);
     private static AuthenticationManager authenticationManager = new AuthenticationManager();
 
     public static AuthenticationManager getInstance() {

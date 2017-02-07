@@ -23,7 +23,7 @@ import org.apache.commons.logging.LogFactory;
 import org.osgi.service.component.ComponentContext;
 import org.wso2.carbon.identity.auth.service.AuthenticationManager;
 import org.wso2.carbon.identity.auth.service.factory.AuthenticationRequestBuilderFactory;
-import org.wso2.carbon.identity.core.handler.HandlerComparator;
+import org.wso2.carbon.identity.common.base.handler.HandlerComparator;
 
 import java.util.List;
 

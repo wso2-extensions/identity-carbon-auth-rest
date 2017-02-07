@@ -31,7 +31,7 @@ import org.wso2.carbon.identity.auth.service.exception.AuthServerException;
 import org.wso2.carbon.identity.auth.service.exception.AuthenticationFailException;
 import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
 import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
-import org.wso2.carbon.identity.core.bean.context.MessageContext;
+import org.wso2.carbon.identity.common.base.message.MessageContext;
 import org.wso2.carbon.identity.core.handler.InitConfig;
 
 import java.nio.charset.Charset;
@@ -130,7 +130,7 @@ public class ClientAuthenticationHandler extends AuthenticationHandler {
                     }
                 } else {
                     if (log.isDebugEnabled()) {
-                        log.debug("No matching application configuration fould for :" + appName);
+                        log.debug("No matching application configuration found for :" + appName);
                     }
                 }
 

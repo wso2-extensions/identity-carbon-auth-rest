@@ -18,13 +18,13 @@
 
 package org.wso2.carbon.identity.auth.service.handler;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.wso2.carbon.identity.core.bean.context.MessageContext;
-import org.wso2.carbon.identity.core.handler.HandlerComparator;
-import org.wso2.carbon.identity.core.handler.IdentityHandler;
-import org.wso2.carbon.identity.core.handler.IdentityMessageHandler;
-import org.wso2.carbon.identity.core.handler.MessageHandlerComparator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.wso2.carbon.identity.common.base.handler.Handler;
+import org.wso2.carbon.identity.common.base.handler.HandlerComparator;
+import org.wso2.carbon.identity.common.base.handler.MessageHandler;
+import org.wso2.carbon.identity.common.base.handler.MessageHandlerComparator;
+import org.wso2.carbon.identity.common.base.message.MessageContext;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,7 +37,7 @@ import static java.util.Collections.sort;
  */
 public class HandlerManager {
 
-    private static Log log = LogFactory.getLog(HandlerManager.class);
+    private static Logger log = LoggerFactory.getLogger(HandlerManager.class);
     private static HandlerManager handlerManager = new HandlerManager();
 
     private HandlerManager(){
@@ -58,8 +58,8 @@ public class HandlerManager {
      * @param isEnableHandlersOnly
      * @return IdentityHandler
      */
-    public <T extends IdentityHandler> T getFirstPriorityHandler(List<T> identityHandlers,
-                                                                 boolean isEnableHandlersOnly) {
+    public <T extends Handler> T getFirstPriorityHandler(List<T> identityHandlers,
+                                                         boolean isEnableHandlersOnly) {
         if (log.isDebugEnabled()) {
             log.debug("Get first priority handler for the given handler list.");
         }
@@ -95,7 +95,7 @@ public class HandlerManager {
      * @param isEnableHandlersOnly
      * @return List<IdentityHandler>
      */
-    public <T extends IdentityHandler> List<T> sortHandlers(List<T> identityHandlers,
+    public <T extends Handler> List<T> sortHandlers(List<T> identityHandlers,
                                               boolean isEnableHandlersOnly) {
         if (log.isDebugEnabled()) {
             log.debug("Sort the handler list.");
@@ -107,7 +107,7 @@ public class HandlerManager {
         sort(identityHandlersList, new HandlerComparator());
         if (isEnableHandlersOnly) {
             identityHandlersList = new ArrayList<>();
-            for (IdentityHandler identityHandler : identityHandlers) {
+            for (Handler identityHandler : identityHandlers) {
                 if (identityHandler.isEnabled()) {
                     identityHandlersList.add((T) identityHandler);
                 }
@@ -124,7 +124,7 @@ public class HandlerManager {
      * @param messageContext
      * @return IdentityMessageHandler
      */
-    public <T1 extends IdentityMessageHandler, T2 extends MessageContext> T1
+    public <T1 extends MessageHandler, T2 extends MessageContext> T1
             getFirstPriorityHandler(List<T1> identityMessageHandlers, boolean checkEnabledHandlersOnly, T2 messageContext) {
         if (log.isDebugEnabled()) {
             log.debug("Get first priority handler for the given handler list and the context");
@@ -165,7 +165,7 @@ public class HandlerManager {
      * @param messageContext
      * @return List<IdentityMessageHandler>
      */
-    public <T1 extends IdentityMessageHandler, T2 extends MessageContext> List<T1> sortHandlers
+    public <T1 extends MessageHandler, T2 extends MessageContext> List<T1> sortHandlers
                         (List<T1> identityMessageHandlers, boolean checkEnabledHandlersOnly, T2 messageContext) {
 
         if (log.isDebugEnabled()) {

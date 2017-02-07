@@ -20,8 +20,8 @@ package org.wso2.carbon.identity.auth.service.internal;
 
 import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
 import org.wso2.carbon.identity.auth.service.handler.ResourceHandler;
-import org.wso2.carbon.identity.core.handler.MessageHandlerComparator;
-import org.wso2.carbon.user.core.service.RealmService;
+import org.wso2.carbon.identity.common.base.handler.MessageHandlerComparator;
+import org.wso2.carbon.identity.mgt.RealmService;
 
 import java.util.ArrayList;
 import java.util.List;

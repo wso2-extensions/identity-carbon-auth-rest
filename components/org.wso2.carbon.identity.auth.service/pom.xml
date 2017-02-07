@@ -31,6 +31,18 @@
 
     <dependencies>
         <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.wso2.eclipse.osgi</groupId>
+            <artifactId>org.eclipse.osgi</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.wso2.eclipse.osgi</groupId>
+            <artifactId>org.eclipse.osgi.services</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.wso2.carbon</groupId>
             <artifactId>org.wso2.carbon.utils</artifactId>
         </dependency>
@@ -54,50 +66,47 @@
             <groupId>org.wso2.carbon.identity.inbound.auth.oauth2</groupId>
             <artifactId>org.wso2.carbon.identity.oauth</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.wso2.carbon.identity.commons</groupId>
+            <artifactId>org.wso2.carbon.identity.commons</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.wso2.carbon.identity.mgt</groupId>
+            <artifactId>org.wso2.carbon.identity.mgt</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.wso2.msf4j</groupId>
+            <artifactId>msf4j-core</artifactId>
+        </dependency>
     </dependencies>
 
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.felix</groupId>
-                <artifactId>maven-scr-plugin</artifactId>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.felix</groupId>
-                <artifactId>maven-bundle-plugin</artifactId>
-                <extensions>true</extensions>
-                <configuration>
-                    <instructions>
-                        <Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
-                        <Bundle-Name>${project.artifactId}</Bundle-Name>
-                        <Private-Package>
-                            org.wso2.carbon.identity.auth.service.internal
-                        </Private-Package>
-                        <Import-Package>
-                            javax.servlet.*; version="${imp.pkg.version.javax.servlet}",
-                            org.apache.axiom.*; version="${axiom.osgi.version.range}",
-                            org.apache.axis2.*; version="${axis2.osgi.version.range}",
-                            org.apache.commons.lang; version="${commons-lang.wso2.osgi.version.range}",
-                            org.apache.commons.logging.*; version="${commons-logging.osgi.version.range}",
-                            org.osgi.framework; version="${osgi.framework.imp.pkg.version.range}",
-                            org.osgi.service.component; version="${osgi.service.component.imp.pkg.version.range}",
-                            org.osgi.util.tracker; version="${osgi.util.tracker.imp.pkg.version.range}",
-                            org.wso2.carbon.core.*; version="${carbon.kernel.imp.pkg.version.range}",
-                            org.wso2.carbon.utils.*; version="${carbon.kernel.imp.pkg.version.range}",
-                            org.wso2.carbon.identity.core.*; version="${carbon.identity.package.import.version.range}",
-                            org.wso2.carbon.identity.oauth2.*;
-                            version="${org.wso2.carbon.identity.oauth.import.version.range}"
-                        </Import-Package>
-                        <Export-Package>
-                            !org.wso2.carbon.identity.auth.service.internal,
-                            org.wso2.carbon.identity.auth.service.*;
-                            version="${org.wso2.carbon.identity.auth.service.version}"
-                        </Export-Package>
-                        <DynamicImport-Package>*</DynamicImport-Package>
-                    </instructions>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
+    <properties>
+
+        <Private-Package>
+            org.wso2.carbon.identity.auth.service.internal
+        </Private-Package>
+        <Import-Package>
+            javax.servlet.*; version="${imp.pkg.version.javax.servlet}",
+            org.apache.axiom.*; version="${axiom.osgi.version.range}",
+            org.apache.axis2.*; version="${axis2.osgi.version.range}",
+            org.apache.commons.lang; version="${commons-lang.wso2.osgi.version.range}",
+            org.slf4j.*;version="${slf4j.logging.package.import.version.range}",
+            org.osgi.framework; version="${osgi.framework.imp.pkg.version.range}",
+            org.osgi.service.component; version="${osgi.service.component.imp.pkg.version.range}",
+            org.osgi.util.tracker; version="${osgi.util.tracker.imp.pkg.version.range}",
+            org.wso2.carbon.core.*; version="${carbon.kernel.imp.pkg.version.range}",
+            org.wso2.carbon.utils.*; version="${carbon.kernel.imp.pkg.version.range}",
+            org.wso2.carbon.identity.core.*; version="${carbon.identity.package.import.version.range}",
+            org.wso2.carbon.identity.oauth2.*;
+            version="${org.wso2.carbon.identity.oauth.import.version.range}"
+        </Import-Package>
+        <Export-Package>
+            !org.wso2.carbon.identity.auth.service.internal,
+            org.wso2.carbon.identity.auth.service.*;
+            version="${org.wso2.carbon.identity.auth.service.version}"
+        </Export-Package>
+        <DynamicImport-Package>*</DynamicImport-Package>
+
+    </properties>
 
 </project>

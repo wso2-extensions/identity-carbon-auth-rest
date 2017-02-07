@@ -27,10 +27,11 @@ import org.wso2.carbon.identity.auth.service.AuthenticationStatus;
 import org.wso2.carbon.identity.auth.service.exception.AuthClientException;
 import org.wso2.carbon.identity.auth.service.exception.AuthenticationFailException;
 import org.wso2.carbon.identity.auth.service.exception.AuthServerException;
-import org.wso2.carbon.identity.core.bean.context.MessageContext;
-import org.wso2.carbon.identity.core.handler.IdentityMessageHandler;
+import org.wso2.carbon.identity.common.base.handler.AbstractMessageHandler;
+import org.wso2.carbon.identity.common.base.message.MessageContext;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
+import org.wso2.carbon.kernel.context.PrivilegedCarbonContext;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
 /**
@@ -39,7 +40,7 @@ import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
  * The custom handlers should implement the doAuthenticate() method and optionally the postAuthenticate() method.
  *
  */
-public abstract class AuthenticationHandler implements IdentityMessageHandler {
+public abstract class AuthenticationHandler extends AbstractMessageHandler {
 
 
     /**
@@ -52,7 +53,8 @@ public abstract class AuthenticationHandler implements IdentityMessageHandler {
      * @throws AuthenticationFailException
      * @throws AuthClientException
      */
-    public final AuthenticationResult authenticate(MessageContext messageContext) throws AuthServerException, AuthenticationFailException, AuthClientException {
+    public final AuthenticationResult authenticate(MessageContext messageContext) throws AuthServerException,
+            AuthenticationFailException, AuthClientException {
 
         AuthenticationResult authenticationResult = this.doAuthenticate(messageContext);
         postAuthenticate(messageContext, authenticationResult);

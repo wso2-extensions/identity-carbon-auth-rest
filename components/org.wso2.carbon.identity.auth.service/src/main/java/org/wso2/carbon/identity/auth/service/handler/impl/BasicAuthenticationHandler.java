@@ -23,8 +23,6 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpHeaders;
-import org.wso2.carbon.context.PrivilegedCarbonContext;
-import org.wso2.carbon.identity.application.common.model.User;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
 import org.wso2.carbon.identity.auth.service.AuthenticationResult;
 import org.wso2.carbon.identity.auth.service.AuthenticationStatus;
@@ -33,12 +31,13 @@ import org.wso2.carbon.identity.auth.service.exception.AuthenticationFailExcepti
 import org.wso2.carbon.identity.auth.service.exception.AuthServerException;
 import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
 import org.wso2.carbon.identity.auth.service.internal.AuthenticationServiceHolder;
-import org.wso2.carbon.identity.core.bean.context.MessageContext;
+import org.wso2.carbon.identity.common.base.message.MessageContext;
 import org.wso2.carbon.identity.core.handler.InitConfig;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
+import org.wso2.carbon.identity.mgt.User;
+import org.wso2.carbon.kernel.context.PrivilegedCarbonContext;
 import org.wso2.carbon.user.api.UserRealm;
 import org.wso2.carbon.user.core.UserStoreManager;
-import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
 import java.nio.charset.Charset;
 
@@ -108,9 +107,9 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
                 UserStoreManager userStoreManager = null;
                 try {
                     int tenantId = IdentityTenantUtil.getTenantIdOfUser(userName);
-                    String tenantDomain = MultitenantUtils.getTenantDomain(userName);
+//                    String tenantDomain = MultitenantUtils.getTenantDomain(userName);
 
-                    User user = new User();
+                    User user = new User.UserBuilder();
                     user.setUserName(MultitenantUtils.getTenantAwareUsername(userName));
                     user.setTenantDomain(tenantDomain);
 
@@ -120,9 +119,7 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
                     //TODO: Related to this https://wso2.org/jira/browse/IDENTITY-4752 - Class IdentityMgtEventListener
                     // : Line 563: Have to check whether why we can't continue
                     //without following lines as previous code.
-                    PrivilegedCarbonContext.startTenantFlow();
-                    PrivilegedCarbonContext.getThreadLocalCarbonContext().setTenantDomain(tenantDomain);
-                    PrivilegedCarbonContext.getThreadLocalCarbonContext().setTenantId(tenantId);
+                    PrivilegedCarbonContext.getCurrentContext()
 
                     UserRealm userRealm = AuthenticationServiceHolder.getInstance().getRealmService().
                             getTenantUserRealm(tenantId);

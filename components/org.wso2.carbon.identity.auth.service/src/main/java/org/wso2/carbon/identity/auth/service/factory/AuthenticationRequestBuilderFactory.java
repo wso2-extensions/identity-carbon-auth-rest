@@ -18,16 +18,20 @@
 
 package org.wso2.carbon.identity.auth.service.factory;
 
-import org.apache.catalina.connector.Request;
-import org.apache.catalina.connector.Response;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.identity.auth.service.AuthenticationRequest;
 import org.wso2.carbon.identity.auth.service.exception.AuthClientException;
 import org.wso2.carbon.identity.core.handler.AbstractIdentityHandler;
+import org.wso2.carbon.messaging.Header;
+import org.wso2.msf4j.Request;
+import org.wso2.msf4j.Response;
 
 import javax.servlet.http.Cookie;
+import java.util.Arrays;
 import java.util.Enumeration;
+import java.util.List;
+import java.util.Set;
 
 
 /**
@@ -59,16 +63,33 @@ public class AuthenticationRequestBuilderFactory extends AbstractIdentityHandler
         AuthenticationRequest.AuthenticationRequestBuilder authenticationRequestBuilder = new AuthenticationRequest
                 .AuthenticationRequestBuilder();
 
-        Enumeration<String> attributeNames = request.getAttributeNames();
-        while ( attributeNames.hasMoreElements() ) {
-            String attributeName = attributeNames.nextElement();
-            authenticationRequestBuilder.addAttribute(attributeName, request.getAttribute(attributeName));
+        if (request.getProperties() != null) {
+
+            Set<String> propertyNames = request.getProperties().keySet();
+
+            for (String propertyName: propertyNames) {
+
+                authenticationRequestBuilder.addAttribute(propertyName, request.getProperty(propertyName));
+            }
         }
 
-        Enumeration<String> headerNames = request.getHeaderNames();
-        while ( headerNames.hasMoreElements() ) {
-            String headerName = headerNames.nextElement();
-            authenticationRequestBuilder.addHeader(headerName, request.getHeader(headerName));
+        if (request.getHeaders() != null && request.getHeaders().getAll() != null) {
+
+            List<Header> headers = request.getHeaders().getAll();
+
+            headers.forEach(header -> authenticationRequestBuilder.addHeader(header.getName(), header.getValue()));
+
+        }
+
+        String cookieHeader = request.getHeader("Cookie");
+
+        if (cookieHeader != null) {
+            Arrays.stream(cookieHeader.split(";")).forEach(cookie -> {
+                String[] cookieEntry = cookie.split("=", 1);
+                authenticationRequestBuilder.addCookie(new AuthenticationRequest.CookieKey(cookieEntry[0], cookie
+                                                               .getPath()),
+                                                       cookie);
+            });
         }
         Cookie[] cookies = request.getCookies();
         if ( cookies != null ) {

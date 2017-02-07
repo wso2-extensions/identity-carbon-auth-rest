@@ -54,6 +54,18 @@
             <groupId>org.wso2.carbon.identity.auth.rest</groupId>
             <artifactId>org.wso2.carbon.identity.auth.service</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.wso2.carbon.identity.commons</groupId>
+            <artifactId>org.wso2.carbon.identity.commons</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.wso2.carbon.identity.mgt</groupId>
+            <artifactId>org.wso2.carbon.identity.mgt</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.wso2.msf4j</groupId>
+            <artifactId>msf4j-core</artifactId>
+        </dependency>
 
     </dependencies>
 

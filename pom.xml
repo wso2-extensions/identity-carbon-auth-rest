@@ -21,7 +21,7 @@
     <parent>
         <groupId>org.wso2</groupId>
         <artifactId>wso2</artifactId>
-        <version>1</version>
+        <version>5</version>
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
@@ -46,14 +46,14 @@
         <module>components/org.wso2.carbon.identity.auth.service</module>
         <module>components/org.wso2.carbon.identity.auth.valve</module>
 
-        <module>components/org.wso2.carbon.identity.authz.service</module>
-        <module>components/org.wso2.carbon.identity.authz.valve</module>
-        <module>components/org.wso2.carbon.identity.context.rewrite.valve</module>
+        <!--<module>components/org.wso2.carbon.identity.authz.service</module>-->
+        <!--<module>components/org.wso2.carbon.identity.authz.valve</module>-->
+        <!--<module>components/org.wso2.carbon.identity.context.rewrite.valve</module>-->
 
 
-        <module>features/org.wso2.carbon.identity.auth.server.feature</module>
-        <module>features/org.wso2.carbon.identity.authz.server.feature</module>
-        <module>features/org.wso2.carbon.identity.context.rewrite.server.feature</module>
+        <!--<module>features/org.wso2.carbon.identity.auth.server.feature</module>-->
+        <!--<module>features/org.wso2.carbon.identity.authz.server.feature</module>-->
+        <!--<module>features/org.wso2.carbon.identity.context.rewrite.server.feature</module>-->
 
     </modules>
 
@@ -145,11 +145,6 @@
             </dependency>
             <dependency>
                 <groupId>org.wso2.carbon</groupId>
-                <artifactId>org.wso2.carbon.logging</artifactId>
-                <version>${carbon.kernel.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.wso2.carbon</groupId>
                 <artifactId>org.wso2.carbon.core.services</artifactId>
                 <version>${carbon.kernel.version}</version>
             </dependency>
@@ -206,58 +201,40 @@
                 <version>${org.wso2.carbon.identity.oauth.version}</version>
             </dependency>
 
+            <dependency>
+                <groupId>org.wso2.carbon.identity.commons</groupId>
+                <artifactId>org.wso2.carbon.identity.commons</artifactId>
+                <version>${carbon.identity.commons.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.wso2.carbon.identity.mgt</groupId>
+                <artifactId>org.wso2.carbon.identity.mgt</artifactId>
+                <version>${carbon.identity.mgt.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.wso2.msf4j</groupId>
+                <artifactId>msf4j-core</artifactId>
+                <version>${msf4j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-api</artifactId>
+                <version>${slf4j.api.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.wso2.eclipse.osgi</groupId>
+                <artifactId>org.eclipse.osgi</artifactId>
+            </dependency>
+            <dependency>
+                <groupId>org.wso2.eclipse.osgi</groupId>
+                <artifactId>org.eclipse.osgi.services</artifactId>
+            </dependency>
+
 
         </dependencies>
     </dependencyManagement>
 
     <build>
-        <pluginManagement>
-            <plugins>
-                <plugin>
-                    <groupId>org.apache.felix</groupId>
-                    <artifactId>maven-scr-plugin</artifactId>
-                    <version>${maven.scr.plugin.version}</version>
-                    <executions>
-                        <execution>
-                            <id>generate-scr-scrdescriptor</id>
-                            <goals>
-                                <goal>scr</goal>
-                            </goals>
-                        </execution>
-                    </executions>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.felix</groupId>
-                    <artifactId>maven-bundle-plugin</artifactId>
-                    <version>${maven.bundle.plugin.version}</version>
-                    <extensions>true</extensions>
-                    <configuration>
-                        <obrRepository>NONE</obrRepository>
-                        <instructions>
-                            <SCM-Revision>${buildNumber}</SCM-Revision>
-                        </instructions>
-                    </configuration>
-                </plugin>
-                <plugin>
-                    <groupId>org.codehaus.mojo</groupId>
-                    <artifactId>buildnumber-maven-plugin</artifactId>
-                    <version>${maven.buildnumber.plugin.version}</version>
-                    <executions>
-                        <execution>
-                            <phase>validate</phase>
-                            <goals>
-                                <goal>create</goal>
-                            </goals>
-                        </execution>
-                    </executions>
-                    <configuration>
-                        <doCheck>false</doCheck>
-                        <doUpdate>false</doUpdate>
-                    </configuration>
-                </plugin>
-            </plugins>
-        </pluginManagement>
-
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -269,20 +246,11 @@
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-deploy-plugin</artifactId>
-            </plugin>
-            <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <inherited>true</inherited>
                 <configuration>
-                    <encoding>UTF-8</encoding>
-                    <source>1.7</source>
-                    <target>1.7</target>
+                    <source>1.8</source>
+                    <target>1.8</target>
                 </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>buildnumber-maven-plugin</artifactId>
             </plugin>
         </plugins>
     </build>
@@ -310,8 +278,13 @@
 
         <org.wso2.carbon.identity.context.rewrite.valve.version>${project.version}</org.wso2.carbon.identity.context.rewrite.valve.version>
 
+        <!-- MSF4J version -->
+        <msf4j.version>2.1.0</msf4j.version>
+
         <!--Carbon identity version-->
         <identity.framework.version>5.7.0</identity.framework.version>
+        <carbon.identity.commons.version>0.1.6</carbon.identity.commons.version>
+        <carbon.identity.mgt.version>0.1.2</carbon.identity.mgt.version>
         <carbon.identity.package.export.version>${identity.framework.version}</carbon.identity.package.export.version>
         <carbon.identity.package.import.version.range>[5.7.0, 6.0.0)</carbon.identity.package.import.version.range>
 
@@ -320,13 +293,16 @@
         </org.wso2.carbon.identity.oauth.import.version.range>
 
         <!-- OSGi framework component version -->
+        <osgi.core.api.version>6.0.0</osgi.core.api.version>
+        <equinox.osgi.version>3.10.2.v20150203-1939</equinox.osgi.version>
+        <equinox.osgi.services.version>3.4.0.v20140312-2051</equinox.osgi.services.version>
         <osgi.service.component.imp.pkg.version.range>[1.2.0, 2.0.0)</osgi.service.component.imp.pkg.version.range>
         <osgi.framework.imp.pkg.version.range>[1.7.0, 2.0.0)</osgi.framework.imp.pkg.version.range>
         <osgi.util.tracker.imp.pkg.version.range>[1.5.1, 2.0.0)</osgi.util.tracker.imp.pkg.version.range>
 
         <!-- Carbon Kernel version -->
-        <carbon.kernel.version>4.4.7</carbon.kernel.version>
-        <carbon.kernel.imp.pkg.version.range>[4.4.0, 5.0.0)</carbon.kernel.imp.pkg.version.range>
+        <carbon.kernel.version>5.1.0</carbon.kernel.version>
+        <carbon.kernel.imp.pkg.version.range>[5.1.0, 6.0.0)</carbon.kernel.imp.pkg.version.range>
 
         <!--Carbon Component version-->
         <carbon.user.api.imp.pkg.version.range>[1.0.1, 2.0.0)</carbon.user.api.imp.pkg.version.range>
@@ -343,8 +319,8 @@
         <axiom.osgi.version.range>[1.2.11, 2.0.0)</axiom.osgi.version.range>
 
         <!-- Commons Version -->
-        <commons-logging.version>1.2</commons-logging.version>
-        <commons-logging.osgi.version.range>[1.2,2.0)</commons-logging.osgi.version.range>
+        <slf4j.api.version>1.7.12</slf4j.api.version>
+        <slf4j.logging.package.import.version.range>[1.7.1, 2.0.0)</slf4j.logging.package.import.version.range>
 
         <commons-lang.wso2.version>2.6.0.wso2v1</commons-lang.wso2.version>
         <commons-lang.wso2.osgi.version.range>[2.6.0,3.0.0)</commons-lang.wso2.osgi.version.range>

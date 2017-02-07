@@ -18,52 +18,53 @@
 
 package org.wso2.carbon.identity.auth.valve;
 
-import org.apache.catalina.connector.Request;
-import org.apache.catalina.connector.Response;
-import org.apache.catalina.valves.ValveBase;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.wso2.carbon.identity.auth.service.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.wso2.carbon.identity.auth.service.AuthenticationContext;
+import org.wso2.carbon.identity.auth.service.AuthenticationManager;
+import org.wso2.carbon.identity.auth.service.AuthenticationRequest;
+import org.wso2.carbon.identity.auth.service.AuthenticationResult;
+import org.wso2.carbon.identity.auth.service.AuthenticationStatus;
 import org.wso2.carbon.identity.auth.service.exception.AuthClientException;
 import org.wso2.carbon.identity.auth.service.exception.AuthRuntimeException;
 import org.wso2.carbon.identity.auth.service.exception.AuthServerException;
 import org.wso2.carbon.identity.auth.service.exception.AuthenticationFailException;
-import org.wso2.carbon.identity.auth.service.factory.AuthenticationRequestBuilderFactory;
 import org.wso2.carbon.identity.auth.service.module.ResourceConfig;
 import org.wso2.carbon.identity.auth.service.module.ResourceConfigKey;
-import org.wso2.carbon.identity.auth.valve.internal.AuthenticationValveServiceHolder;
 import org.wso2.carbon.identity.auth.valve.util.AuthHandlerManager;
+import org.wso2.msf4j.Interceptor;
+import org.wso2.msf4j.Request;
+import org.wso2.msf4j.Response;
+import org.wso2.msf4j.ServiceMethodInfo;
 
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.List;
+import javax.servlet.http.HttpServletResponse;
 
 
 /**
  * AuthenticationValve can be used to intercept any request.
  */
-public class AuthenticationValve extends ValveBase {
+public class AuthenticationValve implements Interceptor {
 
     private static final String AUTH_CONTEXT = "auth-context";
     private static final String AUTH_HEADER_NAME = "WWW-Authenticate";
 
-    private static final Log log = LogFactory.getLog(AuthenticationValve.class);
+    private static final Logger log = LoggerFactory.getLogger(AuthenticationValve.class);
+
 
     @Override
-    public void invoke(Request request, Response response) throws IOException, ServletException {
-
+    public boolean preCall(Request request, Response response, ServiceMethodInfo serviceMethodInfo) throws Exception {
         AuthenticationManager authenticationManager = AuthHandlerManager.getInstance().getAuthenticationManager();
-        ResourceConfig securedResource = authenticationManager.getSecuredResource(new ResourceConfigKey(request
-                .getRequestURI(), request.getMethod()));
+        ResourceConfig securedResource = authenticationManager.getSecuredResource(new ResourceConfigKey(request.getUri()
+                                                                                , request.getHttpMethod()));
         if ( securedResource == null ) {
-            getNext().invoke(request, response);
-            return;
+            return false;
         }
 
         if ( log.isDebugEnabled() ) {
-            log.debug("AuthenticationValve hit on secured resource : " + request.getRequestURI());
+            log.debug("AuthenticationValve hit on secured resource : " + request.getUri());
         }
+
         AuthenticationContext authenticationContext = null;
         AuthenticationResult authenticationResult = null;
         try {
@@ -78,22 +79,18 @@ public class AuthenticationValve extends ValveBase {
             AuthenticationStatus authenticationStatus = authenticationResult.getAuthenticationStatus();
             if ( authenticationStatus.equals(AuthenticationStatus.SUCCESS) ) {
                 //Set the User object as an attribute for further references.
-                request.setAttribute(AUTH_CONTEXT, authenticationContext);
-                getNext().invoke(request, response);
+                request.setProperty(AUTH_CONTEXT, authenticationContext);
+
+                return true;
             } else {
                 handleErrorResponse(authenticationContext, response, HttpServletResponse.SC_UNAUTHORIZED);
             }
-        } catch ( AuthClientException e ) {
+        } catch ( AuthClientException | AuthServerException e ) {
             handleErrorResponse(authenticationContext, response, HttpServletResponse.SC_BAD_REQUEST);
-        } catch ( AuthServerException e ) {
-            handleErrorResponse(authenticationContext, response, HttpServletResponse.SC_BAD_REQUEST);
-        } catch ( AuthenticationFailException e ) {
-            handleErrorResponse(authenticationContext, response, HttpServletResponse.SC_UNAUTHORIZED);
-        } catch (AuthRuntimeException e) {
+        } catch ( AuthenticationFailException | AuthRuntimeException e ) {
             handleErrorResponse(authenticationContext, response, HttpServletResponse.SC_UNAUTHORIZED);
         }
-
-
+        return false;
     }
 
     private void handleErrorResponse(AuthenticationContext authenticationContext, Response response, int error) throws
@@ -101,10 +98,18 @@ public class AuthenticationValve extends ValveBase {
         StringBuilder value = new StringBuilder(16);
         value.append("realm user=\"");
         if ( authenticationContext.getUser() != null ) {
-            value.append(authenticationContext.getUser().getUserName());
+            //TODO get username claim
+            value.append(authenticationContext.getUser().getDomainName());
         }
         value.append('\"');
+        response.setStatus(error);
         response.setHeader(AUTH_HEADER_NAME, value.toString());
-        response.sendError(error);
+        response.send();
+    }
+
+
+    @Override
+    public void postCall(Request request, int i, ServiceMethodInfo serviceMethodInfo) throws Exception {
+
     }
 }
