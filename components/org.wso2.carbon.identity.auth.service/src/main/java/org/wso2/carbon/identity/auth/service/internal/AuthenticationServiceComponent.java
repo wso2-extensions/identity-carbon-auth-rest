@@ -28,67 +28,62 @@ import org.osgi.service.component.annotations.ReferencePolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.wso2.carbon.identity.auth.service.AuthenticationManager;
-import org.wso2.carbon.identity.auth.service.factory.AuthenticationRequestBuilderFactory;
 import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
+import org.wso2.carbon.identity.auth.service.handler.AbstractAuthenticationManager;
 import org.wso2.carbon.identity.auth.service.handler.ResourceHandler;
-import org.wso2.carbon.identity.auth.service.handler.impl.BasicAuthenticationHandler;
-import org.wso2.carbon.identity.auth.service.handler.impl.ClientAuthenticationHandler;
-import org.wso2.carbon.identity.auth.service.handler.impl.ClientCertificateBasedAuthenticationHandler;
-import org.wso2.carbon.identity.auth.service.handler.impl.OAuth2AccessTokenHandler;
+import org.wso2.carbon.identity.auth.service.handler.impl.*;
 import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
-import org.wso2.carbon.identity.core.handler.HandlerComparator;
+import org.wso2.carbon.identity.common.base.handler.InitConfig;
 import org.wso2.carbon.identity.mgt.RealmService;
 
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
- * @scr.component name="org.wso2.carbon.identity.auth.service" immediate="true"
- * @scr.reference name="user.realmservice.default"
- * interface="org.wso2.carbon.user.core.service.RealmService"
- * cardinality="1..1" policy="dynamic" bind="setRealmService" unbind="unsetRealmService"
- * @scr.reference name="org.wso2.carbon.identity.auth.service.handler.auth"
- * interface="org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler"
- * cardinality="0..n" policy="dynamic" bind="addAuthenticationHandler" unbind="removeAuthenticationHandler"
- * @scr.reference name="org.wso2.carbon.identity.auth.service.handler.resource"
- * interface="org.wso2.carbon.identity.auth.service.handler.ResourceHandler"
- * cardinality="0..n" policy="dynamic" bind="addResourceHandler" unbind="removeResourceHandler"
+ *  Authentication Service OSGI Component
  */
 @Component(
-        name = "org.wso2.carbon.identity.auth.service.internal.AuthenticationServiceComponent",
-        immediate = true
-)
+        name = "org.wso2.carbon.identity.auth.service",
+        immediate = true,
+        property = {
+                "componentName=wso2-carbon-identity-rest-auth"
+        })
 public class AuthenticationServiceComponent {
 
     private static final Logger log = LoggerFactory.getLogger(AuthenticationServiceComponent.class);
+    private List<AuthenticationHandler> ownAuthenticationHandlers = new ArrayList<>();
+    private RealmService realmService;
+    private DefaultAuthenticationManager authenticationManager = new DefaultAuthenticationManager();
 
     @Activate
     protected void activate(ComponentContext cxt) {
-        try {
-            cxt.getBundleContext().registerService(AuthenticationHandler.class, new BasicAuthenticationHandler(), null);
-            cxt.getBundleContext().registerService(AuthenticationHandler.class, new OAuth2AccessTokenHandler(), null);
-            cxt.getBundleContext().registerService(AuthenticationHandler.class, new ClientCertificateBasedAuthenticationHandler(), null);
-            cxt.getBundleContext().registerService(AuthenticationHandler.class, new ClientAuthenticationHandler(), null);
+        DefaultResourceHandler defaultResourceHandler = new DefaultResourceHandler();
+        defaultResourceHandler.init(new InitConfig());
+        addResourceHandler(defaultResourceHandler);
 
-            cxt.getBundleContext().registerService(AuthenticationManager.class, AuthenticationManager.getInstance(),
-                    null);
-            cxt.getBundleContext().registerService(AuthenticationRequestBuilderFactory.class,
-                    AuthenticationRequestBuilderFactory.getInstance(), null);
+        ownAuthenticationHandlers.add(new BasicAuthenticationHandler());
+        ownAuthenticationHandlers.add(new OAuth2AccessTokenHandler());
+        ownAuthenticationHandlers.add(new ClientCertificateBasedAuthenticationHandler());
+        ownAuthenticationHandlers.add(new ClientAuthenticationHandler());
 
-            AuthConfigurationUtil.getInstance().buildResourceAccessControlData();
-            AuthConfigurationUtil.getInstance().buildClientAuthenticationHandlerControlData();
+        ownAuthenticationHandlers.stream().forEach(h -> h.setRealmService(realmService));
+        ownAuthenticationHandlers.stream()
+                .forEach(h -> authenticationManager.addAuthenticationHandler(h));
 
-            if ( log.isDebugEnabled() )
-                log.debug("AuthenticatorService is activated");
-        } catch ( Throwable e ) {
-            log.error(e.getMessage(), e);
+        cxt.getBundleContext()
+                .registerService(AuthenticationManager.class, authenticationManager, null);
+
+        AuthConfigurationUtil.getInstance().buildResourceAccessControlData();
+        AuthConfigurationUtil.getInstance().buildClientAuthenticationHandlerControlData();
+
+        if (log.isDebugEnabled()) {
+            log.debug("AuthenticatorService is activated");
         }
-
     }
 
     @Deactivate
     protected void deactivate(ComponentContext context) {
-        if ( log.isDebugEnabled() ) {
+        if (log.isDebugEnabled()) {
             log.debug("AuthenticatorService bundle is deactivated");
         }
     }
@@ -100,10 +95,11 @@ public class AuthenticationServiceComponent {
             policy = ReferencePolicy.DYNAMIC,
             unbind = "unsetRealmService")
     protected void setRealmService(RealmService realmService) {
-        if ( log.isDebugEnabled() ) {
+        if (log.isDebugEnabled()) {
             log.debug("RealmService acquired");
         }
-        AuthenticationServiceHolder.getInstance().setRealmService(realmService);
+        this.realmService = realmService;
+        ownAuthenticationHandlers.stream().forEach(h -> h.setRealmService(realmService));
     }
 
     protected void unsetRealmService(RealmService realmService) {
@@ -117,14 +113,14 @@ public class AuthenticationServiceComponent {
             policy = ReferencePolicy.DYNAMIC,
             unbind = "removeAuthenticationHandler")
     protected void addAuthenticationHandler(AuthenticationHandler authenticationHandler) {
-        if ( log.isDebugEnabled() ) {
+        if (log.isDebugEnabled()) {
             log.debug("AuthenticationHandler acquired");
         }
-        AuthenticationServiceHolder.getInstance().addAuthenticationHandler(authenticationHandler);
+        authenticationManager.addAuthenticationHandler(authenticationHandler);
     }
 
     protected void removeAuthenticationHandler(AuthenticationHandler authenticationHandler) {
-        AuthenticationServiceHolder.getInstance().getAuthenticationHandlers().remove(authenticationHandler);
+        authenticationManager.removeAuthenticationHandler(authenticationHandler);
     }
 
     @Reference(
@@ -134,17 +130,14 @@ public class AuthenticationServiceComponent {
             policy = ReferencePolicy.DYNAMIC,
             unbind = "removeResourceHandler")
     protected void addResourceHandler(ResourceHandler resourceHandler) {
-        if ( log.isDebugEnabled() ) {
+        if (log.isDebugEnabled()) {
             log.debug("ResourceHandler acquired");
         }
-        List<ResourceHandler> resourceHandlers = AuthenticationServiceHolder.getInstance().getResourceHandlers();
-        resourceHandlers.add(resourceHandler);
-        Collections.sort(resourceHandlers, new HandlerComparator());
+        authenticationManager.addResourceHandler(resourceHandler);
+
     }
 
     protected void removeResourceHandler(ResourceHandler resourceHandler) {
-        AuthenticationServiceHolder.getInstance().getResourceHandlers().remove(resourceHandler);
+        authenticationManager.removeResourceHandler(resourceHandler);
     }
-
-
 }

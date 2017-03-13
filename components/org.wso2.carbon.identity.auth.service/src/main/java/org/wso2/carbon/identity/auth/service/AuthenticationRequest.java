@@ -18,12 +18,17 @@
 
 package org.wso2.carbon.identity.auth.service;
 
-import org.apache.commons.lang.StringUtils;
 import org.wso2.carbon.identity.auth.service.exception.AuthRuntimeException;
 
-import javax.servlet.http.Cookie;
 import java.io.Serializable;
-import java.util.*;
+import java.net.HttpCookie;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Generic Request object to pass the request details to the AuthenticationManager.
@@ -36,15 +41,11 @@ import java.util.*;
  * <p/>
  * AuthenticationRequest request = requestBuilder.build();
  */
-public class AuthenticationRequest implements Serializable
-
-{
-
-    private static final long serialVersionUID = 5418537216546873566L;
+public class AuthenticationRequest {
 
     protected Map<String, Object> attributes = new HashMap<>();
     protected Map<String, String> headers = new HashMap<>();
-    protected Map<CookieKey, Cookie> cookies = new HashMap<>();
+    protected Map<CookieKey, HttpCookie> cookies = new HashMap<>();
     protected String contextPath;
     protected String method;
 
@@ -60,10 +61,6 @@ public class AuthenticationRequest implements Serializable
         return Collections.unmodifiableMap(attributes);
     }
 
-    public Enumeration<String> getAttributeNames() {
-        return Collections.enumeration(attributes.keySet());
-    }
-
     public Object getAttribute(String name) {
         return attributes.get(name);
     }
@@ -72,34 +69,41 @@ public class AuthenticationRequest implements Serializable
         return Collections.unmodifiableMap(headers);
     }
 
-    public Enumeration<String> getHeaders(String name) {
+    public List<String> getHeaders(String name) {
         String headerValue = headers.get(name);
-        if ( headerValue != null ) {
+        if (headerValue != null) {
             String[] multiValuedHeader = headerValue.split(",");
-            return Collections.enumeration(Arrays.asList(multiValuedHeader));
+            return Arrays.asList(multiValuedHeader);
         } else {
-            return Collections.emptyEnumeration();
+            return Collections.emptyList();
         }
     }
 
-    public Enumeration<String> getHeaderNames() {
-        return Collections.enumeration(headers.keySet());
+    public Collection<String> getHeaderNames() {
+        return Collections.unmodifiableCollection(headers.keySet());
     }
 
     public String getHeader(String name) {
-        if ( StringUtils.isNotEmpty(name) ) {
-            name = name.toLowerCase();
+        if (name == null) {
+            return null;
         }
-        return headers.get(name);
+        String result = headers.get(name);
+        if (result == null) {
+            result = headers.keySet().stream()
+                    .filter(k -> k.equalsIgnoreCase(name))
+                    .map(k -> headers.get(k)).findAny()
+                    .orElse(null);
+        }
+        return result;
     }
 
-    public Map<CookieKey, Cookie> getCookieMap() {
+    public Map<CookieKey, HttpCookie> getCookieMap() {
         return Collections.unmodifiableMap(cookies);
     }
 
-    public Cookie[] getCookies() {
-        Collection<Cookie> cookies = getCookieMap().values();
-        return cookies.toArray(new Cookie[cookies.size()]);
+    public List<HttpCookie> getCookies() {
+        Collection<HttpCookie> cookies = getCookieMap().values();
+        return new ArrayList<>(cookies);
     }
 
     public String getContextPath() {
@@ -110,11 +114,14 @@ public class AuthenticationRequest implements Serializable
         return method;
     }
 
+    /**
+     * Builder Pattern
+     */
     public static class AuthenticationRequestBuilder {
 
         public Map<String, Object> attributes = new HashMap<>();
         private Map<String, String> headers = new HashMap<>();
-        private Map<CookieKey, Cookie> cookies = new HashMap<>();
+        private Map<CookieKey, HttpCookie> cookies = new HashMap<>();
         private String contextPath;
         private String method;
 
@@ -133,7 +140,7 @@ public class AuthenticationRequest implements Serializable
         }
 
         public AuthenticationRequestBuilder addAttribute(String name, Object value) {
-            if ( this.attributes.containsKey(name) ) {
+            if (this.attributes.containsKey(name)) {
                 throw new AuthRuntimeException("Attributes map trying to override existing " +
                         "attribute " + name);
             }
@@ -142,7 +149,7 @@ public class AuthenticationRequest implements Serializable
         }
 
         public AuthenticationRequestBuilder addHeader(String name, String value) {
-            if ( this.headers.containsKey(name) ) {
+            if (this.headers.containsKey(name)) {
                 throw new AuthRuntimeException("Headers map trying to override existing " +
                         "header " + name);
             }
@@ -150,8 +157,8 @@ public class AuthenticationRequest implements Serializable
             return this;
         }
 
-        public AuthenticationRequestBuilder addCookie(CookieKey cookieKey, Cookie value) {
-            if ( this.cookies.containsKey(cookieKey) ) {
+        public AuthenticationRequestBuilder addCookie(CookieKey cookieKey, HttpCookie value) {
+            if (this.cookies.containsKey(cookieKey)) {
                 throw new AuthRuntimeException("Cookies map trying to override existing " +
                         "cookie " + cookieKey.toString());
             }
@@ -159,15 +166,17 @@ public class AuthenticationRequest implements Serializable
             return this;
         }
 
-
         public AuthenticationRequest build() {
             return new AuthenticationRequest(this);
         }
-
     }
 
+    /**
+     * Key for a HTTP cookie.
+     */
+    public static class CookieKey implements Serializable {
 
-    public static class CookieKey {
+        private static final long serialVersionUID = -7727473384985073200L;
 
         private String name;
         private String path;
@@ -195,12 +204,18 @@ public class AuthenticationRequest implements Serializable
 
         @Override
         public boolean equals(Object o) {
-            if ( this == o ) return true;
-            if ( o == null || getClass() != o.getClass() ) return false;
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
 
             CookieKey cookieKey = (CookieKey) o;
 
-            if ( name != null ? !name.equals(cookieKey.name) : cookieKey.name != null ) return false;
+            if (name != null ? !name.equals(cookieKey.name) : cookieKey.name != null) {
+                return false;
+            }
             return !(path != null ? !path.equals(cookieKey.path) : cookieKey.path != null);
 
         }

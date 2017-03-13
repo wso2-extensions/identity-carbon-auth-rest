@@ -20,21 +20,20 @@
 
 package org.wso2.carbon.identity.auth.service.handler.impl;
 
-import org.apache.commons.lang.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.wso2.carbon.identity.application.common.model.User;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
 import org.wso2.carbon.identity.auth.service.AuthenticationResult;
 import org.wso2.carbon.identity.auth.service.AuthenticationStatus;
 import org.wso2.carbon.identity.auth.service.exception.AuthClientException;
 import org.wso2.carbon.identity.auth.service.exception.AuthServerException;
 import org.wso2.carbon.identity.auth.service.exception.AuthenticationFailException;
-import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
-import org.wso2.carbon.identity.core.bean.context.MessageContext;
-import org.wso2.carbon.identity.core.handler.InitConfig;
-import org.wso2.carbon.utils.multitenancy.MultitenantConstants;
-import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
+import org.wso2.carbon.identity.auth.service.handler.AbstractAuthenticationHandler;
+import org.wso2.carbon.identity.common.base.message.MessageContext;
+import org.wso2.carbon.identity.mgt.IdentityStore;
+import org.wso2.carbon.identity.mgt.User;
 
 /**
  * This authentication handler does the the authentication based on client certificate.
@@ -42,34 +41,18 @@ import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
  * This handler checked whether the certificate is verified by the container.
  * If yes, the value of the 'User' HTTP header will be treated as the authenticated user.
  */
-public class ClientCertificateBasedAuthenticationHandler extends AuthenticationHandler {
+public class ClientCertificateBasedAuthenticationHandler extends AbstractAuthenticationHandler {
 
-    private static final Log log = LogFactory.getLog(ClientCertificateBasedAuthenticationHandler.class);
+    private static final Logger log = LoggerFactory.getLogger(ClientCertificateBasedAuthenticationHandler.class);
     private static final String CLIENT_CERTIFICATE_ATTRIBUTE_NAME = "javax.servlet.request.X509Certificate";
     private static final String USER_HEADER_NAME = "WSO2-Identity-User";
-
-    @Override
-    public void init(InitConfig initConfig) {
-
-    }
 
     @Override
     public String getName() {
         return "ClientCertificate";
     }
 
-    @Override
     public boolean isEnabled(MessageContext messageContext) {
-        return true;
-    }
-
-    @Override
-    public int getPriority(MessageContext messageContext) {
-        return 10;
-    }
-
-    @Override
-    public boolean canHandle(MessageContext messageContext) {
         if (messageContext instanceof AuthenticationContext) {
             AuthenticationContext authenticationContext = (AuthenticationContext) messageContext;
             if (authenticationContext.getAuthenticationRequest() != null &&
@@ -82,6 +65,11 @@ public class ClientCertificateBasedAuthenticationHandler extends AuthenticationH
     }
 
     @Override
+    protected String getAuthorizationHeaderType() {
+        return null;
+    }
+
+    @Override
     protected AuthenticationResult doAuthenticate(MessageContext messageContext)
             throws AuthServerException, AuthenticationFailException, AuthClientException {
 
@@ -89,37 +77,32 @@ public class ClientCertificateBasedAuthenticationHandler extends AuthenticationH
 
         if (messageContext instanceof AuthenticationContext) {
             AuthenticationContext authenticationContext = (AuthenticationContext) messageContext;
-            if (authenticationContext.getAuthenticationRequest() != null &&
-                    authenticationContext.getAuthenticationRequest().
-                            getAttribute(CLIENT_CERTIFICATE_ATTRIBUTE_NAME) != null
-                    ) {
+            if (authenticationContext.getAuthenticationRequest() != null
+                    && authenticationContext.getAuthenticationRequest().
+                    getAttribute(CLIENT_CERTIFICATE_ATTRIBUTE_NAME) != null) {
 
                 String username = authenticationContext.getAuthenticationRequest().getHeader(USER_HEADER_NAME);
 
                 if (StringUtils.isNotEmpty(username)) {
-                    String tenantDomain = MultitenantUtils.getTenantDomain(username);
+                    ImmutablePair<String, String> domainAndUser = decodeTenantDomainAndUserName(username);
+                    String domainName = domainAndUser.getRight();
+                    username = domainAndUser.getLeft();
 
-                    // Get rid of the tenant domain name suffix, if the user belongs to the super tenant.
-                    if (MultitenantConstants.SUPER_TENANT_DOMAIN_NAME.equals(tenantDomain)) {
+                    IdentityStore identityStore = getRealmService().getIdentityStore();
 
-                        String superTenantSuffix = "@" + MultitenantConstants.SUPER_TENANT_DOMAIN_NAME;
+                    User.UserBuilder userBuilder = new User.UserBuilder();
+                    userBuilder.setUserId(username);
+                    userBuilder.setIdentityStore(identityStore);
+                    userBuilder.setDomainName(domainName);
 
-                        if (username.endsWith(superTenantSuffix)) {
-                            username = username.substring(0, username.length() - superTenantSuffix.length());
-                        }
-                    }
-
-                    User user = new User();
-                    user.setUserName(username);
-                    user.setTenantDomain(tenantDomain);
-
-                    authenticationContext.setUser(user);
+                    authenticationContext.setUser(userBuilder.build());
 
                     authenticationResult.setAuthenticationStatus(AuthenticationStatus.SUCCESS);
 
                     if (log.isDebugEnabled()) {
-                        log.debug(String.format("Client certificate based authentication was successful. " +
-                                "Set '%s' as the user", username));
+                        log.debug(String.format(
+                                "Client certificate based authentication was successful. " + "Set '%s' as the user",
+                                username));
                     }
                 } else {
                     //Server to server authentication. No user involves

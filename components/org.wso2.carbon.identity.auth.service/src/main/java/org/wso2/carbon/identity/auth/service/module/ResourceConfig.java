@@ -24,6 +24,8 @@ import java.io.Serializable;
  */
 public class ResourceConfig implements Serializable {
 
+    private static final long serialVersionUID = 8685236397638870944L;
+
     private String context;
     private String httpMethod;
     private boolean isSecured;

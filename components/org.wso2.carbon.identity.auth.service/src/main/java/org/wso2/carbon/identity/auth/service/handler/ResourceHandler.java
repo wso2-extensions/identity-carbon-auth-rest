@@ -19,12 +19,13 @@ package org.wso2.carbon.identity.auth.service.handler;
 
 import org.wso2.carbon.identity.auth.service.module.ResourceConfig;
 import org.wso2.carbon.identity.auth.service.module.ResourceConfigKey;
-import org.wso2.carbon.identity.core.handler.AbstractIdentityHandler;
+import org.wso2.carbon.identity.common.base.handler.Handler;
 
 /**
  * ResourceHandler can be extended to handle resource context and will execute all the handlers.
  */
-public abstract class ResourceHandler extends AbstractIdentityHandler {
+public abstract class ResourceHandler implements Handler {
+
     /**
      * Handle Resource.
      *

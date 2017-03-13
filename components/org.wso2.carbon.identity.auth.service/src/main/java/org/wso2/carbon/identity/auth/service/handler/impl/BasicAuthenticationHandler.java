@@ -18,51 +18,43 @@
 
 package org.wso2.carbon.identity.auth.service.handler.impl;
 
-import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.lang.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.commons.io.Charsets;
+import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.http.HttpHeaders;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
 import org.wso2.carbon.identity.auth.service.AuthenticationResult;
 import org.wso2.carbon.identity.auth.service.AuthenticationStatus;
 import org.wso2.carbon.identity.auth.service.exception.AuthClientException;
-import org.wso2.carbon.identity.auth.service.exception.AuthenticationFailException;
 import org.wso2.carbon.identity.auth.service.exception.AuthServerException;
-import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
-import org.wso2.carbon.identity.auth.service.internal.AuthenticationServiceHolder;
+import org.wso2.carbon.identity.auth.service.exception.AuthenticationFailException;
+import org.wso2.carbon.identity.auth.service.handler.AbstractAuthenticationHandler;
 import org.wso2.carbon.identity.common.base.message.MessageContext;
-import org.wso2.carbon.identity.core.handler.InitConfig;
-import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
+import org.wso2.carbon.identity.mgt.IdentityStore;
 import org.wso2.carbon.identity.mgt.User;
-import org.wso2.carbon.kernel.context.PrivilegedCarbonContext;
-import org.wso2.carbon.user.api.UserRealm;
-import org.wso2.carbon.user.core.UserStoreManager;
+import org.wso2.carbon.identity.mgt.claim.Claim;
+import org.wso2.carbon.identity.mgt.exception.AuthenticationFailure;
+import org.wso2.carbon.identity.mgt.exception.IdentityStoreException;
 
 import java.nio.charset.Charset;
+import javax.security.auth.callback.Callback;
+import javax.security.auth.callback.PasswordCallback;
+import javax.ws.rs.core.Response;
+import java.util.Base64;
 
 /**
  * BasicAuthenticationHandler is for authenticate the request based on Basic Authentication.
  * canHandle method will confirm whether this request can be handled by this authenticator or not.
  */
-public class BasicAuthenticationHandler extends AuthenticationHandler {
+public class BasicAuthenticationHandler extends AbstractAuthenticationHandler {
 
-    private static final Log log = LogFactory.getLog(BasicAuthenticationHandler.class);
-    private final String BASIC_AUTH_HEADER = "Basic";
-
-    @Override
-    public void init(InitConfig initConfig) {
-
-    }
+    private static final Logger log = LoggerFactory.getLogger(BasicAuthenticationHandler.class);
+    private static final String BASIC_AUTH_HEADER = "Basic";
 
     @Override
     public String getName() {
         return "BasicAuthentication";
-    }
-
-    @Override
-    public boolean isEnabled(MessageContext messageContext) {
-        return true;
     }
 
     @Override
@@ -71,23 +63,8 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
     }
 
     @Override
-    public boolean canHandle(MessageContext messageContext) {
-        if ( messageContext instanceof AuthenticationContext ) {
-            AuthenticationContext authenticationContext = (AuthenticationContext) messageContext;
-            if ( authenticationContext != null && authenticationContext.getAuthenticationRequest() != null ) {
-                String authorizationHeader = authenticationContext.getAuthenticationRequest().
-                        getHeader(HttpHeaders.AUTHORIZATION);
-                if ( StringUtils.isNotEmpty(authorizationHeader) && authorizationHeader.startsWith(BASIC_AUTH_HEADER)
-                        ) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    @Override
-    protected AuthenticationResult doAuthenticate(MessageContext messageContext) throws AuthServerException, AuthenticationFailException, AuthClientException {
+    protected AuthenticationResult doAuthenticate(MessageContext messageContext)
+            throws AuthServerException, AuthenticationFailException, AuthClientException {
 
         AuthenticationResult authenticationResult = new AuthenticationResult(AuthenticationStatus.FAILED);
         AuthenticationContext authenticationContext = (AuthenticationContext) messageContext;
@@ -95,72 +72,82 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
                 getHeader(HttpHeaders.AUTHORIZATION);
 
         String[] splitAuthorizationHeader = authorizationHeader.split(" ");
-        if ( splitAuthorizationHeader != null && splitAuthorizationHeader.length == 2 ) {
-            byte[] decodedAuthHeader = Base64.decodeBase64(authorizationHeader.split(" ")[1].getBytes());
+        if (splitAuthorizationHeader.length >= 2) {
+            byte[] decodedAuthHeader = Base64.getDecoder()
+                    .decode(authorizationHeader.split(" ")[1].getBytes(Charsets.ISO_8859_1));
             String authHeader = new String(decodedAuthHeader, Charset.defaultCharset());
             String[] splitCredentials = authHeader.split(":");
-            if ( splitCredentials != null && splitCredentials.length == 2 ) {
+            if (splitCredentials.length >= 2) {
                 String userName = splitCredentials[0];
-                String password = splitCredentials[1];
+                char[] password = splitCredentials[1] != null ? splitCredentials[1].toCharArray() : new char[0];
 
-
-                UserStoreManager userStoreManager = null;
                 try {
-                    int tenantId = IdentityTenantUtil.getTenantIdOfUser(userName);
-//                    String tenantDomain = MultitenantUtils.getTenantDomain(userName);
+                    ImmutablePair<String, String> domainAndUser = decodeTenantDomainAndUserName(userName);
+                    userName = domainAndUser.getLeft();
+                    String domainName = domainAndUser.getRight();
 
-                    User user = new User.UserBuilder();
-                    user.setUserName(MultitenantUtils.getTenantAwareUsername(userName));
-                    user.setTenantDomain(tenantDomain);
-
-                    authenticationContext.setUser(user);
-
+                    IdentityStore identityStore = getRealmService().getIdentityStore();
 
                     //TODO: Related to this https://wso2.org/jira/browse/IDENTITY-4752 - Class IdentityMgtEventListener
                     // : Line 563: Have to check whether why we can't continue
                     //without following lines as previous code.
-                    PrivilegedCarbonContext.getCurrentContext()
+                    //                    PrivilegedCarbonContext.getCurrentContext()
 
-                    UserRealm userRealm = AuthenticationServiceHolder.getInstance().getRealmService().
-                            getTenantUserRealm(tenantId);
-                    if ( userRealm != null ) {
-                        userStoreManager = (UserStoreManager) userRealm.getUserStoreManager();
-                        boolean isAuthenticated = userStoreManager.authenticate(MultitenantUtils.
-                                getTenantAwareUsername(userName), password);
-                        if ( isAuthenticated ) {
+                    if (identityStore == null) {
+                        String errorMessage =
+                                "Could not get the identity store to autnenticate the user with "
+                                        + "BASIC authentication. Username: "
+                                        + userName;
+                        if (log.isDebugEnabled()) {
+                            log.debug(errorMessage);
+                        }
+                        throw new AuthenticationFailException(errorMessage);
+                    } else {
+
+                        Claim userNameClaim = new Claim("http://wso2.org/claims", "http://wso2.org/claims/username",
+                                userName);
+                        PasswordCallback passwordCallback = new PasswordCallback("password", false);
+                        passwordCallback.setPassword(password);
+                        org.wso2.carbon.identity.mgt.AuthenticationContext resultAuthenticationContext = identityStore
+                                .authenticate(userNameClaim, new Callback[] { passwordCallback }, domainName);
+                        if (resultAuthenticationContext.getUser() != null) {
+                            authenticationContext.setUser(resultAuthenticationContext.getUser());
                             authenticationResult.setAuthenticationStatus(AuthenticationStatus.SUCCESS);
-                            if ( log.isDebugEnabled() ) {
-                                log.debug("BasicAuthentication success.");
+                            if (log.isDebugEnabled()) {
+                                log.debug("BasicAuthentication success for user: " + userName + " on domain: "
+                                        + domainName);
                             }
                         }
-
-                    } else {
-                        String errorMessage = "Error occurred while trying to load the user realm for the tenant.";
-                        log.error(errorMessage);
-                        throw new AuthenticationFailException(errorMessage);
                     }
-                } catch ( org.wso2.carbon.user.api.UserStoreException e ) {
-                    String errorMessage = "Error occurred while trying to authenticate, " + e.getMessage();
-                    log.error(errorMessage);
-                    throw new AuthenticationFailException(errorMessage);
-                } finally {
-                    PrivilegedCarbonContext.endTenantFlow();
+                } catch (AuthenticationFailure authenticationFailure) {
+                    if (log.isDebugEnabled()) {
+                        log.debug("Authentication failed, with the user: "+userName, authenticationFailure);
+                    }
+                    return authenticationResult;
+                } catch (IdentityStoreException e) {
+                    throw new AuthServerException("Error occurred while trying to authenticate user: " + userName, e);
                 }
             } else {
-                String errorMessage = "Error occurred while trying to authenticate and  auth user credentials " +
-                        "are not define correctly.";
+                String errorMessage = "Error occurred while trying to authenticate and auth user credentials "
+                        + "are not defined correctly.";
                 log.error(errorMessage);
-                throw new AuthClientException(errorMessage);
+                authenticationResult.setAuthenticationStatus(AuthenticationStatus.FAILED);
+                authenticationResult.setStatusCode(Response.Status.BAD_REQUEST.getStatusCode());
             }
         } else {
             String errorMessage = "Error occurred while trying to authenticate and  " + HttpHeaders.AUTHORIZATION
-                    + " header values are not define correctly.";
+                    + " header values are not defined correctly.";
             log.error(errorMessage);
             throw new AuthClientException(errorMessage);
         }
 
-
+        authenticationResult.addResponseHeader(HttpHeaders.WWW_AUTHENTICATE, "Basic");
         return authenticationResult;
     }
 
+
+    @Override
+    protected String getAuthorizationHeaderType() {
+        return BASIC_AUTH_HEADER;
+    }
 }

@@ -20,7 +20,7 @@
         <groupId>org.wso2.carbon.identity.auth.rest</groupId>
         <artifactId>identity-carbon-auth-rest</artifactId>
         <relativePath>../../pom.xml</relativePath>
-        <version>1.1.2-SNAPSHOT</version>
+        <version>2.0.0-SNAPSHOT</version>
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
@@ -44,28 +44,20 @@
         </dependency>
         <dependency>
             <groupId>org.wso2.carbon</groupId>
-            <artifactId>org.wso2.carbon.utils</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.wso2.carbon</groupId>
             <artifactId>org.wso2.carbon.core</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.wso2.carbon</groupId>
-            <artifactId>org.wso2.carbon.logging</artifactId>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
         </dependency>
         <dependency>
-            <groupId>commons-lang.wso2</groupId>
-            <artifactId>commons-lang</artifactId>
+            <groupId>org.wso2.carbon.messaging</groupId>
+            <artifactId>org.wso2.carbon.messaging</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.wso2.carbon.identity.framework</groupId>
-            <artifactId>org.wso2.carbon.identity.core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.wso2.carbon.identity.inbound.auth.oauth2</groupId>
-            <artifactId>org.wso2.carbon.identity.oauth</artifactId>
-        </dependency>
+        <!--<dependency>-->
+            <!--<groupId>org.wso2.carbon.identity.inbound.auth.oauth2</groupId>-->
+            <!--<artifactId>org.wso2.carbon.identity.oauth</artifactId>-->
+        <!--</dependency>-->
         <dependency>
             <groupId>org.wso2.carbon.identity.commons</groupId>
             <artifactId>org.wso2.carbon.identity.commons</artifactId>
@@ -78,35 +70,36 @@
             <groupId>org.wso2.msf4j</groupId>
             <artifactId>msf4j-core</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.testng</groupId>
+            <artifactId>testng</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <properties>
-
-        <Private-Package>
+        <private.package>
             org.wso2.carbon.identity.auth.service.internal
-        </Private-Package>
-        <Import-Package>
-            javax.servlet.*; version="${imp.pkg.version.javax.servlet}",
-            org.apache.axiom.*; version="${axiom.osgi.version.range}",
-            org.apache.axis2.*; version="${axis2.osgi.version.range}",
-            org.apache.commons.lang; version="${commons-lang.wso2.osgi.version.range}",
+        </private.package>
+        <import.package>
+            org.apache.commons.lang3.*; version="${org.apache.commons.commons-lang3.version.range}",
+            org.apache.commons.io;version="[2.0,3)",
             org.slf4j.*;version="${slf4j.logging.package.import.version.range}",
             org.osgi.framework; version="${osgi.framework.imp.pkg.version.range}",
             org.osgi.service.component; version="${osgi.service.component.imp.pkg.version.range}",
             org.osgi.util.tracker; version="${osgi.util.tracker.imp.pkg.version.range}",
-            org.wso2.carbon.core.*; version="${carbon.kernel.imp.pkg.version.range}",
             org.wso2.carbon.utils.*; version="${carbon.kernel.imp.pkg.version.range}",
-            org.wso2.carbon.identity.core.*; version="${carbon.identity.package.import.version.range}",
-            org.wso2.carbon.identity.oauth2.*;
-            version="${org.wso2.carbon.identity.oauth.import.version.range}"
-        </Import-Package>
-        <Export-Package>
+            org.wso2.carbon.messaging.*; version="${carbon.messaging.version.range}",
+            org.wso2.carbon.identity.common.base.handler;version="${carbon.identity.commons.version.range}",
+            org.wso2.carbon.identity.common.base.message;version="[0.1,1)",
+            org.wso2.carbon.identity.mgt.*;version="[0.1,1)",
+            javax.security.*,
+            javax.ws.rs.core,
+        </import.package>
+        <export.package>
             !org.wso2.carbon.identity.auth.service.internal,
-            org.wso2.carbon.identity.auth.service.*;
-            version="${org.wso2.carbon.identity.auth.service.version}"
-        </Export-Package>
-        <DynamicImport-Package>*</DynamicImport-Package>
-
+            org.wso2.carbon.identity.auth.service.*;version="${project.version}"
+        </export.package>
     </properties>
 
 </project>

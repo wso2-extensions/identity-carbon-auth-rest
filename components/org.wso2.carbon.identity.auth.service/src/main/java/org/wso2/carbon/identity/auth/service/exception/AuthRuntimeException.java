@@ -18,8 +18,12 @@
 
 package org.wso2.carbon.identity.auth.service.exception;
 
-
+/**
+ * Runtime (unchecked) exception while performing the authentication tasks.
+ *
+ */
 public class AuthRuntimeException extends RuntimeException {
+
     public AuthRuntimeException() {
     }
 
@@ -35,8 +39,8 @@ public class AuthRuntimeException extends RuntimeException {
         super(cause);
     }
 
-    public AuthRuntimeException(String message, Throwable cause, boolean enableSuppression, boolean
-            writableStackTrace) {
+    public AuthRuntimeException(String message, Throwable cause, boolean enableSuppression,
+            boolean writableStackTrace) {
         super(message, cause, enableSuppression, writableStackTrace);
     }
 }

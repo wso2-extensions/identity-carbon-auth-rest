@@ -18,8 +18,11 @@
 
 package org.wso2.carbon.identity.auth.service.exception;
 
-
+/**
+ * Exception signifying the authentication failure when calling as an authentication client.
+ */
 public class AuthClientException extends Exception {
+
     public AuthClientException() {
     }
 
@@ -35,8 +38,7 @@ public class AuthClientException extends Exception {
         super(cause);
     }
 
-    public AuthClientException(String message, Throwable cause, boolean enableSuppression, boolean
-            writableStackTrace) {
+    public AuthClientException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
         super(message, cause, enableSuppression, writableStackTrace);
     }
 }

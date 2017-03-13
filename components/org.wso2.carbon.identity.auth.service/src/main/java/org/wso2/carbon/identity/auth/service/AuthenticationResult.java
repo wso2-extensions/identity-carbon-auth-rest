@@ -18,15 +18,20 @@
 
 package org.wso2.carbon.identity.auth.service;
 
-import java.io.Serializable;
+import org.wso2.carbon.messaging.Header;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * AuthenticationResult hold the status.
  */
-public class AuthenticationResult implements Serializable {
+public class AuthenticationResult{
 
     private AuthenticationStatus authenticationStatus = AuthenticationStatus.FAILED;
-
+    private int statusCode = 0;
+    private List<Header> responseHeaders;
 
     /**
      * @param authenticationStatus
@@ -47,5 +52,24 @@ public class AuthenticationResult implements Serializable {
      */
     public void setAuthenticationStatus(AuthenticationStatus authenticationStatus) {
         this.authenticationStatus = authenticationStatus;
+    }
+
+    public int getStatusCode() {
+        return statusCode;
+    }
+
+    public void setStatusCode(int statusCode) {
+        this.statusCode = statusCode;
+    }
+
+    public List<Header> getResponseHeaders() {
+        return responseHeaders == null? Collections.emptyList() : Collections.unmodifiableList(responseHeaders);
+    }
+
+    public void addResponseHeader(String name, String value) {
+        if(responseHeaders == null) {
+            responseHeaders = new ArrayList<>();
+        }
+        responseHeaders.add(new Header(name, value));
     }
 }

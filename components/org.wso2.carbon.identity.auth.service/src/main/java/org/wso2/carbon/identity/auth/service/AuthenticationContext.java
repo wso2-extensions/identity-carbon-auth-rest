@@ -23,22 +23,25 @@ import org.wso2.carbon.identity.auth.service.module.ResourceConfig;
 import org.wso2.carbon.identity.common.base.message.MessageContext;
 import org.wso2.carbon.identity.mgt.User;
 
-
 /**
  * AuthenticationContext which is pass across the authentication flow.
  */
 public class AuthenticationContext extends MessageContext {
-    private AuthenticationRequest authenticationRequest = null;
-    private AuthenticationResult authenticationResult = null;
+
+    private static final long serialVersionUID = 4937506590904486750L;
+
+    private transient AuthenticationRequest authenticationRequest = null;
+    private transient AuthenticationResult authenticationResult = null;
     private ResourceConfig resourceConfig = null;
     private User user = null;
 
     /**
-     * @param authenticationRequest
+     * Constructor taking the request.
+     * @param authenticationRequest  The Authentication request for the context.
      */
     public AuthenticationContext(AuthenticationRequest authenticationRequest) {
-        if ( authenticationRequest == null ) {
-            throw new AuthRuntimeException("AuthenticationRequest can't be null.");
+        if (authenticationRequest == null) {
+            throw new AuthRuntimeException("Constructor failed as AuthenticationRequest parameter can not be null.");
         }
         this.authenticationRequest = authenticationRequest;
     }
@@ -67,9 +70,6 @@ public class AuthenticationContext extends MessageContext {
         this.resourceConfig = resourceConfig;
     }
 
-    /**
-     * @return
-     */
     public AuthenticationRequest getAuthenticationRequest() {
         return authenticationRequest;
     }
