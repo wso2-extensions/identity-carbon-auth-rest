@@ -1,6 +1,10 @@
 package org.wso2.carbon.identity.auth.service.exception;
 
-public class AuthenticationFailException extends Exception{
+/**
+ * Exception when the authentication failure occurs.
+ */
+public class AuthenticationFailException extends Exception {
+
     public AuthenticationFailException() {
         super();
     }
@@ -17,8 +21,8 @@ public class AuthenticationFailException extends Exception{
         super(cause);
     }
 
-    protected AuthenticationFailException(String message, Throwable cause, boolean enableSuppression, boolean
-            writableStackTrace) {
+    protected AuthenticationFailException(String message, Throwable cause, boolean enableSuppression,
+            boolean writableStackTrace) {
         super(message, cause, enableSuppression, writableStackTrace);
     }
 }

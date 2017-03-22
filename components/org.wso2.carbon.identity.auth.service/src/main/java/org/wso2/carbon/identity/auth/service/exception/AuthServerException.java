@@ -18,8 +18,12 @@
 
 package org.wso2.carbon.identity.auth.service.exception;
 
-
+/**
+ * Exception in while handling server-side logic in authentication framework.
+ *
+ */
 public class AuthServerException extends Exception {
+
     public AuthServerException() {
     }
 
@@ -35,8 +39,7 @@ public class AuthServerException extends Exception {
         super(cause);
     }
 
-    public AuthServerException(String message, Throwable cause, boolean enableSuppression, boolean
-            writableStackTrace) {
+    public AuthServerException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
         super(message, cause, enableSuppression, writableStackTrace);
     }
 }

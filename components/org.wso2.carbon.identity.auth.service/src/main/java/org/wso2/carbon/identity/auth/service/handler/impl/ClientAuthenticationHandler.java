@@ -18,49 +18,38 @@
 
 package org.wso2.carbon.identity.auth.service.handler.impl;
 
-import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.lang.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.commons.io.Charsets;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHeaders;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
 import org.wso2.carbon.identity.auth.service.AuthenticationResult;
 import org.wso2.carbon.identity.auth.service.AuthenticationStatus;
 import org.wso2.carbon.identity.auth.service.exception.AuthClientException;
 import org.wso2.carbon.identity.auth.service.exception.AuthServerException;
-import org.wso2.carbon.identity.auth.service.exception.AuthenticationFailException;
-import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
+import org.wso2.carbon.identity.auth.service.handler.AbstractAuthenticationHandler;
 import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
-import org.wso2.carbon.identity.core.bean.context.MessageContext;
-import org.wso2.carbon.identity.core.handler.InitConfig;
+import org.wso2.carbon.identity.common.base.message.MessageContext;
 
 import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Base64;
 
 /**
  * ClientAuthenticationHandler is for authenticate the request based on Client Authentication.
  * canHandle method will confirm whether this request can be handled by this authenticator or not.
  */
-public class ClientAuthenticationHandler extends AuthenticationHandler {
+public class ClientAuthenticationHandler extends AbstractAuthenticationHandler {
 
-    private static final Log log = LogFactory.getLog(ClientAuthenticationHandler.class);
-    private final String CLIENT_AUTH_HEADER = "Client";
-    private final String hashingFunction = "SHA-256";
-
-    @Override
-    public void init(InitConfig initConfig) {
-
-    }
+    private static final Logger log = LoggerFactory.getLogger(ClientAuthenticationHandler.class);
+    private static final String CLIENT_AUTH_HEADER = "Client";
+    private static final String HASHING_FUNCTION = "SHA-256";
 
     @Override
     public String getName() {
         return "ClientAuthentication";
-    }
-
-    @Override
-    public boolean isEnabled(MessageContext messageContext) {
-        return true;
     }
 
     @Override
@@ -69,23 +58,13 @@ public class ClientAuthenticationHandler extends AuthenticationHandler {
     }
 
     @Override
-    public boolean canHandle(MessageContext messageContext) {
-        if (messageContext instanceof AuthenticationContext) {
-            AuthenticationContext authenticationContext = (AuthenticationContext) messageContext;
-            if (authenticationContext != null && authenticationContext.getAuthenticationRequest() != null) {
-                String authorizationHeader = authenticationContext.getAuthenticationRequest().
-                        getHeader(HttpHeaders.AUTHORIZATION);
-                if (StringUtils.isNotEmpty(authorizationHeader) && authorizationHeader.startsWith(CLIENT_AUTH_HEADER)
-                        ) {
-                    return true;
-                }
-            }
-        }
-        return false;
+    protected String getAuthorizationHeaderType() {
+        return CLIENT_AUTH_HEADER;
     }
 
     @Override
-    protected AuthenticationResult doAuthenticate(MessageContext messageContext) throws AuthServerException, AuthenticationFailException, AuthClientException {
+    protected AuthenticationResult doAuthenticate(MessageContext messageContext)
+            throws AuthServerException, AuthClientException {
 
         AuthenticationResult authenticationResult = new AuthenticationResult(AuthenticationStatus.FAILED);
         AuthenticationContext authenticationContext = (AuthenticationContext) messageContext;
@@ -93,11 +72,12 @@ public class ClientAuthenticationHandler extends AuthenticationHandler {
                 getHeader(HttpHeaders.AUTHORIZATION);
 
         String[] splitAuthorizationHeader = authorizationHeader.split(" ");
-        if (splitAuthorizationHeader != null && splitAuthorizationHeader.length == 2) {
-            byte[] decodedAuthHeader = Base64.decodeBase64(authorizationHeader.split(" ")[1].getBytes());
+        if (splitAuthorizationHeader.length == 2) {
+            byte[] decodedAuthHeader = Base64.getDecoder()
+                    .decode(authorizationHeader.split(" ")[1].getBytes(Charsets.ISO_8859_1));
             String authHeader = new String(decodedAuthHeader, Charset.defaultCharset());
             String[] splitCredentials = authHeader.split(":");
-            if (splitCredentials != null && splitCredentials.length == 2) {
+            if (splitCredentials.length == 2) {
                 String appName = splitCredentials[0];
                 String password = splitCredentials[1];
                 String hash = AuthConfigurationUtil.getInstance().getClientAuthenticationHash(appName);
@@ -106,17 +86,11 @@ public class ClientAuthenticationHandler extends AuthenticationHandler {
 
                     MessageDigest dgst;
                     try {
-                        dgst = MessageDigest.getInstance(hashingFunction);
+                        dgst = MessageDigest.getInstance(HASHING_FUNCTION);
 
-                        byte[] byteValue = dgst.digest(password.getBytes());
+                        byte[] byteValue = dgst.digest(password.getBytes(Charsets.ISO_8859_1));
 
-                        //convert the byte to hex format
-                        StringBuffer sb = new StringBuffer();
-                        for (int i = 0; i < byteValue.length; i++) {
-                            sb.append(Integer.toString((byteValue[i] & 0xff) + 0x100, 16).substring(1));
-                        }
-
-                        String hashFromRequest = sb.toString();
+                        String hashFromRequest = encodeHexString(byteValue);
                         if (hash.equals(hashFromRequest)) {
                             authenticationResult.setAuthenticationStatus(AuthenticationStatus.SUCCESS);
                             if (log.isDebugEnabled()) {
@@ -126,17 +100,17 @@ public class ClientAuthenticationHandler extends AuthenticationHandler {
                     } catch (NoSuchAlgorithmException e) {
                         String errorMessage = "Error occurred while hashing the app data.";
                         log.error(errorMessage, e);
-                        throw new AuthenticationFailException(errorMessage);
+                        throw new AuthServerException(errorMessage);
                     }
                 } else {
                     if (log.isDebugEnabled()) {
-                        log.debug("No matching application configuration fould for :" + appName);
+                        log.debug("No matching application configuration found for :" + appName);
                     }
                 }
 
             } else {
-                String errorMessage = "Error occurred while trying to authenticate and  auth application credentials " +
-                        "are not define correctly.";
+                String errorMessage = "Error occurred while trying to authenticate and  auth application credentials "
+                        + "are not define correctly.";
                 log.error(errorMessage);
                 throw new AuthClientException(errorMessage);
             }
@@ -147,8 +121,11 @@ public class ClientAuthenticationHandler extends AuthenticationHandler {
             throw new AuthClientException(errorMessage);
         }
 
-
         return authenticationResult;
+    }
+
+    private String encodeHexString(byte[] byteValue) {
+        return javax.xml.bind.DatatypeConverter.printHexBinary(byteValue);
     }
 
 }

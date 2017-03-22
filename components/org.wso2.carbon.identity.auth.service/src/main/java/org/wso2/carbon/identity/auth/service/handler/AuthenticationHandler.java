@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2017, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -18,88 +18,31 @@
 
 package org.wso2.carbon.identity.auth.service.handler;
 
-import org.wso2.carbon.base.MultitenantConstants;
-import org.wso2.carbon.context.PrivilegedCarbonContext;
-import org.wso2.carbon.identity.application.common.model.User;
-import org.wso2.carbon.identity.auth.service.AuthenticationContext;
 import org.wso2.carbon.identity.auth.service.AuthenticationResult;
-import org.wso2.carbon.identity.auth.service.AuthenticationStatus;
 import org.wso2.carbon.identity.auth.service.exception.AuthClientException;
-import org.wso2.carbon.identity.auth.service.exception.AuthenticationFailException;
 import org.wso2.carbon.identity.auth.service.exception.AuthServerException;
-import org.wso2.carbon.identity.core.bean.context.MessageContext;
-import org.wso2.carbon.identity.core.handler.IdentityMessageHandler;
-import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
-import org.wso2.carbon.identity.core.util.IdentityUtil;
-import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
+import org.wso2.carbon.identity.common.base.handler.MessageHandler;
+import org.wso2.carbon.identity.common.base.message.MessageContext;
+import org.wso2.carbon.identity.mgt.RealmService;
 
 /**
- * This is the abstract class for custom authentication handlers.
- *
- * The custom handlers should implement the doAuthenticate() method and optionally the postAuthenticate() method.
- *
+ * Authentication handler for the services, and interceptors.
  */
-public abstract class AuthenticationHandler implements IdentityMessageHandler {
-
-
-    /**
-     *
-     * This method is called by the authentication framework.
-     *
-     * @param messageContext
-     * @return
-     * @throws AuthServerException
-     * @throws AuthenticationFailException
-     * @throws AuthClientException
-     */
-    public final AuthenticationResult authenticate(MessageContext messageContext) throws AuthServerException, AuthenticationFailException, AuthClientException {
-
-        AuthenticationResult authenticationResult = this.doAuthenticate(messageContext);
-        postAuthenticate(messageContext, authenticationResult);
-
-        return authenticationResult;
-
-    }
+public interface AuthenticationHandler extends MessageHandler {
 
     /**
+     * Authenticate the message. Called by the authentication framework.
      *
-     * This is where the actual authentication takes place.
-     *
-     * @param messageContext
-     * @return
-     * @throws AuthServerException
-     * @throws AuthenticationFailException
-     * @throws AuthClientException
+     * @param messageContext The message context.
+     * @return The authentication result.
+     * @throws AuthServerException  When there is a internal server exception
+     * @throws AuthClientException When there is a logical exception in authentication.
      */
-    protected abstract AuthenticationResult doAuthenticate(MessageContext messageContext) throws AuthServerException, AuthenticationFailException, AuthClientException;
+    AuthenticationResult authenticate(MessageContext messageContext) throws AuthServerException, AuthClientException;
 
     /**
-     *
-     * This is the post authenticate hook.
-     *
-     * A custom authentication handler can provide its own implementation for the hook.
-     *
-     * The default behaviour is to set the user details in {@link org.wso2.carbon.context.CarbonContext}
-     *
-     * @param messageContext
+     * Sets the realm service for the authentication handler.
+     * @param realmService the RealmService to be used to access Identity Store.
      */
-    protected void postAuthenticate(MessageContext messageContext, AuthenticationResult authenticationResult) {
-
-        AuthenticationContext authenticationContext = (AuthenticationContext) messageContext;
-
-        if (AuthenticationStatus.SUCCESS.equals(authenticationResult.getAuthenticationStatus())) {
-
-            User user = authenticationContext.getUser();
-            if (user != null) {
-                // Set the user in to the Carbon context if the user belongs to same tenant. Skip this for cross tenant
-                // scenarios.
-
-                if (user.getTenantDomain() != null && user.getTenantDomain().equalsIgnoreCase(PrivilegedCarbonContext
-                        .getThreadLocalCarbonContext().getTenantDomain())) {
-                    PrivilegedCarbonContext.getThreadLocalCarbonContext().setUsername(IdentityUtil.addDomainToName
-                            (user.getUserName(), user.getUserStoreDomain()));
-                }
-            }
-        }
-    }
+    void setRealmService(RealmService realmService);
 }

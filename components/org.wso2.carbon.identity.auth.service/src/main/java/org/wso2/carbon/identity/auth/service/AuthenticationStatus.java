@@ -18,7 +18,6 @@
 
 package org.wso2.carbon.identity.auth.service;
 
-
 /**
  * Authentication Status.
  */

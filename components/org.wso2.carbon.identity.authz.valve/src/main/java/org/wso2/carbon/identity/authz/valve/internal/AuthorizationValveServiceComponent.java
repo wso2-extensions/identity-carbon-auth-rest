@@ -28,7 +28,7 @@ import java.util.List;
 
 import static java.util.Collections.sort;
 /**
- * @scr.component name="org.wso2.carbon.identity.authz.valve" immediate="true"
+ * @scr.component name="org.wso2.carbon.identity.authz.msf4j" immediate="true"
  * @scr.reference name="org.wso2.carbon.identity.authz.service.manager.consume"
  * interface="org.wso2.carbon.identity.authz.service.AuthorizationManager"
  * cardinality="1..n" policy="dynamic" bind="setAuthorizationManager" unbind="unsetAuthorizationManager"
