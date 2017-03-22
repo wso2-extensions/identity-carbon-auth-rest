@@ -328,7 +328,7 @@
 
         <carbon.transport.http.netty.version>2.1.4</carbon.transport.http.netty.version>
         <carbon.messaging.version>1.0.11</carbon.messaging.version>
-        <carbon.messaging.version.range>[1.0.11, 1.1.0)</carbon.messaging.version.range>
+        <carbon.messaging.version.range>[1.0.11, 3.0.0)</carbon.messaging.version.range>
         <carbon.metrics.version>2.0.0</carbon.metrics.version>
         <com.h2database.h2.version>1.4.191</com.h2database.h2.version>
         <carbon.p2.plugin.version>1.5.3</carbon.p2.plugin.version>
@@ -351,8 +351,7 @@
         <!-- End of Test Dependencies -->
 
         <!-- Temporary -->
-        <maven.checkstyleplugin.excludes>**</maven.checkstyleplugin.excludes>
-        <!--<maven.checkstyleplugin.excludes>**/*Test.java</maven.checkstyleplugin.excludes>-->
+        <maven.checkstyleplugin.excludes>**/*Test.java,**/Mock*.java</maven.checkstyleplugin.excludes>
     </properties>
 
 

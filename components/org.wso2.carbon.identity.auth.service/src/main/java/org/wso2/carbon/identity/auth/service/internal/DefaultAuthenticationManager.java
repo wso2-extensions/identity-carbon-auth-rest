@@ -27,7 +27,6 @@ import org.wso2.carbon.identity.auth.service.AuthenticationStatus;
 import org.wso2.carbon.identity.auth.service.exception.AuthClientException;
 import org.wso2.carbon.identity.auth.service.exception.AuthRuntimeException;
 import org.wso2.carbon.identity.auth.service.exception.AuthServerException;
-import org.wso2.carbon.identity.auth.service.exception.AuthenticationFailException;
 import org.wso2.carbon.identity.auth.service.handler.AbstractAuthenticationManager;
 import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
 import org.wso2.carbon.identity.auth.service.handler.ResourceHandler;
@@ -52,12 +51,9 @@ public class DefaultAuthenticationManager extends AbstractAuthenticationManager 
     private Map<String, String> applicationConfigMap = new HashMap<>();
     private List<ResourceHandler> resourceHandlers = new ArrayList<>();
 
-    public DefaultAuthenticationManager() {
-    }
-
     @Override
     public AuthenticationResult authenticate(AuthenticationContext authenticationContext)
-            throws AuthServerException, AuthClientException, AuthenticationFailException {
+            throws AuthServerException, AuthClientException {
 
         if (log.isDebugEnabled()) {
             logAuthenticationStart(authenticationContext);
@@ -76,13 +72,18 @@ public class DefaultAuthenticationManager extends AbstractAuthenticationManager 
             }
             return new AuthenticationResult(AuthenticationStatus.FAILED);
         }
+
+        if (!securedResource.isSecured()) {
+            return new AuthenticationResult(AuthenticationStatus.NOTSECURED);
+        }
+
         authenticationContext.setResourceConfig(securedResource);
         AuthenticationHandler authenticationHandler = getFirstPriorityAuthenticationHandler(true,
                 authenticationContext);
 
         if (authenticationHandler == null) {
-            throw new AuthRuntimeException(String.format("AuthenticationHandler to handle the request not found."+
-            "Request details are, method: %s, URI: %s", authenticationRequest.getMethod(),
+            throw new AuthRuntimeException(String.format("AuthenticationHandler to handle the request not found."
+                            + "Request details are, method: %s, URI: %s", authenticationRequest.getMethod(),
                     authenticationRequest.getContextPath()));
         }
         if (log.isDebugEnabled()) {

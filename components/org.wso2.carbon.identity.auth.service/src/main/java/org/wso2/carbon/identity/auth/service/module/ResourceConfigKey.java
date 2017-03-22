@@ -32,7 +32,6 @@ public class ResourceConfigKey {
         return httpMethod;
     }
 
-
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -59,7 +58,7 @@ public class ResourceConfigKey {
         if (compiledPattern == null) {
             compiledPattern = Pattern.compile(contextPath);
         }
-        return compiledPattern.matcher(that.contextPath == null? "": that.contextPath);
+        return compiledPattern.matcher(that.contextPath == null ? "" : that.contextPath);
     }
 
     @Override

@@ -16,9 +16,6 @@
 
 package org.wso2.carbon.identity.auth.service.util;
 
-import org.wso2.carbon.identity.auth.service.module.ResourceConfig;
-import org.wso2.carbon.identity.auth.service.module.ResourceConfigKey;
-
 import java.util.HashMap;
 import java.util.Map;
 
@@ -44,7 +41,6 @@ public class AuthConfigurationUtil {
     public static AuthConfigurationUtil getInstance() {
         return AuthConfigurationUtil.authConfigurationUtil;
     }
-
 
     /**
      * Build rest api resource control config.

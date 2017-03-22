@@ -25,31 +25,26 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * AuthenticationResult hold the status.
+ * AuthenticationResult holding the status of the authentication.
  */
-public class AuthenticationResult{
+public class AuthenticationResult {
 
     private AuthenticationStatus authenticationStatus = AuthenticationStatus.FAILED;
     private int statusCode = 0;
     private List<Header> responseHeaders;
 
     /**
-     * @param authenticationStatus
+     * Constructor taking the authentication status as the parameter.
+     * @param authenticationStatus theAuthentication Status to return.
      */
     public AuthenticationResult(AuthenticationStatus authenticationStatus) {
         this.authenticationStatus = authenticationStatus;
     }
 
-    /**
-     * @return
-     */
     public AuthenticationStatus getAuthenticationStatus() {
         return authenticationStatus;
     }
 
-    /**
-     * @param authenticationStatus
-     */
     public void setAuthenticationStatus(AuthenticationStatus authenticationStatus) {
         this.authenticationStatus = authenticationStatus;
     }
@@ -63,11 +58,11 @@ public class AuthenticationResult{
     }
 
     public List<Header> getResponseHeaders() {
-        return responseHeaders == null? Collections.emptyList() : Collections.unmodifiableList(responseHeaders);
+        return responseHeaders == null ? Collections.emptyList() : Collections.unmodifiableList(responseHeaders);
     }
 
     public void addResponseHeader(String name, String value) {
-        if(responseHeaders == null) {
+        if (responseHeaders == null) {
             responseHeaders = new ArrayList<>();
         }
         responseHeaders.add(new Header(name, value));

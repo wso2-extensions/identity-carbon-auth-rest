@@ -20,13 +20,11 @@ package org.wso2.carbon.identity.auth.service;
 
 import org.wso2.carbon.identity.auth.service.exception.AuthClientException;
 import org.wso2.carbon.identity.auth.service.exception.AuthServerException;
-import org.wso2.carbon.identity.auth.service.exception.AuthenticationFailException;
-import org.wso2.carbon.identity.auth.service.handler.ResourceHandler;
 import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
+import org.wso2.carbon.identity.auth.service.handler.ResourceHandler;
 
 /**
  * AuthenticationManager is the manager class for doing the authentication based on the type ex: Basic, Token, etc...
- * <p/>
  * This is registered as an OSGi service and can consume as a Service.
  */
 public interface AuthenticationManager {
@@ -35,15 +33,29 @@ public interface AuthenticationManager {
      * Authenticate the request based on the protocol.
      * AuthenticationContext must have a request object.
      *
-     * @param authenticationContext
-     * @return AuthenticationResult
+     * @param authenticationContext The authentication context to be passed.
+     * @return The result of the authentication request.
+     * @throws AuthServerException When there is a server-side error in the authentication flow.
+     * @throws AuthClientException When there is an error in the request.
      */
     AuthenticationResult authenticate(AuthenticationContext authenticationContext)
-            throws AuthServerException, AuthClientException, AuthenticationFailException;
+            throws AuthServerException, AuthClientException;
 
+    /**
+     * Adds a new resource handler.
+     * @param resourceHandler The resource Handler being added.
+     */
     void addResourceHandler(ResourceHandler resourceHandler);
 
+    /**
+     * Removes a Resource handler which was added previously.
+     * @param resourceHandler the reference of the Resource handler to be removed.
+     */
     void removeResourceHandler(ResourceHandler resourceHandler);
 
-    void addAuthenticationHandler(AuthenticationHandler basicAuthenticationHandler);
+    /**
+     * Adds a new authentication handler.
+     * @param authenticationHandler The authentication handler to be added
+     */
+    void addAuthenticationHandler(AuthenticationHandler authenticationHandler);
 }

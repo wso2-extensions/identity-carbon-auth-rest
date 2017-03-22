@@ -27,7 +27,6 @@ import java.util.List;
 
 import static org.ops4j.pax.exam.CoreOptions.mavenBundle;
 import static org.ops4j.pax.exam.CoreOptions.systemProperty;
-import static org.ops4j.pax.exam.CoreOptions.vmOption;
 
 /**
  * This class contains the utility methods for  REST tests.
@@ -133,6 +132,10 @@ public class AuthRestTestUtils {
         defaultOptionList.add(mavenBundle()
                 .groupId("org.wso2.msf4j")
                 .artifactId("msf4j-core")
+                .versionAsInProject());
+        defaultOptionList.add(mavenBundle()
+                .groupId("org.wso2.carbon.messaging")
+                .artifactId("org.wso2.carbon.messaging")
                 .versionAsInProject());
         defaultOptionList.add(mavenBundle().
                 groupId("org.wso2.carbon.transport").

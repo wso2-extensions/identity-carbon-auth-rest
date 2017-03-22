@@ -19,23 +19,23 @@
 package org.wso2.carbon.identity.auth.msf4j.internal;
 
 import org.osgi.service.component.ComponentContext;
-import org.osgi.service.component.annotations.*;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.wso2.carbon.identity.auth.service.*;
+import org.wso2.carbon.identity.auth.service.AuthenticationContext;
+import org.wso2.carbon.identity.auth.service.AuthenticationManager;
+import org.wso2.carbon.identity.auth.service.AuthenticationRequest;
+import org.wso2.carbon.identity.auth.service.AuthenticationResult;
 import org.wso2.carbon.identity.auth.service.exception.AuthClientException;
-import org.wso2.carbon.messaging.Header;
 import org.wso2.msf4j.Interceptor;
 import org.wso2.msf4j.Request;
 import org.wso2.msf4j.Response;
 import org.wso2.msf4j.ServiceMethodInfo;
 
-import java.net.HttpCookie;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import javax.ws.rs.core.HttpHeaders;
 
 /**
@@ -53,7 +53,7 @@ public class AuthenticationInterceptor implements Interceptor {
     @Activate
     protected void activate(ComponentContext cxt) {
         if (log.isDebugEnabled()) {
-            log.debug("AuthenticationValveServiceComponent is activated");
+            log.debug("MSF4J Authentication Interceptor is activated");
         }
     }
 
@@ -94,7 +94,7 @@ public class AuthenticationInterceptor implements Interceptor {
                     request.getUri());
         }
         if (authenticationManager == null) {
-            log.error("Authentication Handler manager is not set. Failing the request");
+            log.error("Authentication manager is not set. Failing the request");
             response.setStatus(javax.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
             return false;
         }
@@ -103,21 +103,25 @@ public class AuthenticationInterceptor implements Interceptor {
         AuthenticationRequest authenticationRequest = builder.build();
         AuthenticationContext authenticationContext = new AuthenticationContext(authenticationRequest);
         AuthenticationResult authenticationResult = authenticationManager.authenticate(authenticationContext);
-        if (authenticationResult.getAuthenticationStatus() == AuthenticationStatus.SUCCESS) {
+
+        switch (authenticationResult.getAuthenticationStatus()) {
+        case NOTSECURED:
+            return true;
+        case SUCCESS:
             /*The authzUser is a workaround since MSF4J does not have proper SecurityContext handling
             * This has to be removed and associate the proper Principal Object to make it similar to
             * JAX-RS way to get the user.*/
             request.setProperty("authzUser", authenticationContext.getUser().getUniqueUserId());
             return true;
         }
-        if(authenticationResult.getStatusCode() >0) {
+
+        if (authenticationResult.getStatusCode() > 0) {
             response.setStatus(authenticationResult.getStatusCode());
         } else {
             response.setStatus(javax.ws.rs.core.Response.Status.UNAUTHORIZED.getStatusCode());
         }
 
-        authenticationResult.getResponseHeaders().stream()
-                .forEach(h-> response.setHeader(h.getName(), h.getValue()));
+        authenticationResult.getResponseHeaders().stream().forEach(h -> response.setHeader(h.getName(), h.getValue()));
 
         response.send();
         return false;
@@ -134,38 +138,26 @@ public class AuthenticationInterceptor implements Interceptor {
     private AuthenticationRequest.AuthenticationRequestBuilder createRequestBuilder(Request request, Response response)
             throws AuthClientException {
 
-        AuthenticationRequest.AuthenticationRequestBuilder authenticationRequestBuilder = new AuthenticationRequest.AuthenticationRequestBuilder();
+        AuthenticationRequest.AuthenticationRequestBuilder authenticationRequestBuilder =
+                new AuthenticationRequest.AuthenticationRequestBuilder();
 
         if (request.getProperties() != null) {
-
-            Set<String> propertyNames = request.getProperties().keySet();
-
-            for (String propertyName : propertyNames) {
-
-                authenticationRequestBuilder.addAttribute(propertyName, request.getProperty(propertyName));
-            }
+            request.getProperties().entrySet().stream()
+                    .forEach(entry -> authenticationRequestBuilder.addAttribute(entry.getKey(), entry.getValue()));
         }
 
         if (request.getHeaders() != null && request.getHeaders().getAll() != null) {
-
-            List<Header> headers = request.getHeaders().getAll();
-
-            headers.forEach(header -> authenticationRequestBuilder.addHeader(header.getName(), header.getValue()));
-
+            request.getHeaders().getAll()
+                    .forEach(header -> authenticationRequestBuilder.addHeader(header.getName(), header.getValue()));
         }
 
         String cookieHeader = request.getHeader(HttpHeaders.COOKIE);
-        List<HttpCookie> cookies = Collections.emptyList();
-        if (cookieHeader != null) {
-            cookies = HttpCookie.parse(cookieHeader);
-        }
-        for (HttpCookie cookie : cookies) {
-            authenticationRequestBuilder
-                    .addCookie(new AuthenticationRequest.CookieKey(cookie.getName(), cookie.getPath()), cookie);
-        }
+        HttpCookieUtil.decodeCookies(cookieHeader).stream().forEach(cookie -> authenticationRequestBuilder
+                .addCookie(new AuthenticationRequest.CookieKey(cookie.getName(), cookie.getPath()), cookie));
         authenticationRequestBuilder.setContextPath(request.getUri());
         authenticationRequestBuilder.setMethod(request.getHttpMethod());
 
         return authenticationRequestBuilder;
     }
+
 }

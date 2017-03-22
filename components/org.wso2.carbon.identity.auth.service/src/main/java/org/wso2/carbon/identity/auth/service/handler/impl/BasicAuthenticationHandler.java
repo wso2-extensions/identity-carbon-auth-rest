@@ -28,20 +28,19 @@ import org.wso2.carbon.identity.auth.service.AuthenticationResult;
 import org.wso2.carbon.identity.auth.service.AuthenticationStatus;
 import org.wso2.carbon.identity.auth.service.exception.AuthClientException;
 import org.wso2.carbon.identity.auth.service.exception.AuthServerException;
-import org.wso2.carbon.identity.auth.service.exception.AuthenticationFailException;
 import org.wso2.carbon.identity.auth.service.handler.AbstractAuthenticationHandler;
 import org.wso2.carbon.identity.common.base.message.MessageContext;
 import org.wso2.carbon.identity.mgt.IdentityStore;
-import org.wso2.carbon.identity.mgt.User;
 import org.wso2.carbon.identity.mgt.claim.Claim;
 import org.wso2.carbon.identity.mgt.exception.AuthenticationFailure;
 import org.wso2.carbon.identity.mgt.exception.IdentityStoreException;
+import org.wso2.carbon.identity.mgt.impl.util.IdentityMgtConstants;
 
 import java.nio.charset.Charset;
+import java.util.Base64;
 import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.PasswordCallback;
 import javax.ws.rs.core.Response;
-import java.util.Base64;
 
 /**
  * BasicAuthenticationHandler is for authenticate the request based on Basic Authentication.
@@ -64,7 +63,7 @@ public class BasicAuthenticationHandler extends AbstractAuthenticationHandler {
 
     @Override
     protected AuthenticationResult doAuthenticate(MessageContext messageContext)
-            throws AuthServerException, AuthenticationFailException, AuthClientException {
+            throws AuthServerException, AuthClientException {
 
         AuthenticationResult authenticationResult = new AuthenticationResult(AuthenticationStatus.FAILED);
         AuthenticationContext authenticationContext = (AuthenticationContext) messageContext;
@@ -82,7 +81,7 @@ public class BasicAuthenticationHandler extends AbstractAuthenticationHandler {
                 char[] password = splitCredentials[1] != null ? splitCredentials[1].toCharArray() : new char[0];
 
                 try {
-                    ImmutablePair<String, String> domainAndUser = decodeTenantDomainAndUserName(userName);
+                    ImmutablePair<String, String> domainAndUser = decodeDomainAndUserName(userName);
                     userName = domainAndUser.getLeft();
                     String domainName = domainAndUser.getRight();
 
@@ -94,25 +93,23 @@ public class BasicAuthenticationHandler extends AbstractAuthenticationHandler {
                     //                    PrivilegedCarbonContext.getCurrentContext()
 
                     if (identityStore == null) {
-                        String errorMessage =
-                                "Could not get the identity store to autnenticate the user with "
-                                        + "BASIC authentication. Username: "
-                                        + userName;
+                        String errorMessage = "Could not get the identity store to autnenticate the user with "
+                                + "BASIC authentication. Username: " + userName;
                         if (log.isDebugEnabled()) {
                             log.debug(errorMessage);
                         }
-                        throw new AuthenticationFailException(errorMessage);
+                        throw new AuthServerException(errorMessage);
                     } else {
 
-                        Claim userNameClaim = new Claim("http://wso2.org/claims", "http://wso2.org/claims/username",
-                                userName);
+                        Claim userNameClaim = new Claim(IdentityMgtConstants.CLAIM_ROOT_DIALECT,
+                                IdentityMgtConstants.USERNAME_CLAIM, userName);
                         PasswordCallback passwordCallback = new PasswordCallback("password", false);
                         passwordCallback.setPassword(password);
                         org.wso2.carbon.identity.mgt.AuthenticationContext resultAuthenticationContext = identityStore
                                 .authenticate(userNameClaim, new Callback[] { passwordCallback }, domainName);
-                        if (resultAuthenticationContext.getUser() != null) {
-                            authenticationContext.setUser(resultAuthenticationContext.getUser());
+                        if (resultAuthenticationContext.isAuthenticated()) {
                             authenticationResult.setAuthenticationStatus(AuthenticationStatus.SUCCESS);
+                            authenticationContext.setUser(resultAuthenticationContext.getUser());
                             if (log.isDebugEnabled()) {
                                 log.debug("BasicAuthentication success for user: " + userName + " on domain: "
                                         + domainName);
@@ -121,7 +118,7 @@ public class BasicAuthenticationHandler extends AbstractAuthenticationHandler {
                     }
                 } catch (AuthenticationFailure authenticationFailure) {
                     if (log.isDebugEnabled()) {
-                        log.debug("Authentication failed, with the user: "+userName, authenticationFailure);
+                        log.debug("Authentication failed, with the user: " + userName, authenticationFailure);
                     }
                     return authenticationResult;
                 } catch (IdentityStoreException e) {
@@ -144,7 +141,6 @@ public class BasicAuthenticationHandler extends AbstractAuthenticationHandler {
         authenticationResult.addResponseHeader(HttpHeaders.WWW_AUTHENTICATE, "Basic");
         return authenticationResult;
     }
-
 
     @Override
     protected String getAuthorizationHeaderType() {

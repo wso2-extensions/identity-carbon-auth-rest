@@ -29,9 +29,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.wso2.carbon.identity.auth.service.AuthenticationManager;
 import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
-import org.wso2.carbon.identity.auth.service.handler.AbstractAuthenticationManager;
 import org.wso2.carbon.identity.auth.service.handler.ResourceHandler;
-import org.wso2.carbon.identity.auth.service.handler.impl.*;
+import org.wso2.carbon.identity.auth.service.handler.impl.BasicAuthenticationHandler;
+import org.wso2.carbon.identity.auth.service.handler.impl.ClientAuthenticationHandler;
+import org.wso2.carbon.identity.auth.service.handler.impl.ClientCertificateBasedAuthenticationHandler;
+import org.wso2.carbon.identity.auth.service.handler.impl.DefaultResourceHandler;
+import org.wso2.carbon.identity.auth.service.handler.impl.OAuth2AccessTokenHandler;
 import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
 import org.wso2.carbon.identity.common.base.handler.InitConfig;
 import org.wso2.carbon.identity.mgt.RealmService;
@@ -45,9 +48,7 @@ import java.util.List;
 @Component(
         name = "org.wso2.carbon.identity.auth.service",
         immediate = true,
-        property = {
-                "componentName=wso2-carbon-identity-rest-auth"
-        })
+        property = { "componentName=wso2-carbon-identity-rest-auth" })
 public class AuthenticationServiceComponent {
 
     private static final Logger log = LoggerFactory.getLogger(AuthenticationServiceComponent.class);
@@ -67,11 +68,9 @@ public class AuthenticationServiceComponent {
         ownAuthenticationHandlers.add(new ClientAuthenticationHandler());
 
         ownAuthenticationHandlers.stream().forEach(h -> h.setRealmService(realmService));
-        ownAuthenticationHandlers.stream()
-                .forEach(h -> authenticationManager.addAuthenticationHandler(h));
+        ownAuthenticationHandlers.stream().forEach(h -> authenticationManager.addAuthenticationHandler(h));
 
-        cxt.getBundleContext()
-                .registerService(AuthenticationManager.class, authenticationManager, null);
+        cxt.getBundleContext().registerService(AuthenticationManager.class, authenticationManager, null);
 
         AuthConfigurationUtil.getInstance().buildResourceAccessControlData();
         AuthConfigurationUtil.getInstance().buildClientAuthenticationHandlerControlData();

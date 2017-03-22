@@ -46,7 +46,8 @@ import static org.testng.Assert.assertEquals;
 public class AuthInterceptorResourceTest {
 
     private URI baseURI = URI.create(String.format("http://%s:%d", "localhost", 8080));
-    private static final String SERVICE_PATH = "/simple-rest/test/hello/me";
+    private static final String SECURED_SERVICE_PATH = "/simple-rest/test/hello/me";
+    private static final String UNSECURED_SERVICE_PATH = "/simple-rest/test/public/hello";
 
     @Inject
     private BundleContext bundleContext;
@@ -83,28 +84,28 @@ public class AuthInterceptorResourceTest {
     }
 
     protected void callWithBasicAuthSuccess(String userCredentials) throws IOException {
-        HttpURLConnection urlConn = request(SERVICE_PATH, HttpMethod.GET, false);
+        HttpURLConnection urlConn = request(SECURED_SERVICE_PATH, HttpMethod.GET, false);
         attachBasicAuthHeader(urlConn, userCredentials);
 
         assertEquals(urlConn.getResponseCode(), 200, "Successful Basic Authentication should proceed");
     }
 
     protected void callWithBasicAuthSuccess_WithCookies(String userCredentials) throws IOException {
-        HttpURLConnection urlConn = request(SERVICE_PATH, HttpMethod.GET, true);
+        HttpURLConnection urlConn = request(SECURED_SERVICE_PATH, HttpMethod.GET, true);
         attachBasicAuthHeader(urlConn, userCredentials);
 
         assertEquals(urlConn.getResponseCode(), 200, "Successful Basic Authentication should proceed");
     }
 
     protected void callWithBasicAuthFail(String userCredentials, int expected, String reason) throws IOException {
-        HttpURLConnection urlConn = request(SERVICE_PATH, HttpMethod.GET, false);
+        HttpURLConnection urlConn = request(SECURED_SERVICE_PATH, HttpMethod.GET, false);
         attachBasicAuthHeader(urlConn, userCredentials);
 
         assertEquals(urlConn.getResponseCode(), expected, reason);
     }
 
     protected void callWithBasicAuthFailWrongFormat(String userCredentials, int expected, String reason) throws IOException {
-        HttpURLConnection urlConn = request(SERVICE_PATH, HttpMethod.GET, false);
+        HttpURLConnection urlConn = request(SECURED_SERVICE_PATH, HttpMethod.GET, false);
         attachBasicAuthHeaderWithWrongFormat(urlConn, userCredentials);
 
         assertEquals(urlConn.getResponseCode(), expected, reason);
@@ -141,7 +142,7 @@ public class AuthInterceptorResourceTest {
 
         if (isWithCookies) {
             // Set the cookie values to send
-            urlConn.setRequestProperty("Cookie", "name1=value1; name2=value2");
+            urlConn.setRequestProperty("Cookie", "name1=value1, name2=value2");
         }
 
         return urlConn;

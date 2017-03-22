@@ -315,6 +315,9 @@ public class MockIdentityStore implements IdentityStore {
         if(userName != null && userName.contains("IdentityStoreException")) {
             throw new IdentityStoreException("Test with IdentityStoreException");
         }
+        if (domainName == null) {
+            domainName = this.getPrimaryDomainName();
+        }
         Optional<Callback> callback = Arrays.stream(credentials).filter(c -> c instanceof PasswordCallback).findAny();
         if (callback.isPresent()) {
             String password = new String(((PasswordCallback) callback.get()).getPassword());
@@ -331,7 +334,7 @@ public class MockIdentityStore implements IdentityStore {
 
     @Override
     public String getPrimaryDomainName() throws IdentityStoreException {
-        return null;
+        return "TEST";
     }
 
     @Override

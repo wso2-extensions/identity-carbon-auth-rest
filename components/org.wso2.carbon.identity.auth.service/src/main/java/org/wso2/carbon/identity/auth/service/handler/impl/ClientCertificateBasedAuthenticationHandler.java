@@ -29,7 +29,6 @@ import org.wso2.carbon.identity.auth.service.AuthenticationResult;
 import org.wso2.carbon.identity.auth.service.AuthenticationStatus;
 import org.wso2.carbon.identity.auth.service.exception.AuthClientException;
 import org.wso2.carbon.identity.auth.service.exception.AuthServerException;
-import org.wso2.carbon.identity.auth.service.exception.AuthenticationFailException;
 import org.wso2.carbon.identity.auth.service.handler.AbstractAuthenticationHandler;
 import org.wso2.carbon.identity.common.base.message.MessageContext;
 import org.wso2.carbon.identity.mgt.IdentityStore;
@@ -71,7 +70,7 @@ public class ClientCertificateBasedAuthenticationHandler extends AbstractAuthent
 
     @Override
     protected AuthenticationResult doAuthenticate(MessageContext messageContext)
-            throws AuthServerException, AuthenticationFailException, AuthClientException {
+            throws AuthServerException, AuthClientException {
 
         AuthenticationResult authenticationResult = new AuthenticationResult(AuthenticationStatus.FAILED);
 
@@ -84,7 +83,7 @@ public class ClientCertificateBasedAuthenticationHandler extends AbstractAuthent
                 String username = authenticationContext.getAuthenticationRequest().getHeader(USER_HEADER_NAME);
 
                 if (StringUtils.isNotEmpty(username)) {
-                    ImmutablePair<String, String> domainAndUser = decodeTenantDomainAndUserName(username);
+                    ImmutablePair<String, String> domainAndUser = decodeDomainAndUserName(username);
                     String domainName = domainAndUser.getRight();
                     username = domainAndUser.getLeft();
 

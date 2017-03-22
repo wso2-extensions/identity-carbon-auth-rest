@@ -83,12 +83,6 @@
                 <version>${disruptor.wso2.version}</version>
                 <scope>test</scope>
             </dependency>
-            <dependency>
-                <groupId>org.wso2.orbit.org.apache.httpcomponents</groupId>
-                <artifactId>httpclient</artifactId>
-                <version>${org.apache.httpcomponents.wso2.version}</version>
-            </dependency>
-
 
             <dependency>
                 <groupId>org.jacoco</groupId>

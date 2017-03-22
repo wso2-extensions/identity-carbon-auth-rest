@@ -60,8 +60,9 @@ public abstract class AbstractAuthenticationManager implements AuthenticationMan
     /**
      * Get the first priority handler after sort and filter the enabled handlers for authentication.
      *
-     * @param isEnableHandlersOnly
-     * @return IdentityHandler
+     * @param isEnableHandlersOnly scans only the enabled handlers if teh value is TRUE. Scans all the handlers
+     *                             if FALSE.
+     * @return AuthenticationHandler which is matched, which can handle the request.
      */
     public AuthenticationHandler getFirstPriorityAuthenticationHandler(boolean isEnableHandlersOnly,
             AuthenticationContext authenticationContext) {
@@ -71,9 +72,10 @@ public abstract class AbstractAuthenticationManager implements AuthenticationMan
     /**
      * Get the first priority handler after sort and filter the enabled handlers.
      *
-     * @param identityHandlers
-     * @param isEnableHandlersOnly
-     * @return IdentityHandler
+     * @param identityHandlers List of AuthenticationHandler which needs to be scanned.
+     * @param isEnableHandlersOnly scans only the enabled handlers if teh value is TRUE. Scans all the handlers
+     *                             if FALSE.
+     * @return IdentityHandler  AuthenticationHandler which is matched, which can handle the request.
      */
     public <T extends AuthenticationHandler> T getFirstPriorityHandler(List<T> identityHandlers,
             boolean isEnableHandlersOnly, MessageContext messageContext) {
@@ -97,7 +99,7 @@ public abstract class AbstractAuthenticationManager implements AuthenticationMan
             }
         }
         if (log.isDebugEnabled()) {
-            if(identityHandler == null) {
+            if (identityHandler == null) {
                 log.debug("Get first priority handler : returned null");
             } else {
                 log.debug("Get first priority handler : " + identityHandler.getName() + "(" +

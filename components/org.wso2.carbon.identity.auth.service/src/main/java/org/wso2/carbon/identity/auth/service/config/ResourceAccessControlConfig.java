@@ -72,33 +72,42 @@ public class ResourceAccessControlConfig {
      * </code>
      */
     private void initDefaultValues() {
-        ResourceBuilder.withResource("(.*)/api/identity/user/(.*)", true, "all").addToMap(resourceConfigMap);
-        ResourceBuilder.withResource("(.*)/api/identity/recovery/(.*)", true, "all").addToMap(resourceConfigMap);
-        ResourceBuilder.withResource("(.*)/.well-known(.*)", true, "all").addToMap(resourceConfigMap);
-        ResourceBuilder.withResource("(.*)/identity/register(.*)", true, "all")
-                .withPermission("/permission/admin/manage/identity/applicationmgt/delete").addToMap(resourceConfigMap);
-        ResourceBuilder.withResource("(.*)/identity/connect/register(.*)", true, "all")
-                .withPermission("/permission/admin/manage/identity/applicationmgt/create").addToMap(resourceConfigMap);
-        ResourceBuilder.withResource("(.*)/oauth2/introspect(.*)", true, "all")
-                .withPermission("/permission/admin/manage/identity/applicationmgt/view").addToMap(resourceConfigMap);
-        ResourceBuilder.withResource("(.*)/api/identity/entitlement/(.*)", true, "all")
-                .withPermission("/permission/admin/manage/identity/pep").addToMap(resourceConfigMap);
+        withResource("(.*)/api/identity/user/(.*)", true, "all").add();
+        withResource("(.*)/api/identity/recovery/(.*)", true, "all").add();
+        withResource("(.*)/.well-known(.*)", true, "all").add();
+        withResource("(.*)/identity/register(.*)", true, "all")
+                .withPermission("/permission/admin/manage/identity/applicationmgt/delete").add();
+        withResource("(.*)/identity/connect/register(.*)", true, "all")
+                .withPermission("/permission/admin/manage/identity/applicationmgt/create").add();
+        withResource("(.*)/oauth2/introspect(.*)", true, "all")
+                .withPermission("/permission/admin/manage/identity/applicationmgt/view").add();
+        withResource("(.*)/api/identity/entitlement/(.*)", true, "all")
+                .withPermission("/permission/admin/manage/identity/pep").add();
 
 
         /* These are for SCIM endpoints, and will be moved to config on later kernels */
-        ResourceBuilder.withResource("(.*)/scim/v2/Me", true, "GET").addToMap(resourceConfigMap);
-        ResourceBuilder.withResource("(.*)/scim/v2/ServiceProviderConfig", true, "all")
-                .addToMap(resourceConfigMap);
-        ResourceBuilder.withResource("(.*)/scim/v2/ResourceType", true, "all")
-                .addToMap(resourceConfigMap);
-        ResourceBuilder.withResource("(.*)/scim/v2/(.*)", true, "all")
-                .withPermission("/permission/admin/manage").addToMap(resourceConfigMap);
+        withResource("(.*)/scim/v2/Me", true, "GET").add();
+        withResource("(.*)/scim/v2/ServiceProviderConfig", true, "all")
+                .add();
+        withResource("(.*)/scim/v2/ResourceType", true, "all")
+                .add();
+        withResource("(.*)/scim/v2/(.*)", true, "all")
+                .withPermission("/permission/admin/manage").add();
+    }
+
+    private ResourceBuilder withResource(String context, boolean isSecured, String httpMethod) {
+        ResourceConfig resourceConfig = new ResourceConfig();
+        resourceConfig.setContext(context);
+        resourceConfig.setIsSecured(isSecured);
+        resourceConfig.setHttpMethod(httpMethod);
+
+        return new ResourceBuilder(resourceConfig);
     }
 
     /**
      * Internal builder for convenience.
      */
-    private static class ResourceBuilder {
+    private class ResourceBuilder {
 
         private ResourceConfig resourceConfig;
         private List<String> permissionsList = new ArrayList<>();
@@ -107,23 +116,14 @@ public class ResourceAccessControlConfig {
             this.resourceConfig = resourceConfig;
         }
 
-        private static ResourceBuilder withResource(String context, boolean isSecured, String httpMethod) {
-            ResourceConfig resourceConfig = new ResourceConfig();
-            resourceConfig.setContext(context);
-            resourceConfig.setIsSecured(isSecured);
-            resourceConfig.setHttpMethod(httpMethod);
-
-            return new ResourceBuilder(resourceConfig);
-        }
-
         ResourceBuilder withPermission(String permission) {
             permissionsList.add(permission);
             return this;
         }
 
-        void addToMap(Map<ResourceConfigKey, ResourceConfig> map) {
+        void add() {
             ResourceConfigKey key = ResourceConfigKey.generateKey(resourceConfig);
-            map.put(key, resourceConfig);
+            resourceConfigMap.put(key, resourceConfig);
         }
     }
 }

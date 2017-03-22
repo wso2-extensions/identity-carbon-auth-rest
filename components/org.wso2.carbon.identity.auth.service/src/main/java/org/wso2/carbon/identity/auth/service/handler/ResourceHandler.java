@@ -27,10 +27,10 @@ import org.wso2.carbon.identity.common.base.handler.Handler;
 public abstract class ResourceHandler implements Handler {
 
     /**
-     * Handle Resource.
+     * Scans the for a ResourceConfig which matches to the given ResourceConfigKey.
      *
-     * @param resourceConfigKey
-     * @return
+     * @param resourceConfigKey the key which describes request context and method.
+     * @return matched ResourceConfig if found. null if no resource config matched.
      */
     public abstract ResourceConfig getSecuredResource(ResourceConfigKey resourceConfigKey);
 }

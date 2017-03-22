@@ -21,7 +21,6 @@ package org.wso2.carbon.identity.auth.service.handler;
 import org.wso2.carbon.identity.auth.service.AuthenticationResult;
 import org.wso2.carbon.identity.auth.service.exception.AuthClientException;
 import org.wso2.carbon.identity.auth.service.exception.AuthServerException;
-import org.wso2.carbon.identity.auth.service.exception.AuthenticationFailException;
 import org.wso2.carbon.identity.common.base.handler.MessageHandler;
 import org.wso2.carbon.identity.common.base.message.MessageContext;
 import org.wso2.carbon.identity.mgt.RealmService;
@@ -32,21 +31,18 @@ import org.wso2.carbon.identity.mgt.RealmService;
 public interface AuthenticationHandler extends MessageHandler {
 
     /**
-     *
      * Authenticate the message. Called by the authentication framework.
      *
      * @param messageContext The message context.
      * @return The authentication result.
      * @throws AuthServerException  When there is a internal server exception
-     * @throws AuthenticationFailException When there is a credential mismatch
      * @throws AuthClientException When there is a logical exception in authentication.
      */
-    AuthenticationResult authenticate(MessageContext messageContext)
-            throws AuthServerException, AuthenticationFailException, AuthClientException;
+    AuthenticationResult authenticate(MessageContext messageContext) throws AuthServerException, AuthClientException;
 
     /**
      * Sets the realm service for the authentication handler.
-     * @param realmService
+     * @param realmService the RealmService to be used to access Identity Store.
      */
     void setRealmService(RealmService realmService);
 }

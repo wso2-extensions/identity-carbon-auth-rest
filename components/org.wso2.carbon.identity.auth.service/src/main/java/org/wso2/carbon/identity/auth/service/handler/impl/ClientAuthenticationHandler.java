@@ -28,7 +28,6 @@ import org.wso2.carbon.identity.auth.service.AuthenticationResult;
 import org.wso2.carbon.identity.auth.service.AuthenticationStatus;
 import org.wso2.carbon.identity.auth.service.exception.AuthClientException;
 import org.wso2.carbon.identity.auth.service.exception.AuthServerException;
-import org.wso2.carbon.identity.auth.service.exception.AuthenticationFailException;
 import org.wso2.carbon.identity.auth.service.handler.AbstractAuthenticationHandler;
 import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
 import org.wso2.carbon.identity.common.base.message.MessageContext;
@@ -54,11 +53,6 @@ public class ClientAuthenticationHandler extends AbstractAuthenticationHandler {
     }
 
     @Override
-    public boolean isEnabled(MessageContext messageContext) {
-        return true;
-    }
-
-    @Override
     public int getPriority(MessageContext messageContext) {
         return 130;
     }
@@ -70,7 +64,7 @@ public class ClientAuthenticationHandler extends AbstractAuthenticationHandler {
 
     @Override
     protected AuthenticationResult doAuthenticate(MessageContext messageContext)
-            throws AuthServerException, AuthenticationFailException, AuthClientException {
+            throws AuthServerException, AuthClientException {
 
         AuthenticationResult authenticationResult = new AuthenticationResult(AuthenticationStatus.FAILED);
         AuthenticationContext authenticationContext = (AuthenticationContext) messageContext;
@@ -106,7 +100,7 @@ public class ClientAuthenticationHandler extends AbstractAuthenticationHandler {
                     } catch (NoSuchAlgorithmException e) {
                         String errorMessage = "Error occurred while hashing the app data.";
                         log.error(errorMessage, e);
-                        throw new AuthenticationFailException(errorMessage);
+                        throw new AuthServerException(errorMessage);
                     }
                 } else {
                     if (log.isDebugEnabled()) {

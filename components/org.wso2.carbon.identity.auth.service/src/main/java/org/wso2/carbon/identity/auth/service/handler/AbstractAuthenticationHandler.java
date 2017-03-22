@@ -25,7 +25,6 @@ import org.wso2.carbon.identity.auth.service.AuthenticationContext;
 import org.wso2.carbon.identity.auth.service.AuthenticationResult;
 import org.wso2.carbon.identity.auth.service.exception.AuthClientException;
 import org.wso2.carbon.identity.auth.service.exception.AuthServerException;
-import org.wso2.carbon.identity.auth.service.exception.AuthenticationFailException;
 import org.wso2.carbon.identity.common.base.handler.AbstractMessageHandler;
 import org.wso2.carbon.identity.common.base.message.MessageContext;
 import org.wso2.carbon.identity.mgt.RealmService;
@@ -33,7 +32,7 @@ import org.wso2.carbon.identity.mgt.RealmService;
 import java.util.Locale;
 
 /**
- * This is the abstract class for custom authentication handlers.
+ * Abstract class for custom authentication handlers.
  *
  * The custom handlers should implement the doAuthenticate() method and optionally the postAuthenticate() method.
  *
@@ -44,7 +43,7 @@ public abstract class AbstractAuthenticationHandler extends AbstractMessageHandl
 
     @Override
     public final AuthenticationResult authenticate(MessageContext messageContext)
-            throws AuthServerException, AuthenticationFailException, AuthClientException {
+            throws AuthServerException, AuthClientException {
 
         AuthenticationResult authenticationResult = this.doAuthenticate(messageContext);
         postAuthenticate(messageContext, authenticationResult);
@@ -53,6 +52,7 @@ public abstract class AbstractAuthenticationHandler extends AbstractMessageHandl
 
     }
 
+    @Override
     public boolean isEnabled(MessageContext messageContext) {
         if (messageContext instanceof AuthenticationContext) {
             AuthenticationContext authenticationContext = (AuthenticationContext) messageContext;
@@ -70,21 +70,18 @@ public abstract class AbstractAuthenticationHandler extends AbstractMessageHandl
 
     /**
      * Returns the domain name from the user string.
-     * @param userName
-     * @return
+     * @param userName The primary User Identifier.
+     * @return The User, Domain pair. Domain can be null.
      */
-    protected ImmutablePair<String, String> decodeTenantDomainAndUserName(String userName) {
+    protected ImmutablePair<String, String> decodeDomainAndUserName(String userName) {
         String domainName = null;
-        if(userName != null && userName.contains("/") ) {
+        if (userName != null && userName.contains("/")) {
             int lastAt = userName.lastIndexOf('/');
-            domainName = userName.substring(0,lastAt);
+            domainName = userName.substring(0, lastAt);
             userName = userName.substring(lastAt + 1);
         }
-        if(domainName != null) {
+        if (domainName != null) {
             domainName = domainName.toLowerCase(Locale.getDefault());
-        }
-        if(domainName == null) {
-            domainName = "PRIMARY";
         }
         return new ImmutablePair(userName, domainName);
     }
@@ -92,7 +89,7 @@ public abstract class AbstractAuthenticationHandler extends AbstractMessageHandl
     /**
      * Returns the authorization header type this authentication handler can handle.
      *
-     * @return
+     * @return The HTTP authorization Header e.g. Basic
      */
     protected abstract String getAuthorizationHeaderType();
 
@@ -100,44 +97,27 @@ public abstract class AbstractAuthenticationHandler extends AbstractMessageHandl
      *
      * This is where the actual authentication takes place.
      *
-     * @param messageContext
-     * @return
-     * @throws AuthServerException
-     * @throws AuthenticationFailException
-     * @throws AuthClientException
+     * @param messageContext The message context to be carried forward.
+     * @return the result holding the authentication flow.
+     * @throws AuthServerException when there is an error in the request processing.
+     * @throws AuthClientException when there is an error in the request itself.
      */
     protected abstract AuthenticationResult doAuthenticate(MessageContext messageContext)
-            throws AuthServerException, AuthenticationFailException, AuthClientException;
+            throws AuthServerException, AuthClientException;
 
     /**
-     *
-     * This is the post authenticate hook.
+     * Post authenticate hook.
      *
      * A custom authentication handler can provide its own implementation for the hook.
      *
-     *
-     * @param messageContext
+     * @param messageContext  The message context to be carried forward.
+     * @param authenticationResult The result of the authentication flow to be processed in post authentication.
      */
     protected void postAuthenticate(MessageContext messageContext, AuthenticationResult authenticationResult) {
 
-//        AuthenticationContext authenticationContext = (AuthenticationContext) messageContext;
-//
-//        if (AuthenticationStatus.SUCCESS.equals(authenticationResult.getAuthenticationStatus())) {
-//
-//            User user = authenticationContext.getUser();
-//            if (user != null) {
-//              // Set the user in to the Carbon context if the user belongs to same tenant. Skip this for cross tenant
-//              // scenarios.
-//
-//            if (user.getTenantDomain() != null && user.getTenantDomain().equalsIgnoreCase(PrivilegedCarbonContext
-//                    .getThreadLocalCarbonContext().getTenantDomain())) {
-//                PrivilegedCarbonContext.getThreadLocalCarbonContext().setUsername(IdentityUtil.addDomainToName
-//                        (user.getUserName(), user.getUserStoreDomain()));
-//            }
-//            }
-//        }
     }
 
+    @Override
     public void setRealmService(RealmService realmService) {
         this.realmService = realmService;
     }

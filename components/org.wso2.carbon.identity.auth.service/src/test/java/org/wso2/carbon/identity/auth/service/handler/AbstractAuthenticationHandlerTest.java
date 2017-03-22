@@ -45,7 +45,7 @@ public class AbstractAuthenticationHandlerTest {
 
             @Override
             protected AuthenticationResult doAuthenticate(MessageContext messageContext)
-                    throws AuthServerException, AuthenticationFailException, AuthClientException {
+                    throws AuthServerException, AuthClientException {
                 return null;
             }
 
@@ -59,16 +59,16 @@ public class AbstractAuthenticationHandlerTest {
     @Test
     public void testCanHandle() throws Exception {
         ImmutablePair<String, String> domainAndUser = abstractAuthenticationHandler
-                .decodeTenantDomainAndUserName("userName");
+                .decodeDomainAndUserName("userName");
         assertEquals(domainAndUser.getLeft(), "userName");
 
-        domainAndUser = abstractAuthenticationHandler.decodeTenantDomainAndUserName("");
+        domainAndUser = abstractAuthenticationHandler.decodeDomainAndUserName("");
         assertEquals(domainAndUser.getLeft(), "");
 
-        domainAndUser = abstractAuthenticationHandler.decodeTenantDomainAndUserName(null);
+        domainAndUser = abstractAuthenticationHandler.decodeDomainAndUserName(null);
         assertNull(domainAndUser.getLeft());
 
-        domainAndUser = abstractAuthenticationHandler.decodeTenantDomainAndUserName("domain/userName");
+        domainAndUser = abstractAuthenticationHandler.decodeDomainAndUserName("domain/userName");
         assertEquals(domainAndUser.getLeft(), "userName");
         assertEquals(domainAndUser.getRight(), "domain");
 

@@ -27,6 +27,12 @@ import org.wso2.carbon.identity.auth.service.module.ResourceConfigKey;
 import org.wso2.carbon.identity.common.base.handler.InitConfig;
 import org.wso2.carbon.identity.mgt.RealmService;
 
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * Tests Service component having a service and resource handler.
+ */
 @Component(
         name = "org.wso2.carbon.identity.auth.rest.test",
         immediate = true,
@@ -38,23 +44,37 @@ public class RestAuthTestServicesComponent {
         bundleContext.registerService(RealmService.class, () -> new MockIdentityStore(), null);
 
         ResourceHandler resourceHandler = new TestResourceHandler();
+        resourceHandler.init(null);
         bundleContext.registerService(ResourceHandler.class, resourceHandler, null);
     }
 
     private static class TestResourceHandler extends ResourceHandler {
 
+        private Map<ResourceConfigKey, ResourceConfig> resourceConfigMap = new HashMap<>();
+
         @Override
         public ResourceConfig getSecuredResource(ResourceConfigKey resourceConfigKey) {
-            ResourceConfig resourceConfig = new ResourceConfig();
-            resourceConfig.setHttpMethod("all");
-            resourceConfig.setIsSecured(false);
-            resourceConfig.setContext("(.*)/simple-rest/test/hello/(.*)");
-            return resourceConfig;
+            return resourceConfigMap.entrySet().stream().filter(c -> c.getKey().equals(resourceConfigKey))
+                    .map(e -> e.getValue()).findAny().orElse(null);
         }
 
         @Override
         public void init(InitConfig initConfig) {
+            ResourceConfig resourceConfig = new ResourceConfig();
+            resourceConfig.setHttpMethod("all");
+            resourceConfig.setIsSecured(true);
+            resourceConfig.setContext("(.*)/simple-rest/test/hello/(.*)");
+            ResourceConfigKey key = ResourceConfigKey.generateKey(resourceConfig);
 
+            resourceConfigMap.put(key, resourceConfig);
+
+            ResourceConfig resourceConfig2 = new ResourceConfig();
+            resourceConfig2.setHttpMethod("all");
+            resourceConfig2.setIsSecured(false);
+            resourceConfig2.setContext("(.*)/simple-rest/test/public/hello/(.*)");
+            ResourceConfigKey key2 = ResourceConfigKey.generateKey(resourceConfig2);
+
+            resourceConfigMap.put(key2, resourceConfig2);
         }
 
         @Override

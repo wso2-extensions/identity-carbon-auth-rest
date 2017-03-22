@@ -34,12 +34,13 @@ import java.util.Map;
  * Generic Request object to pass the request details to the AuthenticationManager.
  * We have to create AuthenticationRequestBuilder and fill the data. Then you can call the build method.
  * AuthenticationRequestConstants can be used to refer the constants.
- * <p/>
+ *
  * AuthenticationRequest.AuthenticationRequestBuilder requestBuilder = new AuthenticationRequest
  * .AuthenticationRequestBuilder();
  * requestBuilder.set...
- * <p/>
+ * <code>
  * AuthenticationRequest request = requestBuilder.build();
+ * </code>
  */
 public class AuthenticationRequest {
 
