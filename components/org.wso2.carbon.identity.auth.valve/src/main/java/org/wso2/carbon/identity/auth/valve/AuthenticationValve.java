@@ -56,7 +56,7 @@ public class AuthenticationValve extends ValveBase {
         AuthenticationManager authenticationManager = AuthHandlerManager.getInstance().getAuthenticationManager();
         ResourceConfig securedResource = authenticationManager.getSecuredResource(new ResourceConfigKey(request
                 .getRequestURI(), request.getMethod()));
-        if ( securedResource == null ) {
+        if (securedResource == null || !securedResource.isSecured()) {
             getNext().invoke(request, response);
             return;
         }
