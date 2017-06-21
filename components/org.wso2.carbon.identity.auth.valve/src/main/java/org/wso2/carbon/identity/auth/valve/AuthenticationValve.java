@@ -81,26 +81,33 @@ public class AuthenticationValve extends ValveBase {
                 request.setAttribute(AUTH_CONTEXT, authenticationContext);
                 getNext().invoke(request, response);
             } else {
-                handleErrorResponse(authenticationContext, response, HttpServletResponse.SC_UNAUTHORIZED);
+                handleErrorResponse(authenticationContext, response, HttpServletResponse.SC_UNAUTHORIZED, null);
             }
-        } catch ( AuthClientException e ) {
-            handleErrorResponse(authenticationContext, response, HttpServletResponse.SC_BAD_REQUEST);
-        } catch ( AuthServerException e ) {
-            handleErrorResponse(authenticationContext, response, HttpServletResponse.SC_BAD_REQUEST);
-        } catch ( AuthenticationFailException e ) {
-            handleErrorResponse(authenticationContext, response, HttpServletResponse.SC_UNAUTHORIZED);
+        } catch (AuthClientException e) {
+            handleErrorResponse(authenticationContext, response, HttpServletResponse.SC_BAD_REQUEST, e);
+        } catch (AuthServerException e) {
+            log.error("Auth Server Expection occured in Authentication valve :", e);
+            handleErrorResponse(authenticationContext, response, HttpServletResponse.SC_BAD_REQUEST, null);
+        } catch (AuthenticationFailException e) {
+            handleErrorResponse(authenticationContext, response, HttpServletResponse.SC_UNAUTHORIZED, e);
         } catch (AuthRuntimeException e) {
-            handleErrorResponse(authenticationContext, response, HttpServletResponse.SC_UNAUTHORIZED);
+            log.error("Auth Runtime Expection occured in Authentication valve :", e);
+            handleErrorResponse(authenticationContext, response, HttpServletResponse.SC_UNAUTHORIZED, null);
         }
 
 
     }
 
-    private void handleErrorResponse(AuthenticationContext authenticationContext, Response response, int error) throws
-            IOException {
+    private void handleErrorResponse(AuthenticationContext authenticationContext, Response response, int error,
+                                     Exception e) throws IOException {
+
+        if (log.isDebugEnabled() && e != null) {
+            log.debug("Authentication Error ", e);
+        }
+
         StringBuilder value = new StringBuilder(16);
         value.append("realm user=\"");
-        if ( authenticationContext.getUser() != null ) {
+        if (authenticationContext != null && authenticationContext.getUser() != null) {
             value.append(authenticationContext.getUser().getUserName());
         }
         value.append('\"');
