@@ -18,19 +18,24 @@
 
 package org.wso2.carbon.identity.context.rewrite.valve;
 
+import com.hazelcast.com.eclipsesource.json.JsonObject;
 import org.apache.catalina.connector.Request;
 import org.apache.catalina.connector.Response;
 import org.apache.catalina.valves.ValveBase;
-import org.apache.commons.lang.StringUtils;
-import org.wso2.carbon.base.MultitenantConstants;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.base.ServerConfiguration;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.identity.context.rewrite.bean.RewriteContext;
-import org.wso2.carbon.identity.context.rewrite.util.Utils;
+import org.wso2.carbon.identity.context.rewrite.internal.ContextRewriteValveServiceComponentHolder;
 import org.wso2.carbon.identity.core.util.IdentityConfigParser;
+import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
+import org.wso2.carbon.user.api.UserStoreException;
+import org.wso2.carbon.user.core.tenant.TenantManager;
 
 import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -42,6 +47,9 @@ public class TenantContextRewriteValve extends ValveBase {
 
     private static final String TENANT_NAME_FROM_CONTEXT = "TenantNameFromContext";
     private static List<RewriteContext> contextsToRewrite;
+    private TenantManager tenantManager;
+
+    private static final Log log = LogFactory.getLog(TenantContextRewriteValve.class);
 
     @Override
     public void invoke(Request request, Response response) throws IOException, ServletException {
@@ -73,28 +81,40 @@ public class TenantContextRewriteValve extends ValveBase {
             return;
         }
 
+        String tenantDomain = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain();
         try {
-            String tenantDomain = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain();
-            IdentityUtil.threadLocalProperties.get().put(TENANT_NAME_FROM_CONTEXT, tenantDomain);
-
-            if (isWebApp) {
-                String dispatchLocation;
-                //Need to rewrite
-                dispatchLocation = requestURI.replace("/t/" + tenantDomain + contextToForward, "");
-                request.getContext().setCrossContext(true);
-                request.getServletContext().getContext(contextToForward).getRequestDispatcher("/" + dispatchLocation).forward
-                        (request, response);
-
+            tenantManager = ContextRewriteValveServiceComponentHolder.getInstance().getRealmService()
+                    .getTenantManager();
+            if (tenantDomain != null &&
+                    !tenantManager.isTenantActive(IdentityTenantUtil.getTenantId(tenantDomain))) {
+                handleInvalidTenantDomainErrorResponse(response, HttpServletResponse.SC_NOT_FOUND, tenantDomain);
             } else {
-                String carbonWebContext = ServerConfiguration.getInstance().getFirstProperty("WebContextRoot");
-                if (requestURI.contains(carbonWebContext)) {
-                    requestURI = requestURI.replace(carbonWebContext + "/", "");
-                }
-                //Servlet
-                requestURI = requestURI.replace("/t/" + tenantDomain, "");
-                request.getRequestDispatcher(requestURI).forward(request, response);
-            }
+                IdentityUtil.threadLocalProperties.get().put(TENANT_NAME_FROM_CONTEXT, tenantDomain);
 
+                if (isWebApp) {
+                    String dispatchLocation;
+                    //Need to rewrite
+                    dispatchLocation = requestURI.replace("/t/" + tenantDomain + contextToForward, "");
+                    request.getContext().setCrossContext(true);
+                    request.getServletContext().getContext(contextToForward)
+                            .getRequestDispatcher("/" + dispatchLocation).forward
+                            (request, response);
+
+                } else {
+                    String carbonWebContext = ServerConfiguration.getInstance().getFirstProperty("WebContextRoot");
+                    if (requestURI.contains(carbonWebContext)) {
+                        requestURI = requestURI.replace(carbonWebContext + "/", "");
+                    }
+                    //Servlet
+                    requestURI = requestURI.replace("/t/" + tenantDomain, "");
+                    request.getRequestDispatcher(requestURI).forward(request, response);
+                }
+            }
+        } catch (UserStoreException ex) {
+            if (log.isDebugEnabled()) {
+                log.debug("Error occurred while validating tenant domain.", ex);
+                handleInvalidTenantDomainErrorResponse(response, HttpServletResponse.SC_NOT_FOUND, tenantDomain);
+            }
         } finally {
             IdentityUtil.threadLocalProperties.get().remove(TENANT_NAME_FROM_CONTEXT);
         }
@@ -125,5 +145,19 @@ public class TenantContextRewriteValve extends ValveBase {
             }
         }
         return rewriteContexts;
+    }
+
+    private void handleInvalidTenantDomainErrorResponse(Response response, int error, String tenantDomain) throws
+            IOException, ServletException {
+
+        response.setContentType("application/json");
+        response.setStatus(error);
+        response.setCharacterEncoding("UTF-8");
+        JsonObject errorResponse = new JsonObject();
+        String errorMsg = "invalid tenant domain : " + tenantDomain;
+        errorResponse.add("code", error);
+        errorResponse.add("message", errorMsg);
+        errorResponse.add("description", errorMsg);
+        response.getWriter().print(errorResponse.toString());
     }
 }
