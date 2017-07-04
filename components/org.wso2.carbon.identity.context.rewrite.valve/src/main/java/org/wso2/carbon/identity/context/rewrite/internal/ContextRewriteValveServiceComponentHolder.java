@@ -21,7 +21,6 @@ package org.wso2.carbon.identity.context.rewrite.internal;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.user.core.service.RealmService;
-import sun.plugin.dom.exception.InvalidStateException;
 
 public class ContextRewriteValveServiceComponentHolder {
 
