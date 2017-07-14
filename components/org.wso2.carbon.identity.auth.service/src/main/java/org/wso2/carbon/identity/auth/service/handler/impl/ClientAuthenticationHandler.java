@@ -72,7 +72,7 @@ public class ClientAuthenticationHandler extends AuthenticationHandler {
     public boolean canHandle(MessageContext messageContext) {
         if (messageContext instanceof AuthenticationContext) {
             AuthenticationContext authenticationContext = (AuthenticationContext) messageContext;
-            if (authenticationContext != null && authenticationContext.getAuthenticationRequest() != null) {
+            if (authenticationContext.getAuthenticationRequest() != null) {
                 String authorizationHeader = authenticationContext.getAuthenticationRequest().
                         getHeader(HttpHeaders.AUTHORIZATION);
                 if (StringUtils.isNotEmpty(authorizationHeader) && authorizationHeader.startsWith(CLIENT_AUTH_HEADER)
