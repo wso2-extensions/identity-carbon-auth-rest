@@ -49,11 +49,13 @@
         <module>components/org.wso2.carbon.identity.authz.service</module>
         <module>components/org.wso2.carbon.identity.authz.valve</module>
         <module>components/org.wso2.carbon.identity.context.rewrite.valve</module>
+        <module>components/org.wso2.carbon.identity.authz.validation.valve</module>
 
 
         <module>features/org.wso2.carbon.identity.auth.server.feature</module>
         <module>features/org.wso2.carbon.identity.authz.server.feature</module>
         <module>features/org.wso2.carbon.identity.context.rewrite.server.feature</module>
+        <module>features/org.wso2.carbon.identity.authz.validation.server.feature</module>
 
     </modules>
 
@@ -309,6 +311,8 @@
         </org.wso2.carbon.identity.authz.valve.version.range>
 
         <org.wso2.carbon.identity.context.rewrite.valve.version>${project.version}</org.wso2.carbon.identity.context.rewrite.valve.version>
+        <org.wso2.carbon.identity.authz.validation.valve.version>${project.version}
+        </org.wso2.carbon.identity.authz.validation.valve.version>
 
         <!--Carbon identity version-->
         <identity.framework.version>5.7.0</identity.framework.version>
