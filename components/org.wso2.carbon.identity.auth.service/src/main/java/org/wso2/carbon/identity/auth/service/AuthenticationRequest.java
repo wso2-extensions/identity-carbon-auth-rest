@@ -19,11 +19,20 @@
 package org.wso2.carbon.identity.auth.service;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.identity.auth.service.exception.AuthRuntimeException;
 
-import javax.servlet.http.Cookie;
 import java.io.Serializable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import javax.servlet.http.Cookie;
 
 /**
  * Generic Request object to pass the request details to the AuthenticationManager.
@@ -42,9 +51,12 @@ public class AuthenticationRequest implements Serializable
 
     private static final long serialVersionUID = 5418537216546873566L;
 
+    private static Log log = LogFactory.getLog(AuthenticationRequest.class);
+
     protected Map<String, Object> attributes = new HashMap<>();
     protected Map<String, String> headers = new HashMap<>();
     protected Map<CookieKey, Cookie> cookies = new HashMap<>();
+    protected Map<CookieKey, List<Cookie>> cookieListMap = new HashMap<>();
     protected String contextPath;
     protected String method;
 
@@ -52,6 +64,7 @@ public class AuthenticationRequest implements Serializable
         this.attributes = builder.attributes;
         this.headers = builder.headers;
         this.cookies = builder.cookies;
+        this.cookieListMap = builder.cookieListMap;
         this.contextPath = builder.contextPath;
         this.method = builder.method;
     }
@@ -93,12 +106,21 @@ public class AuthenticationRequest implements Serializable
         return headers.get(name);
     }
 
+    @Deprecated
     public Map<CookieKey, Cookie> getCookieMap() {
         return Collections.unmodifiableMap(cookies);
     }
 
+    public Map<CookieKey, List<Cookie>> getCookieListMap() {
+        return Collections.unmodifiableMap(cookieListMap);
+    }
+
     public Cookie[] getCookies() {
-        Collection<Cookie> cookies = getCookieMap().values();
+        Collection<List<Cookie>>  cookieListCollection = getCookieListMap().values();
+        Collection<Cookie> cookies = new ArrayList<>();
+        for (List<Cookie> cookieList : cookieListCollection) {
+            cookies.addAll(cookieList);
+        }
         return cookies.toArray(new Cookie[cookies.size()]);
     }
 
@@ -115,6 +137,7 @@ public class AuthenticationRequest implements Serializable
         public Map<String, Object> attributes = new HashMap<>();
         private Map<String, String> headers = new HashMap<>();
         private Map<CookieKey, Cookie> cookies = new HashMap<>();
+        private Map<CookieKey, List<Cookie>> cookieListMap = new HashMap<>();
         private String contextPath;
         private String method;
 
@@ -152,10 +175,18 @@ public class AuthenticationRequest implements Serializable
 
         public AuthenticationRequestBuilder addCookie(CookieKey cookieKey, Cookie value) {
             if ( this.cookies.containsKey(cookieKey) ) {
-                throw new AuthRuntimeException("Cookies map trying to override existing " +
-                        "cookie " + cookieKey.toString());
+                log.warn("Overriding existing cookie '" + cookieKey.toString() + "' in cookie map");
             }
             this.cookies.put(cookieKey, value);
+
+            List<Cookie> cookieValues;
+            if ( this.cookieListMap.containsKey(cookieKey) ) {
+                cookieValues = this.cookieListMap.get(cookieKey);
+            } else {
+                cookieValues = new ArrayList<>();
+            }
+            cookieValues.add(value);
+            this.cookieListMap.put(cookieKey, cookieValues);
             return this;
         }
 
