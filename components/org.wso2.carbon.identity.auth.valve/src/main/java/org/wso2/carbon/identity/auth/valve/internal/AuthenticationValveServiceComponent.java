@@ -45,38 +45,46 @@ public class AuthenticationValveServiceComponent {
     private static final Log log = LogFactory.getLog(AuthenticationValveServiceComponent.class);
 
     protected void activate(ComponentContext cxt) {
-        if ( log.isDebugEnabled() )
+        if (log.isDebugEnabled()) {
             log.debug("AuthenticationValveServiceComponent is activated");
+        }
     }
 
     protected void setAuthenticationManager(AuthenticationManager authenticationManager) {
-        if ( log.isDebugEnabled() ) {
-            log.debug("Set AuthenticationManager.");
+        if (log.isDebugEnabled()) {
+            log.debug("Set AuthenticationManager, " + authenticationManager != null ? authenticationManager
+                    .getName() : " Unknown");
         }
-        List<AuthenticationManager> authenticationManagers = AuthenticationValveServiceHolder.getInstance().getAuthenticationManagers();
+        List<AuthenticationManager> authenticationManagers = AuthenticationValveServiceHolder.getInstance()
+                .getAuthenticationManagers();
         authenticationManagers.add(authenticationManager);
         sort(authenticationManagers, new HandlerComparator());
     }
 
     protected void unsetAuthenticationManager(AuthenticationManager authenticationManager) {
-        if ( log.isDebugEnabled() ) {
-            log.debug("Unset AuthenticationManager.");
+        if (log.isDebugEnabled()) {
+            log.debug("Unset AuthenticationManager, " + authenticationManager != null ? authenticationManager
+                    .getName() : " Unknown");
         }
-        List<AuthenticationManager> authenticationManagers = AuthenticationValveServiceHolder.getInstance().getAuthenticationManagers();
+        List<AuthenticationManager> authenticationManagers = AuthenticationValveServiceHolder.getInstance()
+                .getAuthenticationManagers();
         authenticationManagers.remove(authenticationManager);
     }
 
     protected void addAuthenticationRequestBuilderFactory(AuthenticationRequestBuilderFactory requestBuilderFactory) {
-        if ( log.isDebugEnabled() ) {
-            log.debug("Set AuthenticationRequestBuilderFactory.");
+        if (log.isDebugEnabled()) {
+            log.debug(
+                    "Set AuthenticationRequestBuilderFactory, " + requestBuilderFactory != null ? requestBuilderFactory
+                            .getName() : "Unknown");
         }
         AuthenticationValveServiceHolder.getInstance().getRequestBuilderFactories().add(requestBuilderFactory);
     }
 
     protected void removeAuthenticationRequestBuilderFactory(AuthenticationRequestBuilderFactory
                                                                      requestBuilderFactory) {
-        if ( log.isDebugEnabled() ) {
-            log.debug("Unset AuthenticationRequestBuilderFactory.");
+        if (log.isDebugEnabled()) {
+            log.debug("Unset AuthenticationRequestBuilderFactory, " + requestBuilderFactory
+                      != null ? requestBuilderFactory.getName() : "Unknown");
         }
         AuthenticationValveServiceHolder.getInstance().getRequestBuilderFactories().remove(requestBuilderFactory);
     }

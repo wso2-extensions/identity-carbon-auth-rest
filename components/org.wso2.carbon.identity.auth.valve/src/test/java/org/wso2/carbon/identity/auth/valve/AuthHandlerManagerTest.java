@@ -58,6 +58,11 @@ public class AuthHandlerManagerTest extends PowerMockTestCase {
     public void testGetInstance() throws Exception {
         AuthHandlerManager authHandlerManager = AuthHandlerManager.getInstance();
         Assert.assertNotNull(authHandlerManager);
+
+        AuthHandlerManager anotherAuthHandlerManager = AuthHandlerManager.getInstance();
+        Assert.assertNotNull(anotherAuthHandlerManager);
+
+        Assert.assertEquals(authHandlerManager, anotherAuthHandlerManager);
     }
 
     @Test

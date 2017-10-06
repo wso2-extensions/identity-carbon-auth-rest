@@ -131,7 +131,8 @@
                 <version>${jacoco.version}</version>
                 <configuration>
                     <excludes>
-                        <!--exclude></exclude-->
+                        <exclude>**/AuthenticationValveServiceComponent.class</exclude>
+                        <exclude>**/AuthenticationValveServiceHolder.class</exclude>
                     </excludes>
                 </configuration>
                 <executions>

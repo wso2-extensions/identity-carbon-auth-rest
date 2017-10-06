@@ -21,7 +21,6 @@
         <classes>
             <class name="org.wso2.carbon.identity.auth.valve.AuthenticationValveTest"/>
             <class name="org.wso2.carbon.identity.auth.valve.AuthHandlerManagerTest"/>
-            <class name="org.wso2.carbon.identity.auth.valve.internal.AuthenticationValveServiceComponentTest"/>
         </classes>
     </test>
 
