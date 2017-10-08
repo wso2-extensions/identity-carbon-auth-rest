@@ -132,7 +132,7 @@
                 <configuration>
                     <excludes>
                         <exclude>**/AuthenticationValveServiceComponent.class</exclude>
-                        <exclude>**/AuthenticationValveServiceHolder.class</exclude>
+                        <exclude>**/AuthenticationValveServiceComponent.class</exclude>
                     </excludes>
                 </configuration>
                 <executions>

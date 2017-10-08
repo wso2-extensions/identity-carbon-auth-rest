@@ -90,6 +90,15 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- https://mvnrepository.com/artifact/org.apache.tomcat/tomcat-util -->
+        <dependency>
+            <groupId>org.apache.tomcat</groupId>
+            <artifactId>tomcat-util</artifactId>
+            <version>9.0.1</version>
+        </dependency>
+
+
+
     </dependencies>
 
     <build>
@@ -112,6 +121,19 @@
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
                 <version>${jacoco.version}</version>
+                <configuration>
+                    <excludes>
+                        <exclude>**/*Exception.class</exclude>
+                        <exclude>**/AccessTokenInfo.class</exclude>
+                        <exclude>**/ResourceConfig.class</exclude>
+                        <exclude>**/ResourceConfigKey.class</exclude>
+                        <exclude>**/AuthenticationStatus.class</exclude>
+                        <exclude>**/AuthenticationResult.class</exclude>
+                        <exclude>**/AuthenticationContext.class</exclude>
+                        <exclude>**/AuthenticationServiceComponent.class</exclude>
+                        <exclude>**/AuthenticationServiceHolder.class</exclude>
+                    </excludes>
+                </configuration>
                 <executions>
                     <execution>
                         <id>default-prepare-agent</id>
@@ -183,6 +205,7 @@
                             org.wso2.carbon.utils.*; version="${carbon.kernel.imp.pkg.version.range}",
                             org.wso2.carbon.identity.core.*; version="${carbon.identity.package.import.version.range}",
                             org.wso2.carbon.identity.oauth2.*;
+                            org.apache.catalina.*;version="1.7.0",
                             version="${org.wso2.carbon.identity.oauth.import.version.range}"
                         </Import-Package>
                         <Export-Package>
