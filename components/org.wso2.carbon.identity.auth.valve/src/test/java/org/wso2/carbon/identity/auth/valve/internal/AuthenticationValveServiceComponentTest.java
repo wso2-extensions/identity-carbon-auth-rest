@@ -60,6 +60,9 @@ public class AuthenticationValveServiceComponentTest extends PowerMockTestCase {
 
         List<AuthenticationRequestBuilderFactory> requestBuilderFactories = authenticationValveServiceHolder
                 .getRequestBuilderFactories();
+        if(requestBuilderFactories.isEmpty()){
+            Assert.fail("AuthenticationRequestBuilderFactory list is empty.");
+        }
         for (AuthenticationRequestBuilderFactory builderFactory : requestBuilderFactories) {
             Assert.assertEquals(authenticationRequestBuilderFactory, builderFactory);
         }
@@ -77,6 +80,9 @@ public class AuthenticationValveServiceComponentTest extends PowerMockTestCase {
 
         List<AuthenticationManager> authenticationManagers = authenticationValveServiceHolder
                 .getAuthenticationManagers();
+        if(authenticationManagers.isEmpty()){
+            Assert.fail("AuthenticationManager list is empty.");
+        }
         for (AuthenticationManager manager : authenticationManagers) {
             Assert.assertEquals(authenticationManager, manager);
         }
