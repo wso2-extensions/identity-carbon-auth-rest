@@ -32,27 +32,26 @@ import org.wso2.carbon.user.core.service.RealmService;
  */
 public class ContextRewriteValveServiceComponent {
 
-
     private static Log log = LogFactory.getLog(ContextRewriteValveServiceComponent.class);
 
     protected void activate(ComponentContext context) {
 
         if (log.isDebugEnabled()) {
-            log.debug("ContextRewriteValveServiceComponent is activated");
+            log.debug("ContextRewriteValveServiceComponent is activated.");
         }
     }
 
     protected void deactivate(ComponentContext context) {
 
         if (log.isDebugEnabled()) {
-            log.debug("ContextRewriteValveServiceComponent is deactivated");
+            log.debug("ContextRewriteValveServiceComponent is deactivated.");
         }
     }
 
     protected void setRealmService(RealmService realmService) {
 
         if (log.isDebugEnabled()) {
-            log.debug("Setting the Realm Service");
+            log.debug("Setting the Realm Service.");
         }
         ContextRewriteValveServiceComponentHolder.getInstance().setRealmService(realmService);
     }
@@ -60,7 +59,7 @@ public class ContextRewriteValveServiceComponent {
     protected void unsetRealmService(RealmService realmService) {
 
         if (log.isDebugEnabled()) {
-            log.debug("Unsetting the Realm Service");
+            log.debug("Unsetting the Realm Service.");
         }
         ContextRewriteValveServiceComponentHolder.getInstance().setRealmService(null);
     }
