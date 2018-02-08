@@ -15,5 +15,7 @@ public class Constants {
     public final static String APPLICATION_NAME_ATTR = "name";
     public final static String APPLICATION_HASH_ATTR = "hash";
     public final static String APPLICATION_ELE = "Application";
+    public static final String JSESSIONID = "JSESSIONID";
+    public static final String COOKIE_AUTH_HEADER = "Cookie";
 
 }
