@@ -29,6 +29,7 @@ import org.wso2.carbon.identity.auth.service.handler.impl.BasicAuthenticationHan
 import org.wso2.carbon.identity.auth.service.handler.impl.ClientAuthenticationHandler;
 import org.wso2.carbon.identity.auth.service.handler.impl.ClientCertificateBasedAuthenticationHandler;
 import org.wso2.carbon.identity.auth.service.handler.impl.OAuth2AccessTokenHandler;
+import org.wso2.carbon.identity.auth.service.handler.impl.TomcatCookieAuthenticationHandler;
 import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
 import org.wso2.carbon.identity.core.handler.HandlerComparator;
 import org.wso2.carbon.user.core.service.RealmService;
@@ -54,10 +55,15 @@ public class AuthenticationServiceComponent {
 
     protected void activate(ComponentContext cxt) {
         try {
-            cxt.getBundleContext().registerService(AuthenticationHandler.class, new BasicAuthenticationHandler(), null);
+            cxt.getBundleContext().registerService(AuthenticationHandler.class, new BasicAuthenticationHandler(),
+                    null);
             cxt.getBundleContext().registerService(AuthenticationHandler.class, new OAuth2AccessTokenHandler(), null);
-            cxt.getBundleContext().registerService(AuthenticationHandler.class, new ClientCertificateBasedAuthenticationHandler(), null);
-            cxt.getBundleContext().registerService(AuthenticationHandler.class, new ClientAuthenticationHandler(), null);
+            cxt.getBundleContext().registerService(AuthenticationHandler.class, new
+                    ClientCertificateBasedAuthenticationHandler(), null);
+            cxt.getBundleContext().registerService(AuthenticationHandler.class, new ClientAuthenticationHandler(),
+                    null);
+            cxt.getBundleContext().registerService(AuthenticationHandler.class, new TomcatCookieAuthenticationHandler
+                    (), null);
 
             cxt.getBundleContext().registerService(AuthenticationManager.class, AuthenticationManager.getInstance(),
                     null);
