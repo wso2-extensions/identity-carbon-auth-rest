@@ -18,6 +18,7 @@
 
 package org.wso2.carbon.identity.auth.service.factory;
 
+import org.apache.axis2.transport.http.HTTPConstants;
 import org.apache.catalina.connector.Request;
 import org.apache.catalina.connector.Response;
 import org.apache.commons.logging.Log;
@@ -64,7 +65,7 @@ public class AuthenticationRequestBuilderFactory extends AbstractIdentityHandler
             String attributeName = attributeNames.nextElement();
             authenticationRequestBuilder.addAttribute(attributeName, request.getAttribute(attributeName));
         }
-
+        authenticationRequestBuilder.addAttribute(HTTPConstants.MC_HTTP_SERVLETREQUEST, request);
         Enumeration<String> headerNames = request.getHeaderNames();
         while ( headerNames.hasMoreElements() ) {
             String headerName = headerNames.nextElement();
