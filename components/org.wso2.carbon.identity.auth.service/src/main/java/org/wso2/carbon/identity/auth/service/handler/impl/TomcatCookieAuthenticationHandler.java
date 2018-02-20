@@ -30,6 +30,7 @@ import org.wso2.carbon.identity.auth.service.AuthenticationStatus;
 import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
 import org.wso2.carbon.utils.ServerConstants;
+import org.wso2.carbon.utils.multitenancy.MultitenantConstants;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
 import static org.apache.commons.lang.StringUtils.isNotBlank;
@@ -86,7 +87,7 @@ public class TomcatCookieAuthenticationHandler extends AuthenticationHandler {
             if (isLoggedInUserExists(request)) {
                 String userName = (String) request.getSession().getAttribute(ServerConstants.USER_LOGGED_IN);
                 if (isNotBlank(userName)) {
-                    String tenantDomain = MultitenantUtils.getTenantDomain(userName);
+                    String tenantDomain = (String) request.getSession().getAttribute(MultitenantConstants.TENANT_DOMAIN);
                     User user = buildUser(userName, tenantDomain);
                     authenticationContext.setUser(user);
                     authenticationResult.setAuthenticationStatus(AuthenticationStatus.SUCCESS);
