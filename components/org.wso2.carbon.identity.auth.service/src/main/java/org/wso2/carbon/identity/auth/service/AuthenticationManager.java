@@ -97,8 +97,8 @@ public class AuthenticationManager implements IdentityHandler {
         AuthenticationHandler authenticationHandler = HandlerManager.getInstance().getFirstPriorityHandler
                 (authenticationHandlerList, true, authenticationContext);
 
-        if ( authenticationHandler == null ) {
-            throw new AuthRuntimeException("AuthenticationHandler not found.");
+        if (authenticationHandler == null) {
+            throw new AuthenticationFailException("AuthenticationHandler not found.");
         }
         if ( log.isDebugEnabled() ) {
             log.debug("AuthenticationHandler found : " + authenticationHandler.getClass().getName() + ".");
