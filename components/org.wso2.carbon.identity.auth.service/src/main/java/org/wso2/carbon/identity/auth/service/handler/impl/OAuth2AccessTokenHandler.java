@@ -46,6 +46,7 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
     private static final Log log = LogFactory.getLog(OAuth2AccessTokenHandler.class);
     private final String OAUTH_HEADER = "Bearer";
     private final String CONSUMER_KEY = "consumer-key";
+    private final String OAUTH2_ALLOWED_SCOPES = "oauth2-allowed-scopes";
 
     @Override
     protected AuthenticationResult doAuthenticate(MessageContext messageContext) {
@@ -53,10 +54,10 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
         AuthenticationResult authenticationResult = new AuthenticationResult(AuthenticationStatus.FAILED);
         AuthenticationContext authenticationContext = (AuthenticationContext) messageContext;
         AuthenticationRequest authenticationRequest = authenticationContext.getAuthenticationRequest();
-        if ( authenticationRequest != null ) {
+        if (authenticationRequest != null) {
 
             String authorizationHeader = authenticationRequest.getHeader(HttpHeaders.AUTHORIZATION);
-            if ( StringUtils.isNotEmpty(authorizationHeader) && authorizationHeader.startsWith(OAUTH_HEADER) ) {
+            if (StringUtils.isNotEmpty(authorizationHeader) && authorizationHeader.startsWith(OAUTH_HEADER)) {
                 String accessToken = authorizationHeader.split(" ")[1];
 
                 OAuth2TokenValidationService oAuth2TokenValidationService = new OAuth2TokenValidationService();
@@ -83,16 +84,19 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
                                 (requestDTO);
                 OAuth2TokenValidationResponseDTO responseDTO = clientApplicationDTO.getAccessTokenValidationResponse();
 
-                if ( responseDTO.isValid() ) {
+                if (responseDTO.isValid()) {
                     authenticationResult.setAuthenticationStatus(AuthenticationStatus.SUCCESS);
                 }
 
-                User user = new User();
-                user.setUserName(MultitenantUtils.getTenantAwareUsername(responseDTO.getAuthorizedUser()));
-                user.setTenantDomain(MultitenantUtils.getTenantDomain(responseDTO.getAuthorizedUser()));
-                authenticationContext.setUser(user);
+                if (StringUtils.isNotEmpty(responseDTO.getAuthorizedUser())) {
+                    User user = new User();
+                    user.setUserName(MultitenantUtils.getTenantAwareUsername(responseDTO.getAuthorizedUser()));
+                    user.setTenantDomain(MultitenantUtils.getTenantDomain(responseDTO.getAuthorizedUser()));
+                    authenticationContext.setUser(user);
+                }
 
                 authenticationContext.addParameter(CONSUMER_KEY, clientApplicationDTO.getConsumerKey());
+                authenticationContext.addParameter(OAUTH2_ALLOWED_SCOPES, responseDTO.getScope());
 
             }
         }
@@ -106,31 +110,34 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
 
     @Override
     public String getName() {
+
         return "OAuthAuthentication";
     }
 
     @Override
     public boolean isEnabled(MessageContext messageContext) {
+
         return true;
     }
 
     @Override
     public int getPriority(MessageContext messageContext) {
+
         return 25;
     }
 
     @Override
     public boolean canHandle(MessageContext messageContext) {
+
         AuthenticationContext authenticationContext = (AuthenticationContext) messageContext;
         AuthenticationRequest authenticationRequest = authenticationContext.getAuthenticationRequest();
-        if ( authenticationRequest != null ) {
+        if (authenticationRequest != null) {
             String authorizationHeader = authenticationRequest.getHeader(HttpHeaders.AUTHORIZATION);
-            if ( StringUtils.isNotEmpty(authorizationHeader) && authorizationHeader.startsWith(OAUTH_HEADER) ) {
+            if (StringUtils.isNotEmpty(authorizationHeader) && authorizationHeader.startsWith(OAUTH_HEADER)) {
                 return true;
             }
         }
         return false;
     }
-
 
 }
