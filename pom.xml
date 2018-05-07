@@ -339,8 +339,8 @@
         <carbon.identity.package.export.version>${identity.framework.version}</carbon.identity.package.export.version>
         <carbon.identity.package.import.version.range>[5.7.0, 6.0.0)</carbon.identity.package.import.version.range>
 
-        <org.wso2.carbon.identity.oauth.version>5.3.0</org.wso2.carbon.identity.oauth.version>
-        <org.wso2.carbon.identity.oauth.import.version.range>[5.0.0, 6.0.0)
+        <org.wso2.carbon.identity.oauth.version>6.0.0</org.wso2.carbon.identity.oauth.version>
+        <org.wso2.carbon.identity.oauth.import.version.range>[6.0.0, 7.0.0)
         </org.wso2.carbon.identity.oauth.import.version.range>
 
         <!-- OSGi framework component version -->
