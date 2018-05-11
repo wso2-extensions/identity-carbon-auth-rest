@@ -26,6 +26,7 @@ import org.wso2.carbon.identity.authz.service.AuthorizationResult;
 import org.wso2.carbon.identity.authz.service.AuthorizationStatus;
 import org.wso2.carbon.identity.authz.service.exception.AuthzServiceServerException;
 import org.wso2.carbon.identity.authz.service.internal.AuthorizationServiceHolder;
+import org.wso2.carbon.identity.core.handler.AbstractIdentityHandler;
 import org.wso2.carbon.identity.core.handler.IdentityHandler;
 import org.wso2.carbon.identity.core.handler.InitConfig;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
@@ -38,7 +39,7 @@ import org.wso2.carbon.user.core.service.RealmService;
 /**
  * AuthorizationHandler can be extended to handle the user permissions.
  */
-public class AuthorizationHandler implements IdentityHandler {
+public class AuthorizationHandler extends AbstractIdentityHandler {
     private static final Log log = LogFactory.getLog(AuthorizationHandler.class);
 
 
@@ -85,11 +86,6 @@ public class AuthorizationHandler implements IdentityHandler {
     @Override
     public String getName() {
         return "AuthorizationHandler";
-    }
-
-    @Override
-    public boolean isEnabled() {
-        return true;
     }
 
     @Override

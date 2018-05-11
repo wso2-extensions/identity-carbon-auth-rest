@@ -123,7 +123,7 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
     @Override
     public int getPriority(MessageContext messageContext) {
 
-        return 25;
+        return getPriority(messageContext, 25);
     }
 
     @Override
