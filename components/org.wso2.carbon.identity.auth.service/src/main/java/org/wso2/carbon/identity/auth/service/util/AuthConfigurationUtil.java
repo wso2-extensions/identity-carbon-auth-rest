@@ -1,17 +1,21 @@
 package org.wso2.carbon.identity.auth.service.util;
 
-
 import org.apache.axiom.om.OMElement;
 import org.apache.commons.lang.StringUtils;
+import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
+import org.wso2.carbon.identity.auth.service.internal.AuthenticationServiceHolder;
 import org.wso2.carbon.identity.auth.service.module.ResourceConfig;
 import org.wso2.carbon.identity.auth.service.module.ResourceConfigKey;
 import org.wso2.carbon.identity.core.util.IdentityConfigParser;
 import org.wso2.carbon.identity.core.util.IdentityCoreConstants;
 
-import javax.xml.namespace.QName;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
+import javax.xml.namespace.QName;
 
 public class AuthConfigurationUtil {
 
@@ -60,6 +64,8 @@ public class AuthConfigurationUtil {
                     String context = resource.getAttributeValue(new QName(Constants.RESOURCE_CONTEXT_ATTR));
                     String isSecured = resource.getAttributeValue(new QName(Constants.RESOURCE_SECURED_ATTR));
                     String isCrossTenantAllowed = resource.getAttributeValue(new QName(Constants.RESOURCE_CROSS_TENANT_ATTR));
+                    String allowedAuthHandlers =
+                            resource.getAttributeValue(new QName(Constants.RESOURCE_ALLOWED_AUTH_HANDLERS));
 
                     StringBuilder permissionBuilder = new StringBuilder();
                     Iterator<OMElement> permissionsIterator = resource.getChildrenWithName(
@@ -88,6 +94,12 @@ public class AuthConfigurationUtil {
                             Boolean.FALSE.toString().equals(isCrossTenantAllowed))) {
                         resourceConfig.setIsCrossTenantAllowed(Boolean.parseBoolean(isCrossTenantAllowed));
                     }
+
+                    if (StringUtils.isBlank(allowedAuthHandlers)) {
+                        // If 'allowed-auth-handlers' is not configured we consider all handlers are engaged.
+                        allowedAuthHandlers = Constants.RESOURCE_ALLOWED_AUTH_HANDLERS_ALL;
+                    }
+                    resourceConfig.setAllowedAuthHandlers(allowedAuthHandlers);
                     resourceConfig.setPermissions(permissionBuilder.toString());
                     resourceConfigMap.put(new ResourceConfigKey(context, httpMethod), resourceConfig);
                 }
@@ -95,6 +107,22 @@ public class AuthConfigurationUtil {
         }
     }
 
+    public List<String> buildAllowedAuthenticationHandlers(String allowedAuthenticationHandlers) {
+
+        List<String> allowedAuthHandlersList = new ArrayList<>();
+        if (StringUtils.equals(allowedAuthenticationHandlers, Constants.RESOURCE_ALLOWED_AUTH_HANDLERS_ALL)) {
+            List<AuthenticationHandler> allAvailableAuthHandlers =
+                    AuthenticationServiceHolder.getInstance().getAuthenticationHandlers();
+            for (AuthenticationHandler handler : allAvailableAuthHandlers) {
+                allowedAuthHandlersList.add(handler.getName());
+            }
+        } else {
+            String regex = "\\s*,\\s*";
+            String[] allowedAuthHandlerNames = allowedAuthenticationHandlers.split(regex);
+            allowedAuthHandlersList.addAll(Arrays.asList(allowedAuthHandlerNames));
+        }
+        return allowedAuthHandlersList;
+    }
 
     /**
      * Build rest api resource control config.

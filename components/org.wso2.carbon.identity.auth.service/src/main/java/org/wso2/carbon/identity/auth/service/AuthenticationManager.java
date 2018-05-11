@@ -20,10 +20,7 @@ package org.wso2.carbon.identity.auth.service;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.wso2.carbon.context.PrivilegedCarbonContext;
-import org.wso2.carbon.identity.application.common.model.User;
 import org.wso2.carbon.identity.auth.service.exception.AuthClientException;
-import org.wso2.carbon.identity.auth.service.exception.AuthRuntimeException;
 import org.wso2.carbon.identity.auth.service.exception.AuthServerException;
 import org.wso2.carbon.identity.auth.service.exception.AuthenticationFailException;
 import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
@@ -35,10 +32,9 @@ import org.wso2.carbon.identity.auth.service.module.ResourceConfigKey;
 import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
 import org.wso2.carbon.identity.core.handler.IdentityHandler;
 import org.wso2.carbon.identity.core.handler.InitConfig;
-import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
-import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * AuthenticationManager is the manager class for doing the authentication based on the type ex: Basic, Token, etc...
@@ -92,8 +88,12 @@ public class AuthenticationManager implements IdentityHandler {
             }
         }
 
-        List<AuthenticationHandler> authenticationHandlerList = AuthenticationServiceHolder.getInstance()
-                .getAuthenticationHandlers();
+        List<AuthenticationHandler> authenticationHandlerList =
+                AuthenticationServiceHolder.getInstance().getAuthenticationHandlers();
+
+        // Filter authentication handlers engaged for this resource.
+        authenticationHandlerList = filterAuthenticationHandlers(authenticationContext, authenticationHandlerList);
+
         AuthenticationHandler authenticationHandler = HandlerManager.getInstance().getFirstPriorityHandler
                 (authenticationHandlerList, true, authenticationContext);
 
@@ -112,6 +112,51 @@ public class AuthenticationManager implements IdentityHandler {
         }
 
         return authenticationResult;
+    }
+
+    /**
+     * Filter all available authentication handlers based on the configured 'allowed-auth-handlers' property that
+     * defines the handlers that need to be engaged for the particular resource.
+     *
+     * Eg.
+     * <Resource context="(.*)/usermanagement/v1/user/(.*)" http-method="all" secured="true"
+     * allowed-auth-handlers="BasicAuthentication,ClientAuthentication"></Resource>
+     *
+     * In this case only "BasicAuthentication" and "ClientAuthentication" will be engaged for the resource. If
+     * 'allowed-auth-handlers' property is not configured we set the default value 'all' which implies all available
+     * are engaged to the resource.
+     *
+     * @param authenticationContext
+     * @param handlers
+     * @return List of filtered {@link AuthenticationHandler} based on
+     */
+    private List<AuthenticationHandler> filterAuthenticationHandlers(AuthenticationContext authenticationContext,
+                                                                     List<AuthenticationHandler> handlers) {
+
+        ResourceConfig resourceConfig = getResourceConfig(authenticationContext);
+        final String allowedAuthHandlers = resourceConfig.getAllowedAuthHandlers();
+        final List<String> allowedAuthenticationHandlersForResource =
+                AuthConfigurationUtil.getInstance().buildAllowedAuthenticationHandlers(allowedAuthHandlers);
+
+        return handlers.stream()
+                .filter(handler -> isHandlerAllowedForResource(allowedAuthenticationHandlersForResource, handler))
+                .collect(Collectors.toList());
+    }
+
+    private boolean isHandlerAllowedForResource(List<String> allowedAuthenticationHandlersForResource,
+                                                AuthenticationHandler handler) {
+
+        return allowedAuthenticationHandlersForResource.contains(handler.getName());
+    }
+
+    private ResourceConfig getResourceConfig(AuthenticationContext context) {
+
+        AuthenticationRequest authenticationRequest = context.getAuthenticationRequest();
+        String requestUri = authenticationRequest.getRequestUri();
+        String method = authenticationRequest.getMethod();
+
+        ResourceConfigKey resourceConfigKey = new ResourceConfigKey(requestUri, method);
+        return getSecuredResource(resourceConfigKey);
     }
 
     @Override

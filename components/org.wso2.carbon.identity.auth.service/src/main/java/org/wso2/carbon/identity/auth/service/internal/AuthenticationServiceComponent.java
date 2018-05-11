@@ -32,6 +32,7 @@ import org.wso2.carbon.identity.auth.service.handler.impl.OAuth2AccessTokenHandl
 import org.wso2.carbon.identity.auth.service.handler.impl.TomcatCookieAuthenticationHandler;
 import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
 import org.wso2.carbon.identity.core.handler.HandlerComparator;
+import org.wso2.carbon.identity.core.util.IdentityCoreInitializedEvent;
 import org.wso2.carbon.user.core.service.RealmService;
 
 import java.util.Collections;
@@ -48,6 +49,9 @@ import java.util.List;
  * @scr.reference name="org.wso2.carbon.identity.auth.service.handler.resource"
  * interface="org.wso2.carbon.identity.auth.service.handler.ResourceHandler"
  * cardinality="0..n" policy="dynamic" bind="addResourceHandler" unbind="removeResourceHandler"
+ * @scr.reference name="identityCoreInitializedEventService"
+ * interface="org.wso2.carbon.identity.core.util.IdentityCoreInitializedEvent" cardinality="1..1"
+ * policy="dynamic" bind="setIdentityCoreInitializedEventService" unbind="unsetIdentityCoreInitializedEventService"
  */
 public class AuthenticationServiceComponent {
 
@@ -122,5 +126,13 @@ public class AuthenticationServiceComponent {
         AuthenticationServiceHolder.getInstance().getResourceHandlers().remove(resourceHandler);
     }
 
+    protected void setIdentityCoreInitializedEventService(IdentityCoreInitializedEvent identityCoreInitializedEvent) {
+        /* reference IdentityCoreInitializedEvent service to guarantee that this component will wait until identity core
+         is started */
+    }
 
+    protected void unsetIdentityCoreInitializedEventService(IdentityCoreInitializedEvent identityCoreInitializedEvent) {
+        /* reference IdentityCoreInitializedEvent service to guarantee that this component will wait until identity core
+         is started */
+    }
 }

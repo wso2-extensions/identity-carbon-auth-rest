@@ -54,11 +54,7 @@ public class TomcatCookieAuthenticationHandler extends AuthenticationHandler {
     @Override
     public int getPriority(MessageContext messageContext) {
 
-        int priority = super.getPriority(messageContext);
-        if (priority != -1) {
-            return priority;
-        }
-        return 500;
+        return getPriority(messageContext, 500);
     }
 
     @Override

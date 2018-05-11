@@ -79,6 +79,7 @@ public class AuthenticationRequestBuilderFactory extends AbstractIdentityHandler
                         cookie);
             }
         }
+        authenticationRequestBuilder.setRequestUri(request.getRequestURI());
         authenticationRequestBuilder.setContextPath(request.getContextPath());
         authenticationRequestBuilder.setMethod(request.getMethod());
 

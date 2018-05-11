@@ -17,7 +17,12 @@
  */
 package org.wso2.carbon.identity.auth.service.module;
 
+import org.apache.commons.lang.StringUtils;
+import org.wso2.carbon.identity.auth.service.util.Constants;
+
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Model class to hold resource access configs.
@@ -29,6 +34,8 @@ public class ResourceConfig implements Serializable {
     private boolean isSecured;
     private boolean isCrossTenantAllowed;
     private String permissions;
+    // Comma separated list of allowed authentication handler names. If all handlers are engaged the value is 'all'
+    private String allowedAuthHandlers;
 
     public String getContext() {
         return context;
@@ -70,4 +77,13 @@ public class ResourceConfig implements Serializable {
         this.permissions = permissions;
     }
 
+    public String getAllowedAuthHandlers() {
+
+        return allowedAuthHandlers;
+    }
+
+    public void setAllowedAuthHandlers(String allowedAuthHandlers) {
+
+        this.allowedAuthHandlers = allowedAuthHandlers;
+    }
 }

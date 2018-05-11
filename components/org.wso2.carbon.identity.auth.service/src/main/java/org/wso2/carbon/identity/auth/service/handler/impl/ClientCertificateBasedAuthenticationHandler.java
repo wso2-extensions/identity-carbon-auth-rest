@@ -59,13 +59,8 @@ public class ClientCertificateBasedAuthenticationHandler extends AuthenticationH
     }
 
     @Override
-    public boolean isEnabled(MessageContext messageContext) {
-        return true;
-    }
-
-    @Override
     public int getPriority(MessageContext messageContext) {
-        return 10;
+        return getPriority(messageContext, 10);
     }
 
     @Override
