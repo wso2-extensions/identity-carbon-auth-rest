@@ -62,13 +62,8 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
     }
 
     @Override
-    public boolean isEnabled(MessageContext messageContext) {
-        return true;
-    }
-
-    @Override
     public int getPriority(MessageContext messageContext) {
-        return 100;
+        return getPriority(messageContext, 100);
     }
 
     @Override

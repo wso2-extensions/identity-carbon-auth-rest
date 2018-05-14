@@ -59,6 +59,7 @@ public class AuthenticationRequest implements Serializable
     protected Map<CookieKey, List<Cookie>> cookieListMap = new HashMap<>();
     protected String contextPath;
     protected String method;
+    protected String requestUri;
 
     protected AuthenticationRequest(AuthenticationRequestBuilder builder) {
         this.attributes = builder.attributes;
@@ -67,6 +68,7 @@ public class AuthenticationRequest implements Serializable
         this.cookieListMap = builder.cookieListMap;
         this.contextPath = builder.contextPath;
         this.method = builder.method;
+        this.requestUri = builder.requestUri;
     }
 
     public Map<String, Object> getAttributeMap() {
@@ -124,6 +126,10 @@ public class AuthenticationRequest implements Serializable
         return cookies.toArray(new Cookie[cookies.size()]);
     }
 
+    public String getRequestUri() {
+        return requestUri;
+    }
+
     public String getContextPath() {
         return contextPath;
     }
@@ -140,6 +146,7 @@ public class AuthenticationRequest implements Serializable
         private Map<CookieKey, List<Cookie>> cookieListMap = new HashMap<>();
         private String contextPath;
         private String method;
+        private String requestUri;
 
         public AuthenticationRequestBuilder() {
 
@@ -190,6 +197,10 @@ public class AuthenticationRequest implements Serializable
             return this;
         }
 
+        public AuthenticationRequestBuilder setRequestUri(String requestUri) {
+            this.requestUri = requestUri;
+            return this;
+        }
 
         public AuthenticationRequest build() {
             return new AuthenticationRequest(this);
