@@ -18,21 +18,18 @@
 
 package org.wso2.carbon.identity.auth.service.handler;
 
-import org.wso2.carbon.base.MultitenantConstants;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.identity.application.common.model.User;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
 import org.wso2.carbon.identity.auth.service.AuthenticationResult;
 import org.wso2.carbon.identity.auth.service.AuthenticationStatus;
 import org.wso2.carbon.identity.auth.service.exception.AuthClientException;
-import org.wso2.carbon.identity.auth.service.exception.AuthenticationFailException;
 import org.wso2.carbon.identity.auth.service.exception.AuthServerException;
+import org.wso2.carbon.identity.auth.service.exception.AuthenticationFailException;
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
 import org.wso2.carbon.identity.core.handler.AbstractIdentityMessageHandler;
-import org.wso2.carbon.identity.core.handler.IdentityMessageHandler;
-import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
+import org.wso2.carbon.identity.core.handler.AbstractIdentityMessageHandler;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
-import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
 /**
  * This is the abstract class for custom authentication handlers.
@@ -42,6 +39,11 @@ import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
  */
 public abstract class AuthenticationHandler extends AbstractIdentityMessageHandler {
 
+    public int getPriority(MessageContext messageContext, int defaultValue) {
+
+        int priority = super.getPriority(messageContext);
+        return priority != -1 ? priority : defaultValue;
+    }
 
     /**
      *
