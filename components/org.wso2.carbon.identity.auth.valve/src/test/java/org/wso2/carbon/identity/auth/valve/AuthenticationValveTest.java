@@ -43,6 +43,8 @@ import org.wso2.carbon.identity.auth.service.factory.AuthenticationRequestBuilde
 import org.wso2.carbon.identity.auth.service.module.ResourceConfig;
 import org.wso2.carbon.identity.auth.service.module.ResourceConfigKey;
 import org.wso2.carbon.identity.auth.valve.util.AuthHandlerManager;
+import org.wso2.carbon.identity.core.model.IdentityErrorMsgContext;
+import org.wso2.carbon.identity.core.util.IdentityUtil;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -84,12 +86,29 @@ public class AuthenticationValveTest extends PowerMockTestCase {
     @DataProvider
     public Object[][] getExceptionTypeData() {
         return new Object[][] {
-                { new AuthClientException("Test exception AuthClientException."), HttpServletResponse.SC_BAD_REQUEST },
-                { new AuthServerException("Test exception AuthServerException."), HttpServletResponse.SC_BAD_REQUEST },
+                { new AuthClientException("Test exception AuthClientException."), HttpServletResponse.SC_BAD_REQUEST,
+                        true},
+                { new AuthServerException("Test exception AuthServerException."), HttpServletResponse.SC_BAD_REQUEST,
+               true},
                 { new AuthenticationFailException("Test exception AuthenticationFailException."),
-                  HttpServletResponse.SC_UNAUTHORIZED },
+                  HttpServletResponse.SC_UNAUTHORIZED, true},
                 { new AuthRuntimeException("Test exception AuthRuntimeException."),
-                  HttpServletResponse.SC_UNAUTHORIZED }
+                  HttpServletResponse.SC_UNAUTHORIZED, true},
+                { new AuthClientException("Test exception AuthClientException."), HttpServletResponse.SC_BAD_REQUEST,
+                        false},
+                { new AuthServerException("Test exception AuthServerException."), HttpServletResponse.SC_BAD_REQUEST,
+                        false},
+                { new AuthenticationFailException("Test exception AuthenticationFailException."),
+                        HttpServletResponse.SC_UNAUTHORIZED, false},
+                { new AuthRuntimeException("Test exception AuthRuntimeException."),
+                        HttpServletResponse.SC_UNAUTHORIZED, false}
+        };
+    }
+
+    @DataProvider
+    public Object[][] getUnclearedThreadLocalData() {
+        return new Object[][]{
+                {true}, {false}
         };
     }
 
@@ -129,7 +148,11 @@ public class AuthenticationValveTest extends PowerMockTestCase {
     }
 
     @Test(dataProvider = "getExceptionTypeData")
-    public void testInvokeException(Exception exception, int statusCode) throws Exception {
+    public void testInvokeException(Exception exception, int statusCode, boolean hasThreadLocal) throws Exception {
+
+        if (hasThreadLocal) {
+            setIdentityErrorThreadLocal();
+        }
         when(securedResourceConfig.isSecured()).thenReturn(true);
         when(authenticationManager.authenticate(Matchers.any(AuthenticationContext.class))).thenThrow(exception);
         final int[] errorStatusCode = mockErrorStatusCode();
@@ -138,8 +161,12 @@ public class AuthenticationValveTest extends PowerMockTestCase {
         Assert.assertEquals(errorStatusCode[0], statusCode);
     }
 
-    @Test
-    public void testInvokeForNonSecuredResource() throws Exception {
+    @Test(dataProvider = "getUnclearedThreadLocalData")
+    public void testInvokeForNonSecuredResource(boolean hasThreadLocal) throws Exception {
+
+        if (hasThreadLocal) {
+            setIdentityErrorThreadLocal();
+        }
         when(securedResourceConfig.isSecured()).thenReturn(false);
         final Map<String, Object> attributes = mockAttributeMap();
         invokeAuthenticationValve();
@@ -147,8 +174,12 @@ public class AuthenticationValveTest extends PowerMockTestCase {
         Assert.assertNull(authContext);
     }
 
-    @Test
-    public void testInvokeForSecuredResourceInFail() throws Exception {
+    @Test(dataProvider = "getUnclearedThreadLocalData")
+    public void testInvokeForSecuredResourceInFail(boolean hasThreadLocal) throws Exception {
+
+        if (hasThreadLocal) {
+            setIdentityErrorThreadLocal();
+        }
         when(securedResourceConfig.isSecured()).thenReturn(true);
         AuthenticationResult authenticationResult = new AuthenticationResult(AuthenticationStatus.NOTSECURED);
         when(authenticationManager.authenticate(Matchers.any(AuthenticationContext.class))).thenReturn
@@ -159,8 +190,12 @@ public class AuthenticationValveTest extends PowerMockTestCase {
         Assert.assertNull(authContext);
     }
 
-    @Test
-    public void testInvokeForSecuredResourceInSuccess() throws Exception {
+    @Test(dataProvider = "getUnclearedThreadLocalData")
+    public void testInvokeForSecuredResourceInSuccess(boolean hasThreadLocal) throws Exception {
+
+        if (hasThreadLocal) {
+            setIdentityErrorThreadLocal();
+        }
         when(securedResourceConfig.isSecured()).thenReturn(true);
         AuthenticationResult authenticationResult = new AuthenticationResult(AuthenticationStatus.SUCCESS);
         when(authenticationManager.authenticate(Matchers.any(AuthenticationContext.class))).thenReturn
@@ -169,6 +204,20 @@ public class AuthenticationValveTest extends PowerMockTestCase {
         invokeAuthenticationValve();
         AuthenticationContext authContext = (AuthenticationContext) attributes.get(AUTH_CONTEXT);
         Assert.assertNotNull(authContext);
+    }
+
+    @Test
+    public void testInvokeForUnclearedThreadLocal() throws Exception {
+
+        setIdentityErrorThreadLocal();
+        invokeAuthenticationValve();
+        Assert.assertNull(IdentityUtil.getIdentityErrorMsg());
+    }
+
+    private void setIdentityErrorThreadLocal() {
+
+        IdentityErrorMsgContext errorMsgContext = new IdentityErrorMsgContext("mockErrorCode");
+        IdentityUtil.setIdentityErrorMsg(errorMsgContext);
     }
 
     private void invokeAuthenticationValve() throws IOException, ServletException {
