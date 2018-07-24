@@ -33,6 +33,7 @@ import org.wso2.carbon.identity.auth.service.module.ResourceConfig;
 import org.wso2.carbon.identity.auth.service.module.ResourceConfigKey;
 import org.wso2.carbon.identity.auth.valve.internal.AuthenticationValveServiceHolder;
 import org.wso2.carbon.identity.auth.valve.util.AuthHandlerManager;
+import org.wso2.carbon.identity.core.util.IdentityUtil;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
@@ -53,20 +54,21 @@ public class AuthenticationValve extends ValveBase {
     @Override
     public void invoke(Request request, Response response) throws IOException, ServletException {
 
-        AuthenticationManager authenticationManager = AuthHandlerManager.getInstance().getAuthenticationManager();
-        ResourceConfig securedResource = authenticationManager.getSecuredResource(new ResourceConfigKey(request
-                .getRequestURI(), request.getMethod()));
-        if (securedResource == null || !securedResource.isSecured()) {
-            getNext().invoke(request, response);
-            return;
-        }
-
-        if ( log.isDebugEnabled() ) {
-            log.debug("AuthenticationValve hit on secured resource : " + request.getRequestURI());
-        }
         AuthenticationContext authenticationContext = null;
         AuthenticationResult authenticationResult = null;
+
         try {
+            AuthenticationManager authenticationManager = AuthHandlerManager.getInstance().getAuthenticationManager();
+            ResourceConfig securedResource = authenticationManager.getSecuredResource(new ResourceConfigKey(request
+                    .getRequestURI(), request.getMethod()));
+            if (securedResource == null || !securedResource.isSecured()) {
+                getNext().invoke(request, response);
+                return;
+            }
+
+            if (log.isDebugEnabled()) {
+                log.debug("AuthenticationValve hit on secured resource : " + request.getRequestURI());
+            }
 
             AuthenticationRequest.AuthenticationRequestBuilder authenticationRequestBuilder = AuthHandlerManager
                     .getInstance().getRequestBuilder(request, response).createRequestBuilder(request, response);
@@ -76,7 +78,7 @@ public class AuthenticationValve extends ValveBase {
             authenticationResult = authenticationManager.authenticate(authenticationContext);
 
             AuthenticationStatus authenticationStatus = authenticationResult.getAuthenticationStatus();
-            if ( authenticationStatus.equals(AuthenticationStatus.SUCCESS) ) {
+            if (authenticationStatus.equals(AuthenticationStatus.SUCCESS)) {
                 //Set the User object as an attribute for further references.
                 request.setAttribute(AUTH_CONTEXT, authenticationContext);
                 getNext().invoke(request, response);
@@ -93,6 +95,11 @@ public class AuthenticationValve extends ValveBase {
         } catch (AuthRuntimeException e) {
             log.error("Auth Runtime Expection occured in Authentication valve :", e);
             handleErrorResponse(authenticationContext, response, HttpServletResponse.SC_UNAUTHORIZED, null);
+        } finally {
+            // Clear 'IdentityError' thread local.
+            if (IdentityUtil.getIdentityErrorMsg() != null) {
+                IdentityUtil.clearIdentityErrorMsg();
+            }
         }
 
 
