@@ -7,10 +7,12 @@ public class ResourceConfigKey {
 
     private String contextPath;
     private String httpMethod;
+    private Pattern pattern;
 
     public ResourceConfigKey(String contextPath, String httpMethod) {
         this.contextPath = contextPath;
         this.httpMethod = httpMethod;
+        this.pattern = Pattern.compile(contextPath);
     }
 
     public String getContextPath() {
@@ -32,20 +34,20 @@ public class ResourceConfigKey {
 
     @Override
     public boolean equals(Object o) {
-        if ( this == o ) return true;
-        if ( o == null || getClass() != o.getClass() ) return false;
+
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
 
         ResourceConfigKey that = (ResourceConfigKey) o;
-        Pattern compile = Pattern.compile(contextPath);
-        Matcher matcher = compile.matcher(that.contextPath);
-        if ( !matcher.matches() ) {
-           return false;
+        Matcher matcher = pattern.matcher(that.contextPath);
+        if (!matcher.matches()) {
+            return false;
         }
 
-        if ( httpMethod.equalsIgnoreCase("all") )
+        if (httpMethod.equalsIgnoreCase("all")) {
             return true;
+        }
         return httpMethod.contains(that.httpMethod);
-
     }
 
     @Override

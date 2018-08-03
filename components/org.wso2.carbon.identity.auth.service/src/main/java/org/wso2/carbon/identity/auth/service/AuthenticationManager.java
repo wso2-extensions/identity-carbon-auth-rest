@@ -57,13 +57,13 @@ public class AuthenticationManager implements IdentityHandler {
 
         ResourceConfig securedResourceConfig = AuthConfigurationUtil.getInstance().getSecuredConfig(resourceConfigKey);
 
-        if ( securedResourceConfig == null ) {
+        if (securedResourceConfig == null) {
             List<ResourceHandler> resourceHandlers =
                     AuthenticationServiceHolder.getInstance().getResourceHandlers();
 
-            for ( ResourceHandler resourceHandler : resourceHandlers ) {
+            for (ResourceHandler resourceHandler : resourceHandlers) {
                 securedResourceConfig = resourceHandler.getSecuredResource(resourceConfigKey);
-                if ( securedResourceConfig != null ) {
+                if (securedResourceConfig != null) {
                     break;
                 }
             }
