@@ -31,10 +31,16 @@ import org.wso2.carbon.identity.auth.service.exception.AuthClientException;
 import org.wso2.carbon.identity.auth.service.exception.AuthServerException;
 import org.wso2.carbon.identity.auth.service.exception.AuthenticationFailException;
 import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
+import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
 import org.wso2.carbon.identity.core.handler.InitConfig;
 import org.wso2.carbon.utils.multitenancy.MultitenantConstants;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
+
+import java.security.cert.X509Certificate;
+import javax.naming.InvalidNameException;
+import javax.naming.ldap.LdapName;
+import javax.naming.ldap.Rdn;
 
 /**
  * This authentication handler does the the authentication based on client certificate.
@@ -47,6 +53,7 @@ public class ClientCertificateBasedAuthenticationHandler extends AuthenticationH
     private static final Log log = LogFactory.getLog(ClientCertificateBasedAuthenticationHandler.class);
     private static final String CLIENT_CERTIFICATE_ATTRIBUTE_NAME = "javax.servlet.request.X509Certificate";
     private static final String USER_HEADER_NAME = "WSO2-Identity-User";
+    private static final String CERTIFICATE_ATTRIBUTE_CN = "CN";
 
     @Override
     public void init(InitConfig initConfig) {
@@ -91,6 +98,38 @@ public class ClientCertificateBasedAuthenticationHandler extends AuthenticationH
 
                 String username = authenticationContext.getAuthenticationRequest().getHeader(USER_HEADER_NAME);
 
+                if (requireIntermediateCertValidation(authenticationContext)) {
+                    Object object = authenticationContext.getAuthenticationRequest()
+                            .getAttribute(CLIENT_CERTIFICATE_ATTRIBUTE_NAME);
+                    if (!(object instanceof X509Certificate[])) {
+                        throw new AuthenticationFailException("Exception while casting the X509Certificate.");
+                    }
+                    X509Certificate[] certificates = (X509Certificate[]) object;
+                    if (certificates.length == 0) {
+                        throw new AuthenticationFailException("X509Certificate object is null.");
+                    }
+                    X509Certificate cert = certificates[0];
+                    try {
+                        username = getCN(cert.getSubjectDN().getName());
+                    } catch (InvalidNameException e) {
+                        throw new AuthenticationFailException("Error occurred when retrieving cert CN.", e);
+                    }
+                    if (StringUtils.isEmpty(username)) {
+                        log.error("Authentication failed. Mismatch in username in header and certificate.");
+                        return authenticationResult;
+                    }
+                    String certIssuerCN;
+                    try {
+                        certIssuerCN = getCN(cert.getIssuerDN().getName());
+                    } catch (InvalidNameException e) {
+                        throw new AuthenticationFailException("Error occurred when retrieving cert issuer CN.", e);
+                    }
+                    if (StringUtils.isEmpty(certIssuerCN) || !AuthConfigurationUtil.getInstance()
+                            .getIntermediateCertCNList().contains(certIssuerCN)) {
+                        log.error("Authentication failed. Unrecognized certificate issuer.");
+                        return authenticationResult;
+                    }
+                }
                 if (StringUtils.isNotEmpty(username)) {
                     String tenantDomain = MultitenantUtils.getTenantDomain(username);
 
@@ -125,6 +164,30 @@ public class ClientCertificateBasedAuthenticationHandler extends AuthenticationH
         }
 
         return authenticationResult;
+    }
+
+    private boolean requireIntermediateCertValidation(AuthenticationContext authenticationContext) {
+
+        if (!AuthConfigurationUtil.getInstance().isIntermediateCertValidationEnabled()) {
+            return false;
+        }
+        for (String context : AuthConfigurationUtil.getInstance().getExemptedContextList()) {
+            if (authenticationContext.getAuthenticationRequest().getContextPath().contains(context)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private String getCN(String dn) throws InvalidNameException {
+
+        LdapName ln = new LdapName(dn);
+        for (Rdn rdn : ln.getRdns()) {
+            if (rdn.getType().equalsIgnoreCase(CERTIFICATE_ATTRIBUTE_CN)) {
+                return String.valueOf(rdn.getValue());
+            }
+        }
+        return StringUtils.EMPTY;
     }
 
 }

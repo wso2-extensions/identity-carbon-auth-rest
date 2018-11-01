@@ -20,4 +20,11 @@ public class Constants {
     public static final String JSESSIONID = "JSESSIONID";
     public static final String COOKIE_AUTH_HEADER = "Cookie";
 
+    public static final String INTERMEDIATE_CERT_VALIDATION_ELE = "IntermediateCertValidation";
+    public static final String INTERMEDIATE_CERTS_ELE = "IntermediateCerts";
+    public static final String EXEMPT_CONTEXT_ELE = "ExemptContext";
+    public static final String CERT_CN_ELE = "CertCN";
+    public final static String CONTEXT_ELE = "Context";
+    public final static String CERT_AUTHENTICATION_ENABLE_ATTR = "enable";
+
 }
