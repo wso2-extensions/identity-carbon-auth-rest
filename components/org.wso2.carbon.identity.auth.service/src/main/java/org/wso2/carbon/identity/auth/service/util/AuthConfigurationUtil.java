@@ -23,7 +23,9 @@ public class AuthConfigurationUtil {
 
     private Map<ResourceConfigKey, ResourceConfig> resourceConfigMap = new HashMap<>();
     private Map<String, String> applicationConfigMap = new HashMap<>();
-
+    private List<String> intermediateCertCNList = new ArrayList<>();
+    private List<String> exemptedContextList = new ArrayList<>();
+    private boolean isIntermediateCertValidationEnabled = false;
 
     private AuthConfigurationUtil() {
     }
@@ -146,7 +148,59 @@ public class AuthConfigurationUtil {
         }
     }
 
+    /**
+     * Build intermediate cert validation config.
+     */
+    public void buildIntermediateCertValidationConfigData() {
+
+        OMElement intermediateCertValidationElement = IdentityConfigParser.getInstance().getConfigElement(Constants
+                .INTERMEDIATE_CERT_VALIDATION_ELE);
+        if (intermediateCertValidationElement != null) {
+            isIntermediateCertValidationEnabled = Boolean.parseBoolean(intermediateCertValidationElement
+                    .getAttributeValue(new QName(Constants.CERT_AUTHENTICATION_ENABLE_ATTR)));
+            if (isIntermediateCertValidationEnabled) {
+                //get intermediate cert CNs
+                OMElement intermediateCertsElement = intermediateCertValidationElement.getFirstChildWithName(
+                        new QName(IdentityCoreConstants.IDENTITY_DEFAULT_NAMESPACE, Constants.INTERMEDIATE_CERTS_ELE));
+                Iterator<OMElement> certs = intermediateCertsElement.getChildrenWithName(
+                        new QName(IdentityCoreConstants.IDENTITY_DEFAULT_NAMESPACE, Constants.CERT_CN_ELE));
+                if (certs != null) {
+                    while (certs.hasNext()) {
+                        OMElement certCNElement = certs.next();
+                        intermediateCertCNList.add(certCNElement.getText());
+                    }
+                }
+                //get exempted context paths from intermediate cert validation
+                OMElement exemptContextElement = intermediateCertValidationElement.getFirstChildWithName(
+                        new QName(IdentityCoreConstants.IDENTITY_DEFAULT_NAMESPACE, Constants.EXEMPT_CONTEXT_ELE));
+                Iterator<OMElement> contexts = exemptContextElement.getChildrenWithName(
+                        new QName(IdentityCoreConstants.IDENTITY_DEFAULT_NAMESPACE, Constants.CONTEXT_ELE));
+                if (contexts != null) {
+                    while (contexts.hasNext()) {
+                        OMElement contextElement = contexts.next();
+                        exemptedContextList.add(contextElement.getText());
+                    }
+                }
+            }
+        }
+    }
+
     public String getClientAuthenticationHash(String appName) {
         return applicationConfigMap.get(appName);
+    }
+
+    public boolean isIntermediateCertValidationEnabled() {
+
+        return isIntermediateCertValidationEnabled;
+    }
+
+    public List<String> getIntermediateCertCNList() {
+
+        return intermediateCertCNList;
+    }
+
+    public List<String> getExemptedContextList() {
+
+        return exemptedContextList;
     }
 }
