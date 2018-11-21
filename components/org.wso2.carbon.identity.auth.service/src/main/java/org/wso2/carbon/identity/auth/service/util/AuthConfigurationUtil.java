@@ -8,6 +8,8 @@ import org.wso2.carbon.identity.auth.service.module.ResourceConfig;
 import org.wso2.carbon.identity.auth.service.module.ResourceConfigKey;
 import org.wso2.carbon.identity.core.util.IdentityConfigParser;
 import org.wso2.carbon.identity.core.util.IdentityCoreConstants;
+import org.wso2.securevault.SecretResolver;
+import org.wso2.securevault.SecretResolverFactory;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -26,6 +28,7 @@ public class AuthConfigurationUtil {
     private List<String> intermediateCertCNList = new ArrayList<>();
     private List<String> exemptedContextList = new ArrayList<>();
     private boolean isIntermediateCertValidationEnabled = false;
+    private SecretResolver secretResolver;
 
     private AuthConfigurationUtil() {
     }
@@ -140,8 +143,13 @@ public class AuthConfigurationUtil {
             if ( applications != null ) {
                 while ( applications.hasNext() ) {
                     OMElement resource = applications.next();
+                    setSecretResolver(resource);
                     String appName = resource.getAttributeValue(new QName(Constants.APPLICATION_NAME_ATTR));
                     String hash = resource.getAttributeValue(new QName(Constants.APPLICATION_HASH_ATTR));
+                    if (secretResolver != null && secretResolver.isInitialized()
+                            && secretResolver.isTokenProtected("ClientApp.Authentication.Hash")) {
+                        hash = secretResolver.resolve("ClientApp.Authentication.Hash");
+                    }
                     applicationConfigMap.put(appName, hash);
                 }
             }
@@ -202,5 +210,9 @@ public class AuthConfigurationUtil {
     public List<String> getExemptedContextList() {
 
         return exemptedContextList;
+    }
+
+    public void setSecretResolver(OMElement rootElement) {
+        secretResolver = SecretResolverFactory.create(rootElement, true);
     }
 }
