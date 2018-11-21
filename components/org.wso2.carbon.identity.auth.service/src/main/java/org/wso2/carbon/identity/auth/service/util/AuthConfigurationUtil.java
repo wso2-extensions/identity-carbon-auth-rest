@@ -134,7 +134,6 @@ public class AuthConfigurationUtil {
      */
     public void buildClientAuthenticationHandlerControlData() {
 
-        SecretResolver secretResolver;
         OMElement resourceAccessControl = IdentityConfigParser.getInstance().getConfigElement(Constants
                 .CLIENT_APP_AUTHENTICATION_ELE);
         if ( resourceAccessControl != null ) {
@@ -144,7 +143,7 @@ public class AuthConfigurationUtil {
             if ( applications != null ) {
                 while ( applications.hasNext() ) {
                     OMElement resource = applications.next();
-                    secretResolver = SecretResolverFactory.create(resource, true);
+                    SecretResolver secretResolver = SecretResolverFactory.create(resource, true);
                     String appName = resource.getAttributeValue(new QName(Constants.APPLICATION_NAME_ATTR));
                     String hash = resource.getAttributeValue(new QName(Constants.APPLICATION_HASH_ATTR));
                     if (secretResolver.isInitialized()
