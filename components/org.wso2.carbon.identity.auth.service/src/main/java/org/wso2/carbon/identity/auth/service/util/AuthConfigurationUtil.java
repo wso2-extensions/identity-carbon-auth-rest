@@ -28,7 +28,7 @@ public class AuthConfigurationUtil {
     private List<String> intermediateCertCNList = new ArrayList<>();
     private List<String> exemptedContextList = new ArrayList<>();
     private boolean isIntermediateCertValidationEnabled = false;
-    private SecretResolver secretResolver;
+    private final String CLIENT_APP_AUTHENTICATION_HASH = "ClientApp.Authentication.Hash";
 
     private AuthConfigurationUtil() {
     }
@@ -134,6 +134,7 @@ public class AuthConfigurationUtil {
      */
     public void buildClientAuthenticationHandlerControlData() {
 
+        SecretResolver secretResolver;
         OMElement resourceAccessControl = IdentityConfigParser.getInstance().getConfigElement(Constants
                 .CLIENT_APP_AUTHENTICATION_ELE);
         if ( resourceAccessControl != null ) {
@@ -143,12 +144,12 @@ public class AuthConfigurationUtil {
             if ( applications != null ) {
                 while ( applications.hasNext() ) {
                     OMElement resource = applications.next();
-                    setSecretResolver(resource);
+                    secretResolver = SecretResolverFactory.create(resource, true);
                     String appName = resource.getAttributeValue(new QName(Constants.APPLICATION_NAME_ATTR));
                     String hash = resource.getAttributeValue(new QName(Constants.APPLICATION_HASH_ATTR));
-                    if (secretResolver != null && secretResolver.isInitialized()
-                            && secretResolver.isTokenProtected("ClientApp.Authentication.Hash")) {
-                        hash = secretResolver.resolve("ClientApp.Authentication.Hash");
+                    if (secretResolver.isInitialized()
+                            && secretResolver.isTokenProtected(CLIENT_APP_AUTHENTICATION_HASH)) {
+                        hash = secretResolver.resolve(CLIENT_APP_AUTHENTICATION_HASH);
                     }
                     applicationConfigMap.put(appName, hash);
                 }
@@ -210,9 +211,5 @@ public class AuthConfigurationUtil {
     public List<String> getExemptedContextList() {
 
         return exemptedContextList;
-    }
-
-    public void setSecretResolver(OMElement rootElement) {
-        secretResolver = SecretResolverFactory.create(rootElement, true);
     }
 }
