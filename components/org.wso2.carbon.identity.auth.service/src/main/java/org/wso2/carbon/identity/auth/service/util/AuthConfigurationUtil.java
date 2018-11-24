@@ -28,7 +28,7 @@ public class AuthConfigurationUtil {
     private List<String> intermediateCertCNList = new ArrayList<>();
     private List<String> exemptedContextList = new ArrayList<>();
     private boolean isIntermediateCertValidationEnabled = false;
-    private final String CLIENT_APP_AUTHENTICATION_HASH = "ClientApp.Authentication.Hash";
+    private final String CLIENT_APP_AUTHENTICATION_DASHBOARD_HASH = "ClientApp.Authentication.Dashboard.Hash";
 
     private AuthConfigurationUtil() {
     }
@@ -147,8 +147,8 @@ public class AuthConfigurationUtil {
                     String appName = resource.getAttributeValue(new QName(Constants.APPLICATION_NAME_ATTR));
                     String hash = resource.getAttributeValue(new QName(Constants.APPLICATION_HASH_ATTR));
                     if (secretResolver.isInitialized()
-                            && secretResolver.isTokenProtected(CLIENT_APP_AUTHENTICATION_HASH)) {
-                        hash = secretResolver.resolve(CLIENT_APP_AUTHENTICATION_HASH);
+                            && secretResolver.isTokenProtected(CLIENT_APP_AUTHENTICATION_DASHBOARD_HASH)) {
+                        hash = secretResolver.resolve(CLIENT_APP_AUTHENTICATION_DASHBOARD_HASH);
                     }
                     applicationConfigMap.put(appName, hash);
                 }
