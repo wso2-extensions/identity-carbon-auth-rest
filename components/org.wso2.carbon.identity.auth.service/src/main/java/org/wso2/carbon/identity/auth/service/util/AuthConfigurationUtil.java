@@ -2,6 +2,8 @@ package org.wso2.carbon.identity.auth.service.util;
 
 import org.apache.axiom.om.OMElement;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
 import org.wso2.carbon.identity.auth.service.internal.AuthenticationServiceHolder;
 import org.wso2.carbon.identity.auth.service.module.ResourceConfig;
@@ -28,7 +30,11 @@ public class AuthConfigurationUtil {
     private List<String> intermediateCertCNList = new ArrayList<>();
     private List<String> exemptedContextList = new ArrayList<>();
     private boolean isIntermediateCertValidationEnabled = false;
-    private final String CLIENT_APP_AUTHENTICATION_DASHBOARD_HASH = "ClientApp.Authentication.Dashboard.Hash";
+    public static final String SECRET_ALIAS = "secretAlias";
+    public static final String SECRET_ALIAS_NAMESPACE_URI = "http://org.wso2.securevault/configuration";
+    public static final String SECRET_ALIAS_PREFIX = "svns";
+
+    private static final Log log = LogFactory.getLog(AuthConfigurationUtil.class);
 
     private AuthConfigurationUtil() {
     }
@@ -146,9 +152,14 @@ public class AuthConfigurationUtil {
                     SecretResolver secretResolver = SecretResolverFactory.create(resource, true);
                     String appName = resource.getAttributeValue(new QName(Constants.APPLICATION_NAME_ATTR));
                     String hash = resource.getAttributeValue(new QName(Constants.APPLICATION_HASH_ATTR));
-                    if (secretResolver.isInitialized()
-                            && secretResolver.isTokenProtected(CLIENT_APP_AUTHENTICATION_DASHBOARD_HASH)) {
-                        hash = secretResolver.resolve(CLIENT_APP_AUTHENTICATION_DASHBOARD_HASH);
+                    String secretAlias = resource.getAttributeValue
+                                (new QName(SECRET_ALIAS_NAMESPACE_URI, SECRET_ALIAS, SECRET_ALIAS_PREFIX));
+                    if (secretAlias != null && secretResolver.isInitialized()
+                                && secretResolver.isTokenProtected(secretAlias)) {
+                        if (log.isDebugEnabled()) {
+                            log.debug("Resolving and replacing secret for " + secretAlias);
+                        }
+                        hash = secretResolver.resolve(secretAlias);
                     }
                     applicationConfigMap.put(appName, hash);
                 }
