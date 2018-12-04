@@ -2,12 +2,16 @@ package org.wso2.carbon.identity.auth.service.util;
 
 import org.apache.axiom.om.OMElement;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
 import org.wso2.carbon.identity.auth.service.internal.AuthenticationServiceHolder;
 import org.wso2.carbon.identity.auth.service.module.ResourceConfig;
 import org.wso2.carbon.identity.auth.service.module.ResourceConfigKey;
 import org.wso2.carbon.identity.core.util.IdentityConfigParser;
 import org.wso2.carbon.identity.core.util.IdentityCoreConstants;
+import org.wso2.securevault.SecretResolver;
+import org.wso2.securevault.SecretResolverFactory;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -26,6 +30,11 @@ public class AuthConfigurationUtil {
     private List<String> intermediateCertCNList = new ArrayList<>();
     private List<String> exemptedContextList = new ArrayList<>();
     private boolean isIntermediateCertValidationEnabled = false;
+    public static final String SECRET_ALIAS = "secretAlias";
+    public static final String SECRET_ALIAS_NAMESPACE_URI = "http://org.wso2.securevault/configuration";
+    public static final String SECRET_ALIAS_PREFIX = "svns";
+
+    private static final Log log = LogFactory.getLog(AuthConfigurationUtil.class);
 
     private AuthConfigurationUtil() {
     }
@@ -140,8 +149,18 @@ public class AuthConfigurationUtil {
             if ( applications != null ) {
                 while ( applications.hasNext() ) {
                     OMElement resource = applications.next();
+                    SecretResolver secretResolver = SecretResolverFactory.create(resource, true);
                     String appName = resource.getAttributeValue(new QName(Constants.APPLICATION_NAME_ATTR));
                     String hash = resource.getAttributeValue(new QName(Constants.APPLICATION_HASH_ATTR));
+                    String secretAlias = resource.getAttributeValue
+                                (new QName(SECRET_ALIAS_NAMESPACE_URI, SECRET_ALIAS, SECRET_ALIAS_PREFIX));
+                    if (secretAlias != null && secretResolver.isInitialized()
+                                && secretResolver.isTokenProtected(secretAlias)) {
+                        if (log.isDebugEnabled()) {
+                            log.debug("Resolving and replacing secret for " + secretAlias);
+                        }
+                        hash = secretResolver.resolve(secretAlias);
+                    }
                     applicationConfigMap.put(appName, hash);
                 }
             }
