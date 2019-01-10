@@ -114,8 +114,8 @@ public class ClientCertificateBasedAuthenticationHandler extends AuthenticationH
                     } catch (InvalidNameException e) {
                         throw new AuthenticationFailException("Error occurred when retrieving cert CN.", e);
                     }
-                    if (StringUtils.isEmpty(username)) {
-                        log.error("Authentication failed. Mismatch in username in header and certificate.");
+                    if (StringUtils.isBlank(username)) {
+                        log.error("Authentication failed. Username retrived from the certificate CN is empty.");
                         return authenticationResult;
                     }
                     String certIssuerCN;
