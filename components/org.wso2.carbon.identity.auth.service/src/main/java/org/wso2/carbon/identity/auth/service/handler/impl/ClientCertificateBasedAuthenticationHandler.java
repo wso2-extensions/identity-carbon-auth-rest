@@ -115,7 +115,7 @@ public class ClientCertificateBasedAuthenticationHandler extends AuthenticationH
                         throw new AuthenticationFailException("Error occurred when retrieving cert CN.", e);
                     }
                     if (StringUtils.isBlank(username)) {
-                        log.error("Authentication failed. Username retrived from the certificate CN is empty.");
+                        log.error("Authentication failed. Username retrieved from the certificate CN is empty.");
                         return authenticationResult;
                     }
                     String certIssuerCN;
