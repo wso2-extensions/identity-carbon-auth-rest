@@ -30,6 +30,7 @@ import org.wso2.carbon.identity.auth.service.handler.impl.ClientAuthenticationHa
 import org.wso2.carbon.identity.auth.service.handler.impl.ClientCertificateBasedAuthenticationHandler;
 import org.wso2.carbon.identity.auth.service.handler.impl.OAuth2AccessTokenHandler;
 import org.wso2.carbon.identity.auth.service.handler.impl.TomcatCookieAuthenticationHandler;
+import org.wso2.carbon.identity.auth.service.handler.impl.OAuth2IntrospectionAuthenticationHandler;
 import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
 import org.wso2.carbon.identity.core.handler.HandlerComparator;
 import org.wso2.carbon.identity.core.util.IdentityCoreInitializedEvent;
@@ -68,6 +69,8 @@ public class AuthenticationServiceComponent {
                     null);
             cxt.getBundleContext().registerService(AuthenticationHandler.class, new TomcatCookieAuthenticationHandler
                     (), null);
+            cxt.getBundleContext().registerService(AuthenticationHandler.class,
+                    new OAuth2IntrospectionAuthenticationHandler(), null);
 
             cxt.getBundleContext().registerService(AuthenticationManager.class, AuthenticationManager.getInstance(),
                     null);
