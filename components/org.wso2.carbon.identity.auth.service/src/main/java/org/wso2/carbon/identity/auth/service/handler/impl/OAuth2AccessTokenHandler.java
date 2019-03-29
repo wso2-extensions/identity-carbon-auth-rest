@@ -58,12 +58,15 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
 
             String authorizationHeader = authenticationRequest.getHeader(HttpHeaders.AUTHORIZATION);
             if (StringUtils.isNotEmpty(authorizationHeader) && authorizationHeader.startsWith(OAUTH_HEADER)) {
-                String accessToken = authorizationHeader.split(" ")[1];
+                String accessToken = null;
+                String[] bearerToken = authorizationHeader.split(" ");
+                if (bearerToken.length == 2) {
+                    accessToken = bearerToken[1];
+                }
 
                 OAuth2TokenValidationService oAuth2TokenValidationService = new OAuth2TokenValidationService();
                 OAuth2TokenValidationRequestDTO requestDTO = new OAuth2TokenValidationRequestDTO();
                 OAuth2TokenValidationRequestDTO.OAuth2AccessToken token = requestDTO.new OAuth2AccessToken();
-
                 token.setIdentifier(accessToken);
                 token.setTokenType(OAUTH_HEADER);
                 requestDTO.setAccessToken(token);
