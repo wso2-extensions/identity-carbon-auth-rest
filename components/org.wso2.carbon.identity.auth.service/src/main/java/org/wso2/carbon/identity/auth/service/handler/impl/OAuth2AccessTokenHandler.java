@@ -30,6 +30,7 @@ import org.wso2.carbon.identity.auth.service.AuthenticationStatus;
 import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
 import org.wso2.carbon.identity.core.handler.InitConfig;
+import org.wso2.carbon.identity.oauth.common.OAuthConstants;
 import org.wso2.carbon.identity.oauth2.OAuth2TokenValidationService;
 import org.wso2.carbon.identity.oauth2.dto.OAuth2ClientApplicationDTO;
 import org.wso2.carbon.identity.oauth2.dto.OAuth2TokenValidationRequestDTO;
@@ -74,8 +75,8 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
                 //TODO: If these values are not set, validation will fail giving an NPE. Need to see why that happens
                 OAuth2TokenValidationRequestDTO.TokenValidationContextParam contextParam = requestDTO.new
                         TokenValidationContextParam();
-                contextParam.setKey("dummy");
-                contextParam.setValue("dummy");
+                contextParam.setKey(OAuthConstants.IS_ORIGINATED_FROM_AUTHENTICATION_API);
+                contextParam.setValue(String.valueOf(true));
 
                 OAuth2TokenValidationRequestDTO.TokenValidationContextParam[] contextParams =
                         new OAuth2TokenValidationRequestDTO.TokenValidationContextParam[1];
