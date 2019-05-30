@@ -150,8 +150,10 @@ public class HandlerManager {
             }
         }
         if (log.isDebugEnabled()) {
-            log.debug("Get first priority handler : " + identityMessageHandler.getName() + "(" +
-                    identityMessageHandler.getClass().getName() + ")");
+            if (identityMessageHandler != null) {
+                log.debug("Get first priority handler : " + identityMessageHandler.getName() + "("
+                        + identityMessageHandler.getClass().getName() + ")");
+            }
         }
         return identityMessageHandler;
     }
