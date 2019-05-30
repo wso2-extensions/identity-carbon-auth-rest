@@ -34,11 +34,11 @@ import org.wso2.carbon.identity.authz.service.AuthorizationStatus;
 import org.wso2.carbon.identity.authz.service.exception.AuthzServiceServerException;
 import org.wso2.carbon.identity.authz.valve.internal.AuthorizationValveServiceHolder;
 import org.wso2.carbon.identity.authz.valve.util.Utils;
+
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.List;
-
 
 /**
  * AuthenticationValve can be used to intercept any request.
@@ -55,36 +55,45 @@ public class AuthorizationValve extends ValveBase {
 
         AuthenticationContext authenticationContext = (AuthenticationContext) request.getAttribute(AUTH_CONTEXT);
 
-        if (authenticationContext != null && authenticationContext.getUser() != null && StringUtils.isNotEmpty
-                (authenticationContext.getUser()
-                .getUserName()) ) {
+        if (authenticationContext != null && authenticationContext.getUser() != null && StringUtils
+                .isNotEmpty(authenticationContext.getUser().getUserName())) {
             ResourceConfig resourceConfig = authenticationContext.getResourceConfig();
             String contextPath = request.getContextPath();
             String httpMethod = request.getMethod();
-            String tenantDomainFromURLMapping = Utils.getTenantDomainFromURLMapping(request);
             AuthorizationContext authorizationContext = new AuthorizationContext();
-            if ( resourceConfig != null && StringUtils.isNotEmpty(resourceConfig.getPermissions()) ) {
-                authorizationContext.setPermissionString(resourceConfig.getPermissions());
-            }
             if (resourceConfig != null) {
                 authorizationContext.setIsCrossTenantAllowed(resourceConfig.isCrossTenantAllowed());
+            }
+            if (!isRequestValidForTenant(authenticationContext, authorizationContext, request)) {
+                if (log.isDebugEnabled()) {
+                    log.debug("Authorization to " + request.getRequestURI()
+                            + " is denied because the authenticated user belongs to different tenant domain: "
+                            + authenticationContext.getUser().getTenantDomain()
+                            + " and cross-domain access is disabled.");
+                }
+                handleErrorResponse(authenticationContext, response, HttpServletResponse.SC_UNAUTHORIZED);
+                return;
+            }
+            if (resourceConfig != null && StringUtils.isNotEmpty(resourceConfig.getPermissions())) {
+                authorizationContext.setPermissionString(resourceConfig.getPermissions());
             }
             authorizationContext.setContext(contextPath);
             authorizationContext.setHttpMethods(httpMethod);
             authorizationContext.setUser(authenticationContext.getUser());
+            String tenantDomainFromURLMapping = Utils.getTenantDomainFromURLMapping(request);
             authorizationContext.setTenantDomainFromURLMapping(tenantDomainFromURLMapping);
-            List<AuthorizationManager> authorizationManagerList =
-                    AuthorizationValveServiceHolder.getInstance().getAuthorizationManagerList();
-            AuthorizationManager authorizationManager = HandlerManager.getInstance().getFirstPriorityHandler
-                    (authorizationManagerList, true);
+            List<AuthorizationManager> authorizationManagerList = AuthorizationValveServiceHolder.getInstance()
+                    .getAuthorizationManagerList();
+            AuthorizationManager authorizationManager = HandlerManager.getInstance()
+                    .getFirstPriorityHandler(authorizationManagerList, true);
             try {
                 AuthorizationResult authorizationResult = authorizationManager.authorize(authorizationContext);
-                if ( authorizationResult.getAuthorizationStatus().equals(AuthorizationStatus.GRANT) ) {
+                if (authorizationResult.getAuthorizationStatus().equals(AuthorizationStatus.GRANT)) {
                     getNext().invoke(request, response);
                 } else {
                     handleErrorResponse(authenticationContext, response, HttpServletResponse.SC_FORBIDDEN);
                 }
-            } catch ( AuthzServiceServerException e ) {
+            } catch (AuthzServiceServerException e) {
                 handleErrorResponse(authenticationContext, response, HttpServletResponse.SC_BAD_REQUEST);
             }
         } else {
@@ -92,15 +101,30 @@ public class AuthorizationValve extends ValveBase {
         }
     }
 
-    private void handleErrorResponse(AuthenticationContext authenticationContext, Response response, int error) throws
-            IOException {
+    private void handleErrorResponse(AuthenticationContext authenticationContext, Response response, int error)
+            throws IOException {
         StringBuilder value = new StringBuilder(16);
         value.append("realm user=\"");
-        if ( authenticationContext.getUser() != null ) {
+        if (authenticationContext.getUser() != null) {
             value.append(authenticationContext.getUser().getUserName());
         }
         value.append('\"');
         response.setHeader(AUTH_HEADER_NAME, value.toString());
         response.sendError(error);
+    }
+
+    /**
+     * Checks the request is valid for Tenant.
+     *
+     * @param authenticationContext Context of the authentication
+     * @param authorizationContext  Context of the authorization
+     * @param request               authentication request
+     * @return true if valid request
+     */
+    private boolean isRequestValidForTenant(AuthenticationContext authenticationContext,
+            AuthorizationContext authorizationContext, Request request) {
+
+        return (Utils.isUserBelongsToRequestedTenant(authenticationContext, request) || authorizationContext
+                .isCrossTenantAllowed());
     }
 }

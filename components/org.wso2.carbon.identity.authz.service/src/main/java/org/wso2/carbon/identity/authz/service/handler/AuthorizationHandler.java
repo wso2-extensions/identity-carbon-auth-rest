@@ -56,18 +56,15 @@ public class AuthorizationHandler extends AbstractIdentityHandler {
         try {
             User user = authorizationContext.getUser();
             String userDomain = user.getTenantDomain();
-            String tenantDomainFromURLMapping = authorizationContext.getTenantDomainFromURLMapping();
             int tenantId = IdentityTenantUtil.getTenantId(userDomain);
             String permissionString = authorizationContext.getPermissionString();
-            boolean isCrossTenantAllowed = authorizationContext.isCrossTenantAllowed();
-
             RealmService realmService = AuthorizationServiceHolder.getInstance().getRealmService();
             UserRealm tenantUserRealm = realmService.getTenantUserRealm(tenantId);
 
             AuthorizationManager authorizationManager = tenantUserRealm.getAuthorizationManager();
-            boolean isUserAuthorized = authorizationManager.isUserAuthorized(user.getUserName(),
-                    permissionString, CarbonConstants.UI_PERMISSION_ACTION);
-            if (isUserAuthorized && (isCrossTenantAllowed || tenantDomainFromURLMapping.equals(userDomain))) {
+            boolean isUserAuthorized = authorizationManager
+                    .isUserAuthorized(user.getUserName(), permissionString, CarbonConstants.UI_PERMISSION_ACTION);
+            if (isUserAuthorized) {
                 authorizationResult.setAuthorizationStatus(AuthorizationStatus.GRANT);
             }
         } catch (UserStoreException e) {

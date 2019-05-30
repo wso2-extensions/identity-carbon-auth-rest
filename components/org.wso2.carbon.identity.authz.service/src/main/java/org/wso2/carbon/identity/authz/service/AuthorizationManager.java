@@ -19,6 +19,7 @@ package org.wso2.carbon.identity.authz.service;
 
 
 import org.apache.commons.lang.StringUtils;
+import org.wso2.carbon.identity.application.common.model.User;
 import org.wso2.carbon.identity.auth.service.handler.HandlerManager;
 import org.wso2.carbon.identity.authz.service.exception.AuthzServiceServerException;
 import org.wso2.carbon.identity.authz.service.handler.AuthorizationHandler;
@@ -26,6 +27,7 @@ import org.wso2.carbon.identity.authz.service.handler.ResourceHandler;
 import org.wso2.carbon.identity.authz.service.internal.AuthorizationServiceHolder;
 import org.wso2.carbon.identity.core.handler.IdentityHandler;
 import org.wso2.carbon.identity.core.handler.InitConfig;
+import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 
 import java.util.List;
 
@@ -43,28 +45,28 @@ public class AuthorizationManager implements IdentityHandler {
     public AuthorizationResult authorize(AuthorizationContext authorizationContext) throws AuthzServiceServerException {
 
         AuthorizationResult authorizationResult = new AuthorizationResult(AuthorizationStatus.DENY);
-        boolean isResourceFound = false;
-        if ( StringUtils.isEmpty(authorizationContext.getPermissionString()) ) {
+        boolean isResourceHandlerAvailableToHandleAuthorization = false;
+        if (StringUtils.isEmpty(authorizationContext.getPermissionString())) {
+            // If the permission string is empty then we check the registered available external resource handlers.
+            List<ResourceHandler> gettingExternalResourceHandlerList = AuthorizationServiceHolder.getInstance()
+                    .getResourceHandlerList();
+            List<ResourceHandler> externalResourceHandlers = HandlerManager.getInstance()
+                    .sortHandlers(gettingExternalResourceHandlerList, true);
 
-            List<ResourceHandler> resourceHandlerList =
-                    AuthorizationServiceHolder.getInstance().getResourceHandlerList();
-            List<ResourceHandler> resourceHandlers = HandlerManager.getInstance().sortHandlers(resourceHandlerList,
-                    true);
-
-            for ( ResourceHandler resourceHandler : resourceHandlers ) {
-                isResourceFound = resourceHandler.handleResource(authorizationContext);
-                if ( isResourceFound ) {
+            for (ResourceHandler externalResourceHandler : externalResourceHandlers) {
+                isResourceHandlerAvailableToHandleAuthorization = externalResourceHandler.handleResource(authorizationContext);
+                if (isResourceHandlerAvailableToHandleAuthorization) {
                     break;
                 }
             }
         } else {
-            isResourceFound = true;
+            isResourceHandlerAvailableToHandleAuthorization = true;
         }
-        if ( isResourceFound ) {
-            List<AuthorizationHandler> authorizationHandlerList = AuthorizationServiceHolder.getInstance()
+        if (isResourceHandlerAvailableToHandleAuthorization) {
+            List<AuthorizationHandler> getAuthorizationHandlerList = AuthorizationServiceHolder.getInstance()
                     .getAuthorizationHandlerList();
-            AuthorizationHandler authorizationHandler = HandlerManager.getInstance().getFirstPriorityHandler
-                    (authorizationHandlerList, true);
+            AuthorizationHandler authorizationHandler = HandlerManager.getInstance()
+                    .getFirstPriorityHandler(getAuthorizationHandlerList, true);
             authorizationResult = authorizationHandler.handleAuthorization(authorizationContext);
 
         } else {
