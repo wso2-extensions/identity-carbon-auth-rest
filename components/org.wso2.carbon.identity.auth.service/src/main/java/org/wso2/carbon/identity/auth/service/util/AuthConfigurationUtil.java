@@ -178,7 +178,7 @@ public class AuthConfigurationUtil {
             isIntermediateCertValidationEnabled = Boolean.parseBoolean(intermediateCertValidationElement
                     .getAttributeValue(new QName(Constants.CERT_AUTHENTICATION_ENABLE_ATTR)));
             if (isIntermediateCertValidationEnabled) {
-                //get intermediate cert CNs
+                // Get intermediate cert CNs.
                 OMElement intermediateCertsElement = intermediateCertValidationElement.getFirstChildWithName(
                         new QName(IdentityCoreConstants.IDENTITY_DEFAULT_NAMESPACE, Constants.INTERMEDIATE_CERTS_ELE));
                 Iterator<OMElement> certs = intermediateCertsElement.getChildrenWithName(
@@ -189,7 +189,7 @@ public class AuthConfigurationUtil {
                         intermediateCertCNList.add(certCNElement.getText());
                     }
                 }
-                //get exempted context paths from intermediate cert validation
+                // Get exempted context paths from intermediate cert validation.
                 OMElement exemptContextElement = intermediateCertValidationElement.getFirstChildWithName(
                         new QName(IdentityCoreConstants.IDENTITY_DEFAULT_NAMESPACE, Constants.EXEMPT_CONTEXT_ELE));
                 Iterator<OMElement> contexts = exemptContextElement.getChildrenWithName(
