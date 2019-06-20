@@ -12,6 +12,7 @@ import org.wso2.carbon.identity.core.util.IdentityConfigParser;
 import org.wso2.carbon.identity.core.util.IdentityCoreConstants;
 import org.wso2.securevault.SecretResolver;
 import org.wso2.securevault.SecretResolverFactory;
+import org.wso2.securevault.commons.MiscellaneousUtil;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -142,24 +143,22 @@ public class AuthConfigurationUtil {
 
         OMElement resourceAccessControl = IdentityConfigParser.getInstance().getConfigElement(Constants
                 .CLIENT_APP_AUTHENTICATION_ELE);
-        if ( resourceAccessControl != null ) {
+        if (resourceAccessControl != null) {
 
             Iterator<OMElement> applications = resourceAccessControl.getChildrenWithName(
                     new QName(IdentityCoreConstants.IDENTITY_DEFAULT_NAMESPACE, Constants.APPLICATION_ELE));
-            if ( applications != null ) {
-                while ( applications.hasNext() ) {
+            if (applications != null) {
+                while (applications.hasNext()) {
                     OMElement resource = applications.next();
                     SecretResolver secretResolver = SecretResolverFactory.create(resource, true);
                     String appName = resource.getAttributeValue(new QName(Constants.APPLICATION_NAME_ATTR));
                     String hash = resource.getAttributeValue(new QName(Constants.APPLICATION_HASH_ATTR));
                     String secretAlias = resource.getAttributeValue
-                                (new QName(SECRET_ALIAS_NAMESPACE_URI, SECRET_ALIAS, SECRET_ALIAS_PREFIX));
-                    if (secretAlias != null && secretResolver.isInitialized()
-                                && secretResolver.isTokenProtected(secretAlias)) {
-                        if (log.isDebugEnabled()) {
-                            log.debug("Resolving and replacing secret for " + secretAlias);
-                        }
-                        hash = secretResolver.resolve(secretAlias);
+                            (new QName(SECRET_ALIAS_NAMESPACE_URI, SECRET_ALIAS, SECRET_ALIAS_PREFIX));
+                    if (secretAlias != null) {
+                        hash = MiscellaneousUtil.resolve(secretAlias, secretResolver);
+                    } else {
+                        hash = MiscellaneousUtil.resolve(hash, secretResolver);
                     }
                     applicationConfigMap.put(appName, hash);
                 }
