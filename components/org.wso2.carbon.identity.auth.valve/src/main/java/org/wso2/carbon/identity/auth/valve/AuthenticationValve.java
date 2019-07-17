@@ -23,22 +23,26 @@ import org.apache.catalina.connector.Response;
 import org.apache.catalina.valves.ValveBase;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.wso2.carbon.identity.auth.service.*;
+import org.wso2.carbon.identity.auth.service.AuthenticationContext;
+import org.wso2.carbon.identity.auth.service.AuthenticationManager;
+import org.wso2.carbon.identity.auth.service.AuthenticationRequest;
+import org.wso2.carbon.identity.auth.service.AuthenticationResult;
+import org.wso2.carbon.identity.auth.service.AuthenticationStatus;
 import org.wso2.carbon.identity.auth.service.exception.AuthClientException;
 import org.wso2.carbon.identity.auth.service.exception.AuthRuntimeException;
 import org.wso2.carbon.identity.auth.service.exception.AuthServerException;
 import org.wso2.carbon.identity.auth.service.exception.AuthenticationFailException;
-import org.wso2.carbon.identity.auth.service.factory.AuthenticationRequestBuilderFactory;
 import org.wso2.carbon.identity.auth.service.module.ResourceConfig;
 import org.wso2.carbon.identity.auth.service.module.ResourceConfigKey;
-import org.wso2.carbon.identity.auth.valve.internal.AuthenticationValveServiceHolder;
+import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
+import org.wso2.carbon.identity.auth.service.util.Constants;
 import org.wso2.carbon.identity.auth.valve.util.AuthHandlerManager;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 
+import java.io.FileWriter;
+import java.io.IOException;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.util.List;
 
 
 /**
@@ -61,7 +65,13 @@ public class AuthenticationValve extends ValveBase {
             AuthenticationManager authenticationManager = AuthHandlerManager.getInstance().getAuthenticationManager();
             ResourceConfig securedResource = authenticationManager.getSecuredResource(new ResourceConfigKey(request
                     .getRequestURI(), request.getMethod()));
-            if (securedResource == null || !securedResource.isSecured()) {
+
+            if (isUnauthorized(securedResource)) {
+                handleErrorResponse(null, response, HttpServletResponse.SC_UNAUTHORIZED, null);
+                return;
+            }
+
+            if (!securedResource.isSecured()) {
                 getNext().invoke(request, response);
                 return;
             }
@@ -103,6 +113,12 @@ public class AuthenticationValve extends ValveBase {
         }
 
 
+    }
+
+    private boolean isUnauthorized(ResourceConfig securedResource) {
+
+        String defaultAccess = AuthConfigurationUtil.getInstance().getDefaultAccess();
+        return Constants.DENY_DEFAULT_ACCESS.equalsIgnoreCase(defaultAccess) && securedResource == null;
     }
 
     private void handleErrorResponse(AuthenticationContext authenticationContext, Response response, int error,

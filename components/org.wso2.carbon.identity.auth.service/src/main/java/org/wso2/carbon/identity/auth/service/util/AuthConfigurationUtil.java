@@ -31,9 +31,10 @@ public class AuthConfigurationUtil {
     private List<String> intermediateCertCNList = new ArrayList<>();
     private List<String> exemptedContextList = new ArrayList<>();
     private boolean isIntermediateCertValidationEnabled = false;
-    public static final String SECRET_ALIAS = "secretAlias";
-    public static final String SECRET_ALIAS_NAMESPACE_URI = "http://org.wso2.securevault/configuration";
-    public static final String SECRET_ALIAS_PREFIX = "svns";
+    private static final String SECRET_ALIAS = "secretAlias";
+    private static final String SECRET_ALIAS_NAMESPACE_URI = "http://org.wso2.securevault/configuration";
+    private static final String SECRET_ALIAS_PREFIX = "svns";
+    private String defaultAccess;
 
     private static final Log log = LogFactory.getLog(AuthConfigurationUtil.class);
 
@@ -63,7 +64,7 @@ public class AuthConfigurationUtil {
         OMElement resourceAccessControl = IdentityConfigParser.getInstance().getConfigElement(Constants
                 .RESOURCE_ACCESS_CONTROL_ELE);
         if ( resourceAccessControl != null ) {
-
+            defaultAccess = resourceAccessControl.getAttributeValue(new QName(Constants.RESOURCE_DEFAULT_ACCESS));
             Iterator<OMElement> resources = resourceAccessControl.getChildrenWithName(
                     new QName(IdentityCoreConstants.IDENTITY_DEFAULT_NAMESPACE, Constants.RESOURCE_ELE));
             if ( resources != null ) {
@@ -220,5 +221,10 @@ public class AuthConfigurationUtil {
     public List<String> getExemptedContextList() {
 
         return exemptedContextList;
+    }
+
+    public String getDefaultAccess() {
+
+        return defaultAccess;
     }
 }
