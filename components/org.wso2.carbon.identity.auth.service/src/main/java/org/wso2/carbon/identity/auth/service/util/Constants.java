@@ -5,6 +5,7 @@ public class Constants {
 
     public final static String RESOURCE_ACCESS_CONTROL_ELE = "ResourceAccessControl";
     public final static String RESOURCE_ELE = "Resource";
+    public final static String RESOURCE_DEFAULT_ACCESS = "default-access";
     public final static String RESOURCE_CONTEXT_ATTR = "context";
     public final static String RESOURCE_SECURED_ATTR = "secured";
     public final static String RESOURCE_HTTP_METHOD_ATTR = "http-method";
@@ -26,5 +27,6 @@ public class Constants {
     public static final String CERT_CN_ELE = "CertCN";
     public final static String CONTEXT_ELE = "Context";
     public final static String CERT_AUTHENTICATION_ENABLE_ATTR = "enable";
+    public final static String DENY_DEFAULT_ACCESS = "deny";
 
 }
