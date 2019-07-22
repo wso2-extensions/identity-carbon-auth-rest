@@ -39,10 +39,9 @@ import org.wso2.carbon.identity.auth.service.util.Constants;
 import org.wso2.carbon.identity.auth.valve.util.AuthHandlerManager;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 
-import java.io.FileWriter;
-import java.io.IOException;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
 
 
 /**
@@ -71,7 +70,7 @@ public class AuthenticationValve extends ValveBase {
                 return;
             }
 
-            if (!securedResource.isSecured()) {
+            if (securedResource == null || !securedResource.isSecured()) {
                 getNext().invoke(request, response);
                 return;
             }
