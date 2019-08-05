@@ -15,41 +15,47 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.wso2.carbon.identity.context.rewrite.internal;
-
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.osgi.service.component.ComponentContext;
 import org.wso2.carbon.user.core.service.RealmService;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicy;
 
-/**
- * @scr.component name="identity.context.rewrite.valve.component" immediate="true"
- * @scr.reference name="user.realmservice.default"
- * interface="org.wso2.carbon.user.core.service.RealmService" cardinality="1..1"
- * policy="dynamic" bind="setRealmService" unbind="unsetRealmService"
- */
+@Component(
+         name = "identity.context.rewrite.valve.component", 
+         immediate = true)
 public class ContextRewriteValveServiceComponent {
 
     private static Log log = LogFactory.getLog(ContextRewriteValveServiceComponent.class);
 
+    @Activate
     protected void activate(ComponentContext context) {
-
         if (log.isDebugEnabled()) {
             log.debug("ContextRewriteValveServiceComponent is activated.");
         }
     }
 
+    @Deactivate
     protected void deactivate(ComponentContext context) {
-
         if (log.isDebugEnabled()) {
             log.debug("ContextRewriteValveServiceComponent is deactivated.");
         }
     }
 
+    @Reference(
+             name = "user.realmservice.default", 
+             service = org.wso2.carbon.user.core.service.RealmService.class, 
+             cardinality = ReferenceCardinality.MANDATORY, 
+             policy = ReferencePolicy.DYNAMIC, 
+             unbind = "unsetRealmService")
     protected void setRealmService(RealmService realmService) {
-
         if (log.isDebugEnabled()) {
             log.debug("Setting the Realm Service.");
         }
@@ -57,11 +63,10 @@ public class ContextRewriteValveServiceComponent {
     }
 
     protected void unsetRealmService(RealmService realmService) {
-
         if (log.isDebugEnabled()) {
             log.debug("Unsetting the Realm Service.");
         }
         ContextRewriteValveServiceComponentHolder.getInstance().setRealmService(null);
     }
-
 }
+

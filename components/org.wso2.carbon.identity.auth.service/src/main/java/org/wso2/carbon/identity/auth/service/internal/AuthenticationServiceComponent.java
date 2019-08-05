@@ -15,7 +15,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.wso2.carbon.identity.auth.service.internal;
 
 import org.apache.commons.logging.Log;
@@ -34,66 +33,57 @@ import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
 import org.wso2.carbon.identity.core.handler.HandlerComparator;
 import org.wso2.carbon.identity.core.util.IdentityCoreInitializedEvent;
 import org.wso2.carbon.user.core.service.RealmService;
-
 import java.util.Collections;
 import java.util.List;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicy;
 
-/**
- * @scr.component name="org.wso2.carbon.identity.auth.service" immediate="true"
- * @scr.reference name="user.realmservice.default"
- * interface="org.wso2.carbon.user.core.service.RealmService"
- * cardinality="1..1" policy="dynamic" bind="setRealmService" unbind="unsetRealmService"
- * @scr.reference name="org.wso2.carbon.identity.auth.service.handler.auth"
- * interface="org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler"
- * cardinality="0..n" policy="dynamic" bind="addAuthenticationHandler" unbind="removeAuthenticationHandler"
- * @scr.reference name="org.wso2.carbon.identity.auth.service.handler.resource"
- * interface="org.wso2.carbon.identity.auth.service.handler.ResourceHandler"
- * cardinality="0..n" policy="dynamic" bind="addResourceHandler" unbind="removeResourceHandler"
- * @scr.reference name="identityCoreInitializedEventService"
- * interface="org.wso2.carbon.identity.core.util.IdentityCoreInitializedEvent" cardinality="1..1"
- * policy="dynamic" bind="setIdentityCoreInitializedEventService" unbind="unsetIdentityCoreInitializedEventService"
- */
+@Component(
+         name = "org.wso2.carbon.identity.auth.service", 
+         immediate = true)
 public class AuthenticationServiceComponent {
 
     private static final Log log = LogFactory.getLog(AuthenticationServiceComponent.class);
 
+    @Activate
     protected void activate(ComponentContext cxt) {
         try {
-            cxt.getBundleContext().registerService(AuthenticationHandler.class, new BasicAuthenticationHandler(),
-                    null);
+            cxt.getBundleContext().registerService(AuthenticationHandler.class, new BasicAuthenticationHandler(), null);
             cxt.getBundleContext().registerService(AuthenticationHandler.class, new OAuth2AccessTokenHandler(), null);
-            cxt.getBundleContext().registerService(AuthenticationHandler.class, new
-                    ClientCertificateBasedAuthenticationHandler(), null);
-            cxt.getBundleContext().registerService(AuthenticationHandler.class, new ClientAuthenticationHandler(),
-                    null);
-            cxt.getBundleContext().registerService(AuthenticationHandler.class, new TomcatCookieAuthenticationHandler
-                    (), null);
-
-            cxt.getBundleContext().registerService(AuthenticationManager.class, AuthenticationManager.getInstance(),
-                    null);
-            cxt.getBundleContext().registerService(AuthenticationRequestBuilderFactory.class,
-                    AuthenticationRequestBuilderFactory.getInstance(), null);
-
+            cxt.getBundleContext().registerService(AuthenticationHandler.class, new ClientCertificateBasedAuthenticationHandler(), null);
+            cxt.getBundleContext().registerService(AuthenticationHandler.class, new ClientAuthenticationHandler(), null);
+            cxt.getBundleContext().registerService(AuthenticationHandler.class, new TomcatCookieAuthenticationHandler(), null);
+            cxt.getBundleContext().registerService(AuthenticationManager.class, AuthenticationManager.getInstance(), null);
+            cxt.getBundleContext().registerService(AuthenticationRequestBuilderFactory.class, AuthenticationRequestBuilderFactory.getInstance(), null);
             AuthConfigurationUtil.getInstance().buildResourceAccessControlData();
             AuthConfigurationUtil.getInstance().buildClientAuthenticationHandlerControlData();
             AuthConfigurationUtil.getInstance().buildIntermediateCertValidationConfigData();
-
-            if ( log.isDebugEnabled() )
+            if (log.isDebugEnabled())
                 log.debug("AuthenticatorService is activated");
-        } catch ( Throwable e ) {
+        } catch (Throwable e) {
             log.error(e.getMessage(), e);
         }
-
     }
 
+    @Deactivate
     protected void deactivate(ComponentContext context) {
-        if ( log.isDebugEnabled() ) {
+        if (log.isDebugEnabled()) {
             log.debug("AuthenticatorService bundle is deactivated");
         }
     }
 
+    @Reference(
+             name = "user.realmservice.default", 
+             service = org.wso2.carbon.user.core.service.RealmService.class, 
+             cardinality = ReferenceCardinality.MANDATORY, 
+             policy = ReferencePolicy.DYNAMIC, 
+             unbind = "unsetRealmService")
     protected void setRealmService(RealmService realmService) {
-        if ( log.isDebugEnabled() ) {
+        if (log.isDebugEnabled()) {
             log.debug("RealmService acquired");
         }
         AuthenticationServiceHolder.getInstance().setRealmService(realmService);
@@ -103,8 +93,14 @@ public class AuthenticationServiceComponent {
         setRealmService(null);
     }
 
+    @Reference(
+             name = "org.wso2.carbon.identity.auth.service.handler.auth", 
+             service = org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler.class, 
+             cardinality = ReferenceCardinality.MULTIPLE, 
+             policy = ReferencePolicy.DYNAMIC, 
+             unbind = "removeAuthenticationHandler")
     protected void addAuthenticationHandler(AuthenticationHandler authenticationHandler) {
-        if ( log.isDebugEnabled() ) {
+        if (log.isDebugEnabled()) {
             log.debug("AuthenticationHandler acquired");
         }
         AuthenticationServiceHolder.getInstance().addAuthenticationHandler(authenticationHandler);
@@ -114,8 +110,14 @@ public class AuthenticationServiceComponent {
         AuthenticationServiceHolder.getInstance().getAuthenticationHandlers().remove(authenticationHandler);
     }
 
+    @Reference(
+             name = "org.wso2.carbon.identity.auth.service.handler.resource", 
+             service = org.wso2.carbon.identity.auth.service.handler.ResourceHandler.class, 
+             cardinality = ReferenceCardinality.MULTIPLE, 
+             policy = ReferencePolicy.DYNAMIC, 
+             unbind = "removeResourceHandler")
     protected void addResourceHandler(ResourceHandler resourceHandler) {
-        if ( log.isDebugEnabled() ) {
+        if (log.isDebugEnabled()) {
             log.debug("ResourceHandler acquired");
         }
         List<ResourceHandler> resourceHandlers = AuthenticationServiceHolder.getInstance().getResourceHandlers();
@@ -127,13 +129,20 @@ public class AuthenticationServiceComponent {
         AuthenticationServiceHolder.getInstance().getResourceHandlers().remove(resourceHandler);
     }
 
+    @Reference(
+             name = "identityCoreInitializedEventService", 
+             service = org.wso2.carbon.identity.core.util.IdentityCoreInitializedEvent.class, 
+             cardinality = ReferenceCardinality.MANDATORY, 
+             policy = ReferencePolicy.DYNAMIC, 
+             unbind = "unsetIdentityCoreInitializedEventService")
     protected void setIdentityCoreInitializedEventService(IdentityCoreInitializedEvent identityCoreInitializedEvent) {
-        /* reference IdentityCoreInitializedEvent service to guarantee that this component will wait until identity core
+    /* reference IdentityCoreInitializedEvent service to guarantee that this component will wait until identity core
          is started */
     }
 
     protected void unsetIdentityCoreInitializedEventService(IdentityCoreInitializedEvent identityCoreInitializedEvent) {
-        /* reference IdentityCoreInitializedEvent service to guarantee that this component will wait until identity core
+    /* reference IdentityCoreInitializedEvent service to guarantee that this component will wait until identity core
          is started */
     }
 }
+

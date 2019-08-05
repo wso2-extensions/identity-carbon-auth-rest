@@ -15,7 +15,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.wso2.carbon.identity.authz.service.internal;
 
 import org.apache.commons.logging.Log;
@@ -26,47 +25,49 @@ import org.wso2.carbon.identity.authz.service.handler.AuthorizationHandler;
 import org.wso2.carbon.identity.authz.service.handler.ResourceHandler;
 import org.wso2.carbon.identity.core.handler.HandlerComparator;
 import org.wso2.carbon.user.core.service.RealmService;
-
 import java.util.Collections;
 import java.util.List;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicy;
 
-/**
- * @scr.component name="org.wso2.carbon.identity.authz.service" immediate="true"
- * @scr.reference name="user.realmservice.default"
- * interface="org.wso2.carbon.user.core.service.RealmService"
- * cardinality="1..1" policy="dynamic" bind="setRealmService" unbind="unsetRealmService"
- * @scr.reference name="org.wso2.carbon.identity.authz.handler.authz"
- * interface="org.wso2.carbon.identity.authz.service.handler.AuthorizationHandler"
- * cardinality="0..n" policy="dynamic" bind="setAuthorizationHandler" unbind="unsetAuthorizationHandler"
- * @scr.reference name="org.wso2.carbon.identity.authz.handler.resource"
- * interface="org.wso2.carbon.identity.authz.service.handler.ResourceHandler"
- * cardinality="0..n" policy="dynamic" bind="setResourceHandler" unbind="unsetResourceHandler"
- */
+@Component(
+         name = "org.wso2.carbon.identity.authz.service", 
+         immediate = true)
 public class AuthorizationServiceComponent {
 
     private static final Log log = LogFactory.getLog(AuthorizationServiceComponent.class);
 
+    @Activate
     protected void activate(ComponentContext cxt) {
         try {
-            cxt.getBundleContext().registerService(AuthorizationManager.class, AuthorizationManager.getInstance(),
-                    null);
+            cxt.getBundleContext().registerService(AuthorizationManager.class, AuthorizationManager.getInstance(), null);
             cxt.getBundleContext().registerService(AuthorizationHandler.class, new AuthorizationHandler(), null);
-            if ( log.isDebugEnabled() )
+            if (log.isDebugEnabled())
                 log.debug("AuthorizationServiceComponent is activated");
-        } catch ( Throwable e ) {
+        } catch (Throwable e) {
             log.error(e.getMessage(), e);
         }
-
     }
 
+    @Deactivate
     protected void deactivate(ComponentContext context) {
-        if ( log.isDebugEnabled() ) {
+        if (log.isDebugEnabled()) {
             log.debug("AuthorizationServiceComponent bundle is deactivated");
         }
     }
 
+    @Reference(
+             name = "user.realmservice.default", 
+             service = org.wso2.carbon.user.core.service.RealmService.class, 
+             cardinality = ReferenceCardinality.MANDATORY, 
+             policy = ReferencePolicy.DYNAMIC, 
+             unbind = "unsetRealmService")
     protected void setRealmService(RealmService realmService) {
-        if ( log.isDebugEnabled() ) {
+        if (log.isDebugEnabled()) {
             log.debug("RealmService acquired");
         }
         AuthorizationServiceHolder.getInstance().setRealmService(realmService);
@@ -76,9 +77,14 @@ public class AuthorizationServiceComponent {
         setRealmService(null);
     }
 
-
+    @Reference(
+             name = "org.wso2.carbon.identity.authz.handler.authz", 
+             service = org.wso2.carbon.identity.authz.service.handler.AuthorizationHandler.class, 
+             cardinality = ReferenceCardinality.MULTIPLE, 
+             policy = ReferencePolicy.DYNAMIC, 
+             unbind = "unsetAuthorizationHandler")
     protected void setAuthorizationHandler(AuthorizationHandler authorizationHandler) {
-        if ( log.isDebugEnabled() ) {
+        if (log.isDebugEnabled()) {
             log.debug("AuthorizationHandler acquired");
         }
         List<AuthorizationHandler> authorizationHandlerList = AuthorizationServiceHolder.getInstance().getAuthorizationHandlerList();
@@ -90,9 +96,14 @@ public class AuthorizationServiceComponent {
         setAuthorizationHandler(null);
     }
 
-
+    @Reference(
+             name = "org.wso2.carbon.identity.authz.handler.resource", 
+             service = org.wso2.carbon.identity.authz.service.handler.ResourceHandler.class, 
+             cardinality = ReferenceCardinality.MULTIPLE, 
+             policy = ReferencePolicy.DYNAMIC, 
+             unbind = "unsetResourceHandler")
     protected void setResourceHandler(ResourceHandler resourceHandler) {
-        if ( log.isDebugEnabled() ) {
+        if (log.isDebugEnabled()) {
             log.debug("ResourceHandler acquired");
         }
         List<ResourceHandler> resourceHandlerList = AuthorizationServiceHolder.getInstance().getResourceHandlerList();
@@ -103,20 +114,5 @@ public class AuthorizationServiceComponent {
     protected void unsetResourceHandler(ResourceHandler resourceHandler) {
         setResourceHandler(null);
     }
-
-
-
-
-
-    /*
-    protected void addAuthenticationHandler(AuthenticationHandler authenticationHandler) {
-        if (log.isDebugEnabled()) {
-            log.debug("AuthenticationHandler acquired");
-        }
-        AuthorizationServiceHolder.getInstance().addAuthenticationHandler(authenticationHandler);
-    }
-    protected void removeAuthenticationHandler(AuthenticationHandler authenticationHandler) {
-        AuthorizationServiceHolder.getInstance().getAuthenticationHandlers().remove(authenticationHandler);
-    }*/
-
 }
+
