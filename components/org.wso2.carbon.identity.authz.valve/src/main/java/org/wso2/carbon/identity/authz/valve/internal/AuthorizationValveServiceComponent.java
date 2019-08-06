@@ -15,7 +15,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.wso2.carbon.identity.authz.valve.internal;
 
 import org.apache.commons.logging.Log;
@@ -23,36 +22,45 @@ import org.apache.commons.logging.LogFactory;
 import org.osgi.service.component.ComponentContext;
 import org.wso2.carbon.identity.authz.service.AuthorizationManager;
 import org.wso2.carbon.identity.core.handler.HandlerComparator;
-
 import java.util.List;
-
 import static java.util.Collections.sort;
-/**
- * @scr.component name="org.wso2.carbon.identity.authz.valve" immediate="true"
- * @scr.reference name="org.wso2.carbon.identity.authz.service.manager.consume"
- * interface="org.wso2.carbon.identity.authz.service.AuthorizationManager"
- * cardinality="1..n" policy="dynamic" bind="setAuthorizationManager" unbind="unsetAuthorizationManager"
- */
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicy;
 
+@Component(
+         name = "org.wso2.carbon.identity.authz.valve", 
+         immediate = true)
 public class AuthorizationValveServiceComponent {
 
     private static final Log log = LogFactory.getLog(AuthorizationValveServiceComponent.class);
 
+    @Activate
     protected void activate(ComponentContext cxt) {
-        if ( log.isDebugEnabled() )
+        if (log.isDebugEnabled())
             log.debug("AuthorizationValveServiceComponent is activated");
     }
 
+    @Reference(
+             name = "org.wso2.carbon.identity.authz.service.manager.consume", 
+             service = org.wso2.carbon.identity.authz.service.AuthorizationManager.class, 
+             cardinality = ReferenceCardinality.AT_LEAST_ONE, 
+             policy = ReferencePolicy.DYNAMIC, 
+             unbind = "unsetAuthorizationManager")
     protected void setAuthorizationManager(AuthorizationManager authorizationManager) {
-        if ( log.isDebugEnabled() ) {
+        if (log.isDebugEnabled()) {
             log.debug("AuthorizationManager acquired");
         }
         List<AuthorizationManager> authorizationManagerList = AuthorizationValveServiceHolder.getInstance().getAuthorizationManagerList();
         authorizationManagerList.add(authorizationManager);
-        sort(authorizationManagerList,new HandlerComparator());
+        sort(authorizationManagerList, new HandlerComparator());
     }
 
     protected void unsetAuthorizationManager(AuthorizationManager authorizationManager) {
         setAuthorizationManager(null);
     }
 }
+
