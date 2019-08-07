@@ -60,7 +60,8 @@ public class AuthorizationValveServiceComponent {
     }
 
     protected void unsetAuthorizationManager(AuthorizationManager authorizationManager) {
-        setAuthorizationManager(null);
+        List<AuthorizationManager> authorizationManagerList = AuthorizationValveServiceHolder.getInstance().getAuthorizationManagerList();
+        authorizationManagerList.remove(authorizationManager);
     }
 }
 
