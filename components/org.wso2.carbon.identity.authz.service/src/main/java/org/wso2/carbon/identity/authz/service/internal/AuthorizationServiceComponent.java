@@ -93,7 +93,8 @@ public class AuthorizationServiceComponent {
     }
 
     protected void unsetAuthorizationHandler(AuthorizationHandler authorizationHandler) {
-        setAuthorizationHandler(null);
+        List<AuthorizationHandler> authorizationHandlerList = AuthorizationServiceHolder.getInstance().getAuthorizationHandlerList();
+        authorizationHandlerList.remove(authorizationHandler);
     }
 
     @Reference(
