@@ -43,7 +43,7 @@ import java.util.stream.Collectors;
  */
 public class AuthenticationManager implements IdentityHandler {
 
-    private static Log log = LogFactory.getLog(AuthenticationManager.class);
+    private static final Log log = LogFactory.getLog(AuthenticationManager.class);
     private static AuthenticationManager authenticationManager = new AuthenticationManager();
 
     public static AuthenticationManager getInstance() {
