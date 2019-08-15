@@ -26,7 +26,7 @@ public class ContextRewriteValveServiceComponentHolder {
 
     private static ContextRewriteValveServiceComponentHolder instance = new ContextRewriteValveServiceComponentHolder();
     private RealmService realmService;
-    private static Log log = LogFactory.getLog(ContextRewriteValveServiceComponentHolder.class);
+    private static final Log log = LogFactory.getLog(ContextRewriteValveServiceComponentHolder.class);
 
     private ContextRewriteValveServiceComponentHolder() {
 

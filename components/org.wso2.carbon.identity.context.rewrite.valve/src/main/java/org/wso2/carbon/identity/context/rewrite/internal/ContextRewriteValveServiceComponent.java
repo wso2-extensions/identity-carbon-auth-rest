@@ -33,7 +33,7 @@ import org.osgi.service.component.annotations.ReferencePolicy;
          immediate = true)
 public class ContextRewriteValveServiceComponent {
 
-    private static Log log = LogFactory.getLog(ContextRewriteValveServiceComponent.class);
+    private static final Log log = LogFactory.getLog(ContextRewriteValveServiceComponent.class);
 
     @Activate
     protected void activate(ComponentContext context) {
