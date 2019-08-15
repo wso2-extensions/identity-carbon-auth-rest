@@ -51,7 +51,7 @@ public class AuthenticationRequest implements Serializable
 
     private static final long serialVersionUID = 5418537216546873566L;
 
-    private static Log log = LogFactory.getLog(AuthenticationRequest.class);
+    private static final Log log = LogFactory.getLog(AuthenticationRequest.class);
 
     protected Map<String, Object> attributes = new HashMap<>();
     protected Map<String, String> headers = new HashMap<>();

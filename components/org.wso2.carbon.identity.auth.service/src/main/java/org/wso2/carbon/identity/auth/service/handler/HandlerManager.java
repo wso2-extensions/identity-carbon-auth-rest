@@ -37,7 +37,7 @@ import static java.util.Collections.sort;
  */
 public class HandlerManager {
 
-    private static Log log = LogFactory.getLog(HandlerManager.class);
+    private static final Log log = LogFactory.getLog(HandlerManager.class);
     private static HandlerManager handlerManager = new HandlerManager();
 
     private HandlerManager(){
