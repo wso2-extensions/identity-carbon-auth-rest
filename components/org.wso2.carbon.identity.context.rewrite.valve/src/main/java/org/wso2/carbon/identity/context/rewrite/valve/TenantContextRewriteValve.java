@@ -18,7 +18,7 @@
 
 package org.wso2.carbon.identity.context.rewrite.valve;
 
-import com.hazelcast.com.eclipsesource.json.JsonObject;
+import com.google.gson.JsonObject;
 import org.apache.catalina.connector.Request;
 import org.apache.catalina.connector.Response;
 import org.apache.catalina.valves.ValveBase;
@@ -155,9 +155,9 @@ public class TenantContextRewriteValve extends ValveBase {
         response.setCharacterEncoding("UTF-8");
         JsonObject errorResponse = new JsonObject();
         String errorMsg = "invalid tenant domain : " + tenantDomain;
-        errorResponse.add("code", error);
-        errorResponse.add("message", errorMsg);
-        errorResponse.add("description", errorMsg);
+        errorResponse.addProperty("code", error);
+        errorResponse.addProperty("message", errorMsg);
+        errorResponse.addProperty("description", errorMsg);
         response.getWriter().print(errorResponse.toString());
     }
 }

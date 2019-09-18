@@ -33,10 +33,22 @@
         <dependency>
             <groupId>org.wso2.carbon</groupId>
             <artifactId>org.wso2.carbon.utils</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.eclipse.equinox</groupId>
+                    <artifactId>javax.servlet</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.wso2.carbon</groupId>
             <artifactId>org.wso2.carbon.core</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.eclipse.equinox</groupId>
+                    <artifactId>org.eclipse.equinox.http.helper</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.ops4j.pax.logging</groupId>
@@ -53,6 +65,20 @@
         <dependency>
             <groupId>org.wso2.carbon.identity.auth.rest</groupId>
             <artifactId>org.wso2.carbon.identity.auth.service</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>javax.servlet</groupId>
+                    <artifactId>servlet-api</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.wso2.carbon</groupId>
+                    <artifactId>org.wso2.carbon.ui</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.json.wso2</groupId>
+            <artifactId>json</artifactId>
         </dependency>
         <dependency>
             <groupId>org.testng</groupId>
@@ -89,23 +115,6 @@
             <artifactId>slf4j-log4j12</artifactId>
             <scope>test</scope>
         </dependency>
-
-        <dependency>
-            <groupId>org.apache.tomcat</groupId>
-            <artifactId>tomcat-coyote</artifactId>
-            <version>7.0.81</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>tomcat</groupId>
-            <artifactId>tomcat-coyote</artifactId>
-            <version>5.5.23</version>
-            <scope>test</scope>
-        </dependency>
-
-
-
     </dependencies>
 
     <build>
