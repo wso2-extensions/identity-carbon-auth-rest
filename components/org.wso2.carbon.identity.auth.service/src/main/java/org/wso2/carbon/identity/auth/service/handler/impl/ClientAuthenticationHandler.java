@@ -26,8 +26,6 @@ import org.apache.http.HttpHeaders;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
 import org.wso2.carbon.identity.auth.service.AuthenticationResult;
 import org.wso2.carbon.identity.auth.service.AuthenticationStatus;
-import org.wso2.carbon.identity.auth.service.exception.AuthClientException;
-import org.wso2.carbon.identity.auth.service.exception.AuthServerException;
 import org.wso2.carbon.identity.auth.service.exception.AuthenticationFailException;
 import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
 import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
@@ -37,6 +35,8 @@ import org.wso2.carbon.identity.core.handler.InitConfig;
 import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+
+import static org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil.isAuthHeaderMatch;
 
 /**
  * ClientAuthenticationHandler is for authenticate the request based on Client Authentication.
@@ -55,32 +55,24 @@ public class ClientAuthenticationHandler extends AuthenticationHandler {
 
     @Override
     public String getName() {
+
         return "ClientAuthentication";
     }
 
     @Override
     public int getPriority(MessageContext messageContext) {
+
         return getPriority(messageContext, 130);
     }
 
     @Override
     public boolean canHandle(MessageContext messageContext) {
-        if (messageContext instanceof AuthenticationContext) {
-            AuthenticationContext authenticationContext = (AuthenticationContext) messageContext;
-            if (authenticationContext.getAuthenticationRequest() != null) {
-                String authorizationHeader = authenticationContext.getAuthenticationRequest().
-                        getHeader(HttpHeaders.AUTHORIZATION);
-                if (StringUtils.isNotEmpty(authorizationHeader) && authorizationHeader.startsWith(CLIENT_AUTH_HEADER)
-                        ) {
-                    return true;
-                }
-            }
-        }
-        return false;
+
+        return isAuthHeaderMatch(messageContext, CLIENT_AUTH_HEADER);
     }
 
     @Override
-    protected AuthenticationResult doAuthenticate(MessageContext messageContext) throws AuthServerException, AuthenticationFailException, AuthClientException {
+    protected AuthenticationResult doAuthenticate(MessageContext messageContext) throws AuthenticationFailException {
 
         AuthenticationResult authenticationResult = new AuthenticationResult(AuthenticationStatus.FAILED);
         AuthenticationContext authenticationContext = (AuthenticationContext) messageContext;
@@ -88,11 +80,13 @@ public class ClientAuthenticationHandler extends AuthenticationHandler {
                 getHeader(HttpHeaders.AUTHORIZATION);
 
         String[] splitAuthorizationHeader = authorizationHeader.split(" ");
-        if (splitAuthorizationHeader != null && splitAuthorizationHeader.length == 2) {
-            byte[] decodedAuthHeader = Base64.decodeBase64(authorizationHeader.split(" ")[1].getBytes());
+        if (splitAuthorizationHeader.length == 2) {
+            byte[] decodedAuthHeader = Base64.decodeBase64(splitAuthorizationHeader[1].getBytes());
             String authHeader = new String(decodedAuthHeader, Charset.defaultCharset());
-            String[] splitCredentials = authHeader.split(":");
-            if (splitCredentials != null && splitCredentials.length == 2) {
+            String[] splitCredentials = authHeader.split(":", 2);
+
+            if (splitCredentials.length == 2 && StringUtils.isNotBlank(splitCredentials[0]) &&
+                    StringUtils.isNotBlank(splitCredentials[1])) {
                 String appName = splitCredentials[0];
                 String password = splitCredentials[1];
                 String hash = AuthConfigurationUtil.getInstance().getClientAuthenticationHash(appName);
@@ -106,16 +100,16 @@ public class ClientAuthenticationHandler extends AuthenticationHandler {
                         byte[] byteValue = dgst.digest(password.getBytes());
 
                         //convert the byte to hex format
-                        StringBuffer sb = new StringBuffer();
-                        for (int i = 0; i < byteValue.length; i++) {
-                            sb.append(Integer.toString((byteValue[i] & 0xff) + 0x100, 16).substring(1));
+                        StringBuilder sb = new StringBuilder();
+                        for (byte b : byteValue) {
+                            sb.append(Integer.toString((b & 0xff) + 0x100, 16).substring(1));
                         }
 
                         String hashFromRequest = sb.toString();
                         if (hash.equals(hashFromRequest)) {
                             authenticationResult.setAuthenticationStatus(AuthenticationStatus.SUCCESS);
                             if (log.isDebugEnabled()) {
-                                log.debug("ClientAuthentication Success.");
+                                log.debug("Client Authentication Successful for the application: " + appName);
                             }
                         }
                     } catch (NoSuchAlgorithmException e) {
@@ -125,25 +119,21 @@ public class ClientAuthenticationHandler extends AuthenticationHandler {
                     }
                 } else {
                     if (log.isDebugEnabled()) {
-                        log.debug("No matching application configuration fould for :" + appName);
+                        log.debug("No matching application configuration found for :" + appName);
                     }
                 }
-
             } else {
-                String errorMessage = "Error occurred while trying to authenticate and  auth application credentials " +
-                        "are not define correctly.";
+                String errorMessage = "Error occurred while trying to authenticate. The auth application credentials "
+                        + "are not defined correctly.";
                 log.error(errorMessage);
-                throw new AuthClientException(errorMessage);
+                throw new AuthenticationFailException(errorMessage);
             }
         } else {
-            String errorMessage = "Error occurred while trying to authenticate and  " + HttpHeaders.AUTHORIZATION
-                    + " header values are not define correctly.";
+            String errorMessage = "Error occurred while trying to authenticate. The " + HttpHeaders.AUTHORIZATION +
+                    " header values are not defined correctly.";
             log.error(errorMessage);
-            throw new AuthClientException(errorMessage);
+            throw new AuthenticationFailException(errorMessage);
         }
-
-
         return authenticationResult;
     }
-
 }
