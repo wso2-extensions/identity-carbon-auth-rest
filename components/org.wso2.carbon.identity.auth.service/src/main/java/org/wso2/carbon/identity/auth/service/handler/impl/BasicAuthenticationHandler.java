@@ -58,32 +58,32 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
 
     @Override
     public String getName() {
+
         return "BasicAuthentication";
     }
 
     @Override
     public int getPriority(MessageContext messageContext) {
+
         return getPriority(messageContext, 100);
     }
 
     @Override
     public boolean canHandle(MessageContext messageContext) {
-        if ( messageContext instanceof AuthenticationContext ) {
+
+        if (messageContext instanceof AuthenticationContext) {
             AuthenticationContext authenticationContext = (AuthenticationContext) messageContext;
             if (authenticationContext.getAuthenticationRequest() != null) {
                 String authorizationHeader = authenticationContext.getAuthenticationRequest().
                         getHeader(HttpHeaders.AUTHORIZATION);
-                if ( StringUtils.isNotEmpty(authorizationHeader) && authorizationHeader.startsWith(BASIC_AUTH_HEADER)
-                        ) {
-                    return true;
-                }
+                return StringUtils.isNotEmpty(authorizationHeader) && authorizationHeader.startsWith(BASIC_AUTH_HEADER);
             }
         }
         return false;
     }
 
     @Override
-    protected AuthenticationResult doAuthenticate(MessageContext messageContext) throws AuthServerException, AuthenticationFailException, AuthClientException {
+    protected AuthenticationResult doAuthenticate(MessageContext messageContext) throws AuthenticationFailException {
 
         AuthenticationResult authenticationResult = new AuthenticationResult(AuthenticationStatus.FAILED);
         AuthenticationContext authenticationContext = (AuthenticationContext) messageContext;
@@ -91,14 +91,14 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
                 getHeader(HttpHeaders.AUTHORIZATION);
 
         String[] splitAuthorizationHeader = authorizationHeader.split(" ");
-        if ( splitAuthorizationHeader != null && splitAuthorizationHeader.length == 2 ) {
-            byte[] decodedAuthHeader = Base64.decodeBase64(authorizationHeader.split(" ")[1].getBytes());
+        if (splitAuthorizationHeader.length == 2) {
+            byte[] decodedAuthHeader = Base64.decodeBase64(splitAuthorizationHeader[1].getBytes());
             String authHeader = new String(decodedAuthHeader, Charset.defaultCharset());
             String[] splitCredentials = authHeader.split(":");
-            if ( splitCredentials != null && splitCredentials.length == 2 ) {
+
+            if (splitCredentials.length == 2) {
                 String userName = splitCredentials[0];
                 String password = splitCredentials[1];
-
 
                 UserStoreManager userStoreManager = null;
                 try {
@@ -111,7 +111,6 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
 
                     authenticationContext.setUser(user);
 
-
                     //TODO: Related to this https://wso2.org/jira/browse/IDENTITY-4752 - Class IdentityMgtEventListener
                     // : Line 563: Have to check whether why we can't continue
                     //without following lines as previous code.
@@ -121,44 +120,41 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
 
                     UserRealm userRealm = AuthenticationServiceHolder.getInstance().getRealmService().
                             getTenantUserRealm(tenantId);
-                    if ( userRealm != null ) {
+                    if (userRealm != null) {
                         userStoreManager = (UserStoreManager) userRealm.getUserStoreManager();
                         boolean isAuthenticated = userStoreManager.authenticate(MultitenantUtils.
                                 getTenantAwareUsername(userName), password);
-                        if ( isAuthenticated ) {
+                        if (isAuthenticated) {
                             authenticationResult.setAuthenticationStatus(AuthenticationStatus.SUCCESS);
-                            if ( log.isDebugEnabled() ) {
+                            if (log.isDebugEnabled()) {
                                 log.debug("BasicAuthentication success.");
                             }
                         }
-
                     } else {
-                        String errorMessage = "Error occurred while trying to load the user realm for the tenant.";
+                        String errorMessage = "Error occurred while trying to load the user realm for the tenant: " +
+                                tenantId;
                         log.error(errorMessage);
                         throw new AuthenticationFailException(errorMessage);
                     }
-                } catch ( org.wso2.carbon.user.api.UserStoreException e ) {
-                    String errorMessage = "Error occurred while trying to authenticate, " + e.getMessage();
+                } catch (org.wso2.carbon.user.api.UserStoreException e) {
+                    String errorMessage = "Error occurred while trying to authenticate. " + e.getMessage();
                     log.error(errorMessage);
                     throw new AuthenticationFailException(errorMessage);
                 } finally {
                     PrivilegedCarbonContext.endTenantFlow();
                 }
             } else {
-                String errorMessage = "Error occurred while trying to authenticate and  auth user credentials " +
-                        "are not define correctly.";
+                String errorMessage = "Error occurred while trying to authenticate. The auth user credentials " +
+                        "are not defined correctly.";
                 log.error(errorMessage);
                 throw new AuthenticationFailException(errorMessage);
             }
         } else {
-            String errorMessage = "Error occurred while trying to authenticate and  " + HttpHeaders.AUTHORIZATION
-                    + " header values are not define correctly.";
+            String errorMessage = "Error occurred while trying to authenticate. The " + HttpHeaders.AUTHORIZATION +
+                    " header values are not defined correctly.";
             log.error(errorMessage);
             throw new AuthenticationFailException(errorMessage);
         }
-
-
         return authenticationResult;
     }
-
 }
