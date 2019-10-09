@@ -94,9 +94,10 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
         if (splitAuthorizationHeader.length == 2) {
             byte[] decodedAuthHeader = Base64.decodeBase64(splitAuthorizationHeader[1].getBytes());
             String authHeader = new String(decodedAuthHeader, Charset.defaultCharset());
-            String[] splitCredentials = authHeader.split(":");
+            String[] splitCredentials = authHeader.split(":", 2);
 
-            if (splitCredentials.length == 2) {
+            if (splitCredentials.length == 2 && StringUtils.isNotBlank(splitCredentials[0]) &&
+                    StringUtils.isNotBlank(splitCredentials[1])) {
                 String userName = splitCredentials[0];
                 String password = splitCredentials[1];
 
