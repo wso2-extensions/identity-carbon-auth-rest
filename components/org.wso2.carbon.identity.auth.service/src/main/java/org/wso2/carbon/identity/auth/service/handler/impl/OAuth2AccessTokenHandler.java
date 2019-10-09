@@ -36,6 +36,8 @@ import org.wso2.carbon.identity.oauth2.dto.OAuth2TokenValidationRequestDTO;
 import org.wso2.carbon.identity.oauth2.dto.OAuth2TokenValidationResponseDTO;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
+import static org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil.isAuthHeaderMatch;
+
 /**
  * OAuth2AccessTokenHandler is for authenticate the request based on Token.
  * canHandle method will confirm whether this request can be handled by this authenticator or not.
@@ -132,15 +134,6 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
     @Override
     public boolean canHandle(MessageContext messageContext) {
 
-        AuthenticationContext authenticationContext = (AuthenticationContext) messageContext;
-        AuthenticationRequest authenticationRequest = authenticationContext.getAuthenticationRequest();
-        if (authenticationRequest != null) {
-            String authorizationHeader = authenticationRequest.getHeader(HttpHeaders.AUTHORIZATION);
-            if (StringUtils.isNotEmpty(authorizationHeader) && authorizationHeader.startsWith(OAUTH_HEADER)) {
-                return true;
-            }
-        }
-        return false;
+        return isAuthHeaderMatch(messageContext, OAUTH_HEADER);
     }
-
 }

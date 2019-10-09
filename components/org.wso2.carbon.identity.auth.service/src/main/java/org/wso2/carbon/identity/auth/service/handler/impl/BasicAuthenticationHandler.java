@@ -28,9 +28,7 @@ import org.wso2.carbon.identity.application.common.model.User;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
 import org.wso2.carbon.identity.auth.service.AuthenticationResult;
 import org.wso2.carbon.identity.auth.service.AuthenticationStatus;
-import org.wso2.carbon.identity.auth.service.exception.AuthClientException;
 import org.wso2.carbon.identity.auth.service.exception.AuthenticationFailException;
-import org.wso2.carbon.identity.auth.service.exception.AuthServerException;
 import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
 import org.wso2.carbon.identity.auth.service.internal.AuthenticationServiceHolder;
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
@@ -41,6 +39,8 @@ import org.wso2.carbon.user.core.UserStoreManager;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
 import java.nio.charset.Charset;
+
+import static org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil.isAuthHeaderMatch;
 
 /**
  * BasicAuthenticationHandler is for authenticate the request based on Basic Authentication.
@@ -71,15 +71,7 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
     @Override
     public boolean canHandle(MessageContext messageContext) {
 
-        if (messageContext instanceof AuthenticationContext) {
-            AuthenticationContext authenticationContext = (AuthenticationContext) messageContext;
-            if (authenticationContext.getAuthenticationRequest() != null) {
-                String authorizationHeader = authenticationContext.getAuthenticationRequest().
-                        getHeader(HttpHeaders.AUTHORIZATION);
-                return StringUtils.isNotEmpty(authorizationHeader) && authorizationHeader.startsWith(BASIC_AUTH_HEADER);
-            }
-        }
-        return false;
+        return isAuthHeaderMatch(messageContext, BASIC_AUTH_HEADER);
     }
 
     @Override
