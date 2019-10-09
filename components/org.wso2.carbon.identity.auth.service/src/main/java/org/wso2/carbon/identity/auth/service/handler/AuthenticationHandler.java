@@ -18,6 +18,8 @@
 
 package org.wso2.carbon.identity.auth.service.handler;
 
+import org.apache.commons.lang.StringUtils;
+import org.apache.http.HttpHeaders;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.identity.application.common.model.User;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
