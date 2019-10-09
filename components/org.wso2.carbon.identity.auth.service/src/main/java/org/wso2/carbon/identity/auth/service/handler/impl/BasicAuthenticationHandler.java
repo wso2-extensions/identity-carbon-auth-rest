@@ -127,7 +127,7 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
                         if (isAuthenticated) {
                             authenticationResult.setAuthenticationStatus(AuthenticationStatus.SUCCESS);
                             if (log.isDebugEnabled()) {
-                                log.debug("BasicAuthentication success.");
+                                log.debug("Basic Authentication successful for the user: " + userName);
                             }
                         }
                     } else {
