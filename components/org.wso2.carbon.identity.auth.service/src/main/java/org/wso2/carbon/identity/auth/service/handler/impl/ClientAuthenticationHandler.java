@@ -26,8 +26,6 @@ import org.apache.http.HttpHeaders;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
 import org.wso2.carbon.identity.auth.service.AuthenticationResult;
 import org.wso2.carbon.identity.auth.service.AuthenticationStatus;
-import org.wso2.carbon.identity.auth.service.exception.AuthClientException;
-import org.wso2.carbon.identity.auth.service.exception.AuthServerException;
 import org.wso2.carbon.identity.auth.service.exception.AuthenticationFailException;
 import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
 import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
@@ -37,6 +35,8 @@ import org.wso2.carbon.identity.core.handler.InitConfig;
 import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+
+import static org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil.isAuthHeaderMatch;
 
 /**
  * ClientAuthenticationHandler is for authenticate the request based on Client Authentication.
@@ -68,16 +68,7 @@ public class ClientAuthenticationHandler extends AuthenticationHandler {
     @Override
     public boolean canHandle(MessageContext messageContext) {
 
-        if (messageContext instanceof AuthenticationContext) {
-            AuthenticationContext authenticationContext = (AuthenticationContext) messageContext;
-            if (authenticationContext.getAuthenticationRequest() != null) {
-                String authorizationHeader = authenticationContext.getAuthenticationRequest().
-                        getHeader(HttpHeaders.AUTHORIZATION);
-                return StringUtils.isNotEmpty(authorizationHeader) && authorizationHeader.startsWith(
-                        CLIENT_AUTH_HEADER);
-            }
-        }
-        return false;
+        return isAuthHeaderMatch(messageContext, CLIENT_AUTH_HEADER);
     }
 
     @Override

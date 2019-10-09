@@ -4,10 +4,13 @@ import org.apache.axiom.om.OMElement;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.http.HttpHeaders;
+import org.wso2.carbon.identity.auth.service.AuthenticationContext;
 import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
 import org.wso2.carbon.identity.auth.service.internal.AuthenticationServiceHolder;
 import org.wso2.carbon.identity.auth.service.module.ResourceConfig;
 import org.wso2.carbon.identity.auth.service.module.ResourceConfigKey;
+import org.wso2.carbon.identity.core.bean.context.MessageContext;
 import org.wso2.carbon.identity.core.util.IdentityConfigParser;
 import org.wso2.carbon.identity.core.util.IdentityCoreConstants;
 import org.wso2.securevault.SecretResolver;
@@ -227,5 +230,28 @@ public class AuthConfigurationUtil {
     public String getDefaultAccess() {
 
         return defaultAccess;
+    }
+
+    /**
+     * Check if the authorization header is matching to the provided auth header identifier.
+     *
+     * @param messageContext       Authentication message context.
+     * @param authHeaderIdentifier Specific header identifier to be matched.
+     * @return True if matched, false otherwise.
+     */
+    public static boolean isAuthHeaderMatch(MessageContext messageContext, String authHeaderIdentifier) {
+
+        if (messageContext instanceof AuthenticationContext) {
+            AuthenticationContext authenticationContext = (AuthenticationContext) messageContext;
+            if (authenticationContext.getAuthenticationRequest() != null) {
+                String authorizationHeader = authenticationContext.getAuthenticationRequest().
+                        getHeader(HttpHeaders.AUTHORIZATION);
+                String[] splitAuthorizationHeader = authorizationHeader.split(" ");
+                return splitAuthorizationHeader.length > 0 &&
+                        StringUtils.isNotEmpty(splitAuthorizationHeader[0]) &&
+                        authHeaderIdentifier.equals(splitAuthorizationHeader[0]);
+            }
+        }
+        return false;
     }
 }
