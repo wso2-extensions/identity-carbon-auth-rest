@@ -94,7 +94,7 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
         if ( splitAuthorizationHeader != null && splitAuthorizationHeader.length == 2 ) {
             byte[] decodedAuthHeader = Base64.decodeBase64(authorizationHeader.split(" ")[1].getBytes());
             String authHeader = new String(decodedAuthHeader, Charset.defaultCharset());
-            String[] splitCredentials = authHeader.split(":", 2);
+            String[] splitCredentials = authHeader.split(":");
             if ( splitCredentials != null && splitCredentials.length == 2 ) {
                 String userName = splitCredentials[0];
                 String password = splitCredentials[1];
@@ -148,13 +148,13 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
                 String errorMessage = "Error occurred while trying to authenticate and  auth user credentials " +
                         "are not define correctly.";
                 log.error(errorMessage);
-                throw new AuthClientException(errorMessage);
+                throw new AuthenticationFailException(errorMessage);
             }
         } else {
             String errorMessage = "Error occurred while trying to authenticate and  " + HttpHeaders.AUTHORIZATION
                     + " header values are not define correctly.";
             log.error(errorMessage);
-            throw new AuthClientException(errorMessage);
+            throw new AuthenticationFailException(errorMessage);
         }
 
 
