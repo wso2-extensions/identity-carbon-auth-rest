@@ -246,6 +246,9 @@ public class AuthConfigurationUtil {
             if (authenticationContext.getAuthenticationRequest() != null) {
                 String authorizationHeader = authenticationContext.getAuthenticationRequest().
                         getHeader(HttpHeaders.AUTHORIZATION);
+                if (StringUtils.isBlank(authorizationHeader)) {
+                    return false;
+                }
                 String[] splitAuthorizationHeader = authorizationHeader.split(" ");
                 return splitAuthorizationHeader.length > 0 &&
                         StringUtils.isNotEmpty(splitAuthorizationHeader[0]) &&
