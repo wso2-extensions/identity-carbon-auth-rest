@@ -84,6 +84,8 @@
                             org.osgi.util.tracker; version="${osgi.util.tracker.imp.pkg.version.range}",
                             org.wso2.carbon.core.*; version="${carbon.kernel.imp.pkg.version.range}",
                             org.wso2.carbon.utils.*; version="${carbon.kernel.imp.pkg.version.range}",
+                            org.wso2.carbon.identity.application.common.model.*;
+                            version="${carbon.identity.package.import.version.range}"
                             org.wso2.carbon.identity.core.*; version="${carbon.identity.package.import.version.range}",
                             org.wso2.carbon.identity.oauth2.*;
                             version="${org.wso2.carbon.identity.oauth.import.version.range}",
