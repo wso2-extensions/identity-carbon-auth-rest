@@ -18,6 +18,7 @@
 
 package org.wso2.carbon.identity.auth.service.handler.impl;
 
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -34,9 +35,15 @@ import org.wso2.carbon.identity.oauth2.OAuth2TokenValidationService;
 import org.wso2.carbon.identity.oauth2.dto.OAuth2ClientApplicationDTO;
 import org.wso2.carbon.identity.oauth2.dto.OAuth2TokenValidationRequestDTO;
 import org.wso2.carbon.identity.oauth2.dto.OAuth2TokenValidationResponseDTO;
+import org.wso2.carbon.identity.oauth2.token.bindings.TokenBinding;
+import org.wso2.carbon.identity.oauth2.util.OAuth2Util;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
+import javax.servlet.http.Cookie;
+
 import static org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil.isAuthHeaderMatch;
+import static org.wso2.carbon.identity.auth.service.util.Constants.COOKIE_BASED_TOKEN_BINDING;
+import static org.wso2.carbon.identity.auth.service.util.Constants.COOKIE_BASED_TOKEN_BINDING_EXT_PARAM;
 
 /**
  * OAuth2AccessTokenHandler is for authenticate the request based on Token.
@@ -89,9 +96,15 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
                                 (requestDTO);
                 OAuth2TokenValidationResponseDTO responseDTO = clientApplicationDTO.getAccessTokenValidationResponse();
 
-                if (responseDTO.isValid()) {
-                    authenticationResult.setAuthenticationStatus(AuthenticationStatus.SUCCESS);
+                if (!responseDTO.isValid()) {
+                    return authenticationResult;
                 }
+
+                if (!isTokenBindingValid(messageContext, responseDTO.getTokenBinding())) {
+                    return authenticationResult;
+                }
+
+                authenticationResult.setAuthenticationStatus(AuthenticationStatus.SUCCESS);
 
                 if (StringUtils.isNotEmpty(responseDTO.getAuthorizedUser())) {
                     User user = new User();
@@ -135,5 +148,33 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
     public boolean canHandle(MessageContext messageContext) {
 
         return isAuthHeaderMatch(messageContext, OAUTH_HEADER);
+    }
+
+    /**
+     * Validate access token binding value.
+     *
+     * @param messageContext message context.
+     * @param tokenBinding token binding.
+     * @return true if token binding is valid.
+     */
+    private boolean isTokenBindingValid(MessageContext messageContext, TokenBinding tokenBinding) {
+
+        if (tokenBinding == null || StringUtils.isBlank(tokenBinding.getBindingReference())) {
+            return true;
+        }
+
+        if (COOKIE_BASED_TOKEN_BINDING.equals(tokenBinding.getBindingType())) {
+            Cookie[] cookies = ((AuthenticationContext) messageContext).getAuthenticationRequest().getCookies();
+            if (ArrayUtils.isEmpty(cookies)) {
+                return false;
+            }
+            for (Cookie cookie : cookies) {
+                if (COOKIE_BASED_TOKEN_BINDING_EXT_PARAM.equals(cookie.getName())) {
+                    String tokenBindingReference = OAuth2Util.getTokenBindingReference(cookie.getValue());
+                    return tokenBinding.getBindingReference().equals(tokenBindingReference);
+                }
+            }
+        }
+        return false;
     }
 }

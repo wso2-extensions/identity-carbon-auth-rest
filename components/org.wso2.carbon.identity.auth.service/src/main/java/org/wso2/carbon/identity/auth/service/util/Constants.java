@@ -29,4 +29,6 @@ public class Constants {
     public final static String CERT_AUTHENTICATION_ENABLE_ATTR = "enable";
     public final static String DENY_DEFAULT_ACCESS = "deny";
 
+    public final static String COOKIE_BASED_TOKEN_BINDING = "cookie";
+    public final static String COOKIE_BASED_TOKEN_BINDING_EXT_PARAM = "atbv";
 }
