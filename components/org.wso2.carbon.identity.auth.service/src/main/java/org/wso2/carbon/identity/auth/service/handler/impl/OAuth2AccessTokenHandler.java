@@ -38,6 +38,9 @@ import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
 import static org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil.isAuthHeaderMatch;
 
+import static org.wso2.carbon.identity.auth.service.util.Constants.OAUTH2_ALLOWED_SCOPES;
+import static org.wso2.carbon.identity.auth.service.util.Constants.OAUTH2_VALIDATE_SCOPE;
+
 /**
  * OAuth2AccessTokenHandler is for authenticate the request based on Token.
  * canHandle method will confirm whether this request can be handled by this authenticator or not.
@@ -48,7 +51,6 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
     private static final Log log = LogFactory.getLog(OAuth2AccessTokenHandler.class);
     private final String OAUTH_HEADER = "Bearer";
     private final String CONSUMER_KEY = "consumer-key";
-    private final String OAUTH2_ALLOWED_SCOPES = "oauth2-allowed-scopes";
 
     @Override
     protected AuthenticationResult doAuthenticate(MessageContext messageContext) {
@@ -102,7 +104,7 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
 
                 authenticationContext.addParameter(CONSUMER_KEY, clientApplicationDTO.getConsumerKey());
                 authenticationContext.addParameter(OAUTH2_ALLOWED_SCOPES, responseDTO.getScope());
-
+                authenticationContext.addParameter(OAUTH2_VALIDATE_SCOPE, true);
             }
         }
         return authenticationResult;
