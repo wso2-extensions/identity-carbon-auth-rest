@@ -10,6 +10,9 @@ public class Constants {
     public final static String RESOURCE_SECURED_ATTR = "secured";
     public final static String RESOURCE_HTTP_METHOD_ATTR = "http-method";
     public final static String RESOURCE_PERMISSION_ELE = "Permissions";
+    public final static String RESOURCE_SCOPE_ELE = "Scopes";
+    public final static String OAUTH2_ALLOWED_SCOPES = "oauth2-allowed-scopes";
+    public final static String OAUTH2_VALIDATE_SCOPE = "oauth2-validate-scopes";
     public final static String RESOURCE_CROSS_TENANT_ATTR = "cross-tenant";
     public final static String RESOURCE_ALLOWED_AUTH_HANDLERS = "allowed-auth-handlers";
     public final static String RESOURCE_ALLOWED_AUTH_HANDLERS_ALL = "all";

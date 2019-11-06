@@ -101,6 +101,16 @@ public class AuthConfigurationUtil {
                         }
                     }
 
+                    List<String> scopes = new ArrayList<>();
+                    Iterator<OMElement> scopesIterator = resource.getChildrenWithName(
+                            new QName(Constants.RESOURCE_SCOPE_ELE));
+                    if (scopesIterator != null) {
+                        while (scopesIterator.hasNext()) {
+                            OMElement scopeElement = scopesIterator.next();
+                            scopes.add(scopeElement.getText());
+                        }
+                    }
+
                     resourceConfig.setContext(context);
                     resourceConfig.setHttpMethod(httpMethod);
                     if ( StringUtils.isNotEmpty(isSecured) && (Boolean.TRUE.toString().equals(isSecured) ||
@@ -118,6 +128,7 @@ public class AuthConfigurationUtil {
                     }
                     resourceConfig.setAllowedAuthHandlers(allowedAuthHandlers);
                     resourceConfig.setPermissions(permissionBuilder.toString());
+                    resourceConfig.setScopes(scopes);
                     resourceConfigMap.put(new ResourceConfigKey(context, httpMethod), resourceConfig);
                 }
             }

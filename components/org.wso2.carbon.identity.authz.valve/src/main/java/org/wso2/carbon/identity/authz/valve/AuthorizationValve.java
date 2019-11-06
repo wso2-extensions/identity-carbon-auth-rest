@@ -21,6 +21,7 @@ package org.wso2.carbon.identity.authz.valve;
 import org.apache.catalina.connector.Request;
 import org.apache.catalina.connector.Response;
 import org.apache.catalina.valves.ValveBase;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -35,10 +36,13 @@ import org.wso2.carbon.identity.authz.service.exception.AuthzServiceServerExcept
 import org.wso2.carbon.identity.authz.valve.internal.AuthorizationValveServiceHolder;
 import org.wso2.carbon.identity.authz.valve.util.Utils;
 
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.List;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletResponse;
+
+import static org.wso2.carbon.identity.auth.service.util.Constants.OAUTH2_ALLOWED_SCOPES;
+import static org.wso2.carbon.identity.auth.service.util.Constants.OAUTH2_VALIDATE_SCOPE;
 
 /**
  * AuthenticationValve can be used to intercept any request.
@@ -77,9 +81,15 @@ public class AuthorizationValve extends ValveBase {
             if (resourceConfig != null && StringUtils.isNotEmpty(resourceConfig.getPermissions())) {
                 authorizationContext.setPermissionString(resourceConfig.getPermissions());
             }
+            if (resourceConfig != null && CollectionUtils.isNotEmpty(resourceConfig.getScopes())) {
+                authorizationContext.setRequiredScopes(resourceConfig.getScopes());
+            }
             authorizationContext.setContext(contextPath);
             authorizationContext.setHttpMethods(httpMethod);
             authorizationContext.setUser(authenticationContext.getUser());
+            authorizationContext.addParameter(OAUTH2_ALLOWED_SCOPES, authenticationContext.getParameter(OAUTH2_ALLOWED_SCOPES));
+            authorizationContext.addParameter(OAUTH2_VALIDATE_SCOPE, authenticationContext.getParameter(OAUTH2_VALIDATE_SCOPE));
+
             String tenantDomainFromURLMapping = Utils.getTenantDomainFromURLMapping(request);
             authorizationContext.setTenantDomainFromURLMapping(tenantDomainFromURLMapping);
             List<AuthorizationManager> authorizationManagerList = AuthorizationValveServiceHolder.getInstance()
