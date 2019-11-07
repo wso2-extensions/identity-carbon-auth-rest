@@ -21,6 +21,9 @@ package org.wso2.carbon.identity.authz.service;
 import org.wso2.carbon.identity.application.common.model.User;
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class AuthorizationContext extends MessageContext {
 
     private String context;
@@ -28,6 +31,7 @@ public class AuthorizationContext extends MessageContext {
 
     private User user;
     private String permissionString;
+    private List<String> requiredScopes;
     private boolean isCrossTenantAllowed;
     private String tenantDomainFromURLMapping;
 
@@ -80,4 +84,16 @@ public class AuthorizationContext extends MessageContext {
         this.tenantDomainFromURLMapping = tenantDomainFromURLMapping;
     }
 
+    public List<String> getRequiredScopes() {
+
+        if (requiredScopes == null) {
+            return new ArrayList<>();
+        }
+        return requiredScopes;
+    }
+
+    public void setRequiredScopes(List<String> requiredScopes) {
+
+        this.requiredScopes = requiredScopes;
+    }
 }
