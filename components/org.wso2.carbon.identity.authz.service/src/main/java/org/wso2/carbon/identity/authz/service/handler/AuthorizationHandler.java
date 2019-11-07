@@ -17,6 +17,9 @@
  */
 package org.wso2.carbon.identity.authz.service.handler;
 
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.CarbonConstants;
@@ -27,7 +30,6 @@ import org.wso2.carbon.identity.authz.service.AuthorizationStatus;
 import org.wso2.carbon.identity.authz.service.exception.AuthzServiceServerException;
 import org.wso2.carbon.identity.authz.service.internal.AuthorizationServiceHolder;
 import org.wso2.carbon.identity.core.handler.AbstractIdentityHandler;
-import org.wso2.carbon.identity.core.handler.IdentityHandler;
 import org.wso2.carbon.identity.core.handler.InitConfig;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.user.api.AuthorizationManager;
@@ -35,6 +37,8 @@ import org.wso2.carbon.user.api.UserRealm;
 import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.user.core.service.RealmService;
 
+import static org.wso2.carbon.identity.auth.service.util.Constants.OAUTH2_ALLOWED_SCOPES;
+import static org.wso2.carbon.identity.auth.service.util.Constants.OAUTH2_VALIDATE_SCOPE;
 
 /**
  * AuthorizationHandler can be extended to handle the user permissions.
@@ -58,14 +62,17 @@ public class AuthorizationHandler extends AbstractIdentityHandler {
             String userDomain = user.getTenantDomain();
             int tenantId = IdentityTenantUtil.getTenantId(userDomain);
             String permissionString = authorizationContext.getPermissionString();
+            String[] allowedScopes = (String[]) authorizationContext.getParameter(OAUTH2_ALLOWED_SCOPES);
+            boolean validateScope = authorizationContext.getParameter(OAUTH2_VALIDATE_SCOPE) == null ? false :
+                    (Boolean) authorizationContext.getParameter(OAUTH2_VALIDATE_SCOPE);
             RealmService realmService = AuthorizationServiceHolder.getInstance().getRealmService();
             UserRealm tenantUserRealm = realmService.getTenantUserRealm(tenantId);
 
-            AuthorizationManager authorizationManager = tenantUserRealm.getAuthorizationManager();
-            boolean isUserAuthorized = authorizationManager
-                    .isUserAuthorized(user.getUserName(), permissionString, CarbonConstants.UI_PERMISSION_ACTION);
-            if (isUserAuthorized) {
-                authorizationResult.setAuthorizationStatus(AuthorizationStatus.GRANT);
+            // If the scopes are configured for the API, it gets the first priority
+            if (isScopeValidationRequired(authorizationContext, validateScope)) {
+                validateScopes(authorizationContext, authorizationResult, allowedScopes);
+            } else if (StringUtils.isNotBlank(permissionString) || authorizationContext.getRequiredScopes().size() == 0) {
+                validatePermissions(authorizationResult, user, permissionString, tenantUserRealm);
             }
         } catch (UserStoreException e) {
             String errorMessage = "Error occurred while trying to authorize, " + e.getMessage();
@@ -88,5 +95,36 @@ public class AuthorizationHandler extends AbstractIdentityHandler {
     @Override
     public int getPriority() {
         return 100;
+    }
+
+    private void validatePermissions(AuthorizationResult authorizationResult, User user, String permissionString, UserRealm tenantUserRealm) throws UserStoreException {
+
+        AuthorizationManager authorizationManager = tenantUserRealm.getAuthorizationManager();
+        boolean isUserAuthorized = authorizationManager
+                .isUserAuthorized(user.getUserName(), permissionString, CarbonConstants.UI_PERMISSION_ACTION);
+        if (isUserAuthorized) {
+            authorizationResult.setAuthorizationStatus(AuthorizationStatus.GRANT);
+        }
+    }
+
+    private void validateScopes(AuthorizationContext authorizationContext, AuthorizationResult authorizationResult, String[] allowedScopes) {
+
+        boolean granted = true;
+        if (allowedScopes != null) {
+            for (String scope : authorizationContext.getRequiredScopes()) {
+                if (!ArrayUtils.contains(allowedScopes, scope)) {
+                    granted = false;
+                    break;
+                }
+            }
+            if (granted) {
+                authorizationResult.setAuthorizationStatus(AuthorizationStatus.GRANT);
+            }
+        }
+    }
+
+    private boolean isScopeValidationRequired(AuthorizationContext authorizationContext, boolean validateScope) {
+
+        return validateScope && CollectionUtils.isNotEmpty(authorizationContext.getRequiredScopes());
     }
 }

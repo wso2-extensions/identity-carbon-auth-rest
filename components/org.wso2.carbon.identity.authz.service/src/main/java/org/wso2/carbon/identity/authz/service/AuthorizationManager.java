@@ -17,9 +17,7 @@
  */
 package org.wso2.carbon.identity.authz.service;
 
-
 import org.apache.commons.lang.StringUtils;
-import org.wso2.carbon.identity.application.common.model.User;
 import org.wso2.carbon.identity.auth.service.handler.HandlerManager;
 import org.wso2.carbon.identity.authz.service.exception.AuthzServiceServerException;
 import org.wso2.carbon.identity.authz.service.handler.AuthorizationHandler;
@@ -27,7 +25,6 @@ import org.wso2.carbon.identity.authz.service.handler.ResourceHandler;
 import org.wso2.carbon.identity.authz.service.internal.AuthorizationServiceHolder;
 import org.wso2.carbon.identity.core.handler.IdentityHandler;
 import org.wso2.carbon.identity.core.handler.InitConfig;
-import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 
 import java.util.List;
 
@@ -46,8 +43,9 @@ public class AuthorizationManager implements IdentityHandler {
 
         AuthorizationResult authorizationResult = new AuthorizationResult(AuthorizationStatus.DENY);
         boolean isResourceHandlerAvailableToHandleAuthorization = false;
-        if (StringUtils.isEmpty(authorizationContext.getPermissionString())) {
-            // If the permission string is empty then we check the registered available external resource handlers.
+        if (StringUtils.isEmpty(authorizationContext.getPermissionString()) && authorizationContext.getRequiredScopes().size() == 0) {
+            // If the permission string is empty or not scope is defined then we check the registered available
+            // external resource handlers.
             List<ResourceHandler> gettingExternalResourceHandlerList = AuthorizationServiceHolder.getInstance()
                     .getResourceHandlerList();
             List<ResourceHandler> externalResourceHandlers = HandlerManager.getInstance()
