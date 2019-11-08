@@ -62,7 +62,8 @@ public class AuthorizationHandler extends AbstractIdentityHandler {
             String userDomain = user.getTenantDomain();
             int tenantId = IdentityTenantUtil.getTenantId(userDomain);
             String permissionString = authorizationContext.getPermissionString();
-            String[] allowedScopes = (String[]) authorizationContext.getParameter(OAUTH2_ALLOWED_SCOPES);
+            String[] allowedScopes = authorizationContext.getParameter(OAUTH2_ALLOWED_SCOPES) == null ? null :
+                    (String[]) authorizationContext.getParameter(OAUTH2_ALLOWED_SCOPES);
             boolean validateScope = authorizationContext.getParameter(OAUTH2_VALIDATE_SCOPE) == null ? false :
                     (Boolean) authorizationContext.getParameter(OAUTH2_VALIDATE_SCOPE);
             RealmService realmService = AuthorizationServiceHolder.getInstance().getRealmService();
