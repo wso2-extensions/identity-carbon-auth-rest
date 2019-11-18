@@ -201,6 +201,12 @@
                 <version>${org.wso2.carbon.identity.oauth.version}</version>
             </dependency>
             <dependency>
+                <groupId>org.wso2.carbon.identity.association.account</groupId>
+                <artifactId>org.wso2.carbon.identity.user.account.association</artifactId>
+                <version>${org.wso2.carbon.identity.user.account.association.version}</version>
+            </dependency>
+
+            <dependency>
                 <groupId>org.json.wso2</groupId>
                 <artifactId>json</artifactId>
                 <version>${json.wso2.version}</version>
@@ -354,6 +360,11 @@
         <org.wso2.carbon.identity.oauth.version>6.2.41</org.wso2.carbon.identity.oauth.version>
         <org.wso2.carbon.identity.oauth.import.version.range>[6.2.18, 7.0.0)
         </org.wso2.carbon.identity.oauth.import.version.range>
+
+        <org.wso2.carbon.identity.user.account.association.version>5.3.5
+        </org.wso2.carbon.identity.user.account.association.version>
+        <org.wso2.carbon.identity.user.account.association.import.version.range>[5.3.5, 6.0.0)
+        </org.wso2.carbon.identity.user.account.association.import.version.range>
 
         <!-- OSGi framework component version -->
         <osgi.service.component.imp.pkg.version.range>[1.2.0, 2.0.0)</osgi.service.component.imp.pkg.version.range>

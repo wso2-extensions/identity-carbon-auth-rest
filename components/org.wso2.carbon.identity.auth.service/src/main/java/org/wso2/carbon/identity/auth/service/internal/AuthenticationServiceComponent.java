@@ -32,6 +32,7 @@ import org.wso2.carbon.identity.auth.service.handler.impl.TomcatCookieAuthentica
 import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
 import org.wso2.carbon.identity.core.handler.HandlerComparator;
 import org.wso2.carbon.identity.core.util.IdentityCoreInitializedEvent;
+import org.wso2.carbon.identity.user.account.association.UserAccountConnector;
 import org.wso2.carbon.user.core.service.RealmService;
 import java.util.Collections;
 import java.util.List;
@@ -108,6 +109,23 @@ public class AuthenticationServiceComponent {
 
     protected void removeAuthenticationHandler(AuthenticationHandler authenticationHandler) {
         AuthenticationServiceHolder.getInstance().getAuthenticationHandlers().remove(authenticationHandler);
+    }
+
+    @Reference(
+            name = "org.wso2.carbon.identity.user.account.association.connector",
+            service = org.wso2.carbon.identity.user.account.association.UserAccountConnector.class,
+            cardinality = ReferenceCardinality.MULTIPLE,
+            policy = ReferencePolicy.DYNAMIC,
+            unbind = "removeUserAccountConnector")
+    protected void addUserAccountConnector(UserAccountConnector userAccountConnector) {
+        if (log.isDebugEnabled()) {
+            log.debug("UserAccountConnector acquired");
+        }
+        AuthenticationServiceHolder.getInstance().setUserAccountConnector(userAccountConnector);
+    }
+
+    protected void removeUserAccountConnector(UserAccountConnector userAccountConnector) {
+        AuthenticationServiceHolder.getInstance().setUserAccountConnector(null);
     }
 
     @Reference(
