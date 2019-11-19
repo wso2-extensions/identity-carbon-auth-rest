@@ -34,8 +34,10 @@ import org.wso2.carbon.identity.auth.service.internal.AuthenticationServiceHolde
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
 import org.wso2.carbon.identity.core.handler.InitConfig;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
+import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.user.api.UserRealm;
 import org.wso2.carbon.user.core.UserStoreManager;
+import org.wso2.carbon.user.core.util.UserCoreUtil;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
 import java.nio.charset.Charset;
@@ -97,9 +99,11 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
                 try {
                     int tenantId = IdentityTenantUtil.getTenantIdOfUser(userName);
                     String tenantDomain = MultitenantUtils.getTenantDomain(userName);
+                    String tenantAwareUsername = MultitenantUtils.getTenantAwareUsername(userName);
 
                     User user = new User();
-                    user.setUserName(MultitenantUtils.getTenantAwareUsername(userName));
+                    user.setUserName(UserCoreUtil.removeDomainFromName(tenantAwareUsername));
+                    user.setUserStoreDomain(IdentityUtil.extractDomainFromName(userName));
                     user.setTenantDomain(tenantDomain);
 
                     authenticationContext.setUser(user);

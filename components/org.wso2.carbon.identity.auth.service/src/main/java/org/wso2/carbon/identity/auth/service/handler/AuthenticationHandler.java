@@ -38,6 +38,8 @@ import org.wso2.carbon.identity.user.account.association.dto.UserAccountAssociat
 import org.wso2.carbon.identity.user.account.association.exception.UserAccountAssociationException;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
+import static org.wso2.carbon.utils.multitenancy.MultitenantUtils.getTenantDomain;
+
 /**
  * This is the abstract class for custom authentication handlers.
  *
@@ -110,32 +112,44 @@ public abstract class AuthenticationHandler extends AbstractIdentityMessageHandl
                 if (user.getTenantDomain() != null && user.getTenantDomain().equalsIgnoreCase(PrivilegedCarbonContext
                         .getThreadLocalCarbonContext().getTenantDomain())) {
 
-                    String domainAwareUserName = IdentityUtil.addDomainToName(user.getUserName(),
-                            user.getUserStoreDomain());
                     String associatedUserRequestHeader = authenticationContext.getAuthenticationRequest().
                             getHeader(ASSOCIATED_USER_ID_HEADER);
                     if (StringUtils.isNotEmpty(associatedUserRequestHeader)) {
-                        User associatedUser = User.getUserFromUserName(associatedUserRequestHeader);
-                        if (!associatedUser.equals(user)) {
+                        User associatedUser = getAssociatedUser(user, associatedUserRequestHeader);
+                        if (associatedUser == null) {
+                            log.error("Cannot get the associated user for the provided header value: "
+                                    + associatedUserRequestHeader);
+                            setFailedAuthentication(authenticationResult);
+                            return;
+                        }
+                        if (!user.equals(associatedUser)) {
                             setAssociatedUserInCarbonContext(user, associatedUser, authenticationResult);
                             return;
                         }
                     }
+                    String domainAwareUserName = IdentityUtil.addDomainToName(user.getUserName(),
+                            user.getUserStoreDomain());
                     setUserInCarbonContext(domainAwareUserName);
                 }
             }
         }
     }
 
+    private User getAssociatedUser(User user, String associatedUserRequestHeader) {
+
+        if (!user.getTenantDomain().equals(getTenantDomain(associatedUserRequestHeader))) {
+            if (log.isDebugEnabled()) {
+                log.debug("Provided associated user: " + associatedUserRequestHeader + ", " +
+                        "has a different tenant domain to the authenticated user's tenant domain: "
+                        + user.getTenantDomain());
+            }
+            return null;
+        }
+        return User.getUserFromUserName(associatedUserRequestHeader);
+    }
+
     private void setAssociatedUserInCarbonContext(User user, User associatedUser,
                                                   AuthenticationResult authenticationResult) {
-
-        if (!associatedUser.getTenantDomain().equals(user.getTenantDomain())) {
-            log.error("Cannot switch to an Associated user: " + associatedUser.toFullQualifiedUsername() + ", " +
-                    "in a different tenant domain to the authenticated user: " + user.toFullQualifiedUsername());
-            setFailedAuthentication(authenticationResult);
-            return;
-        }
 
         UserAccountConnector userAccountConnector = AuthenticationServiceHolder.getInstance().getUserAccountConnector();
         if (userAccountConnector == null) {

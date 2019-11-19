@@ -31,12 +31,14 @@ import org.wso2.carbon.identity.auth.service.AuthenticationStatus;
 import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
 import org.wso2.carbon.identity.core.handler.InitConfig;
+import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.identity.oauth2.OAuth2TokenValidationService;
 import org.wso2.carbon.identity.oauth2.dto.OAuth2ClientApplicationDTO;
 import org.wso2.carbon.identity.oauth2.dto.OAuth2TokenValidationRequestDTO;
 import org.wso2.carbon.identity.oauth2.dto.OAuth2TokenValidationResponseDTO;
 import org.wso2.carbon.identity.oauth2.token.bindings.TokenBinding;
 import org.wso2.carbon.identity.oauth2.util.OAuth2Util;
+import org.wso2.carbon.user.core.util.UserCoreUtil;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
 import javax.servlet.http.Cookie;
@@ -109,8 +111,12 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
                 authenticationResult.setAuthenticationStatus(AuthenticationStatus.SUCCESS);
 
                 if (StringUtils.isNotEmpty(responseDTO.getAuthorizedUser())) {
+                    String tenantAwareUserName = MultitenantUtils.getTenantAwareUsername(
+                            responseDTO.getAuthorizedUser());
+
                     User user = new User();
-                    user.setUserName(MultitenantUtils.getTenantAwareUsername(responseDTO.getAuthorizedUser()));
+                    user.setUserName(UserCoreUtil.removeDomainFromName(tenantAwareUserName));
+                    user.setUserStoreDomain(IdentityUtil.extractDomainFromName(responseDTO.getAuthorizedUser()));
                     user.setTenantDomain(MultitenantUtils.getTenantDomain(responseDTO.getAuthorizedUser()));
                     authenticationContext.setUser(user);
                 }
