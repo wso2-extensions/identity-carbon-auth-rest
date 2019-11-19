@@ -36,7 +36,6 @@ import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.identity.user.account.association.UserAccountConnector;
 import org.wso2.carbon.identity.user.account.association.dto.UserAccountAssociationDTO;
 import org.wso2.carbon.identity.user.account.association.exception.UserAccountAssociationException;
-import org.wso2.carbon.user.core.UserStoreConfigConstants;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
 /**
@@ -116,8 +115,8 @@ public abstract class AuthenticationHandler extends AbstractIdentityMessageHandl
                     String associatedUserRequestHeader = authenticationContext.getAuthenticationRequest().
                             getHeader(ASSOCIATED_USER_ID_HEADER);
                     if (StringUtils.isNotEmpty(associatedUserRequestHeader)) {
-                        User associatedUser = getAssociatedUser(authenticationResult, associatedUserRequestHeader);
-                        if (associatedUser != null && !isSameUser(user, associatedUser)) {
+                        User associatedUser = User.getUserFromUserName(associatedUserRequestHeader);
+                        if (!associatedUser.equals(user)) {
                             setAssociatedUserInCarbonContext(user, associatedUser, authenticationResult);
                             return;
                         }
@@ -128,58 +127,56 @@ public abstract class AuthenticationHandler extends AbstractIdentityMessageHandl
         }
     }
 
-    private User getAssociatedUser(AuthenticationResult authenticationResult, String associatedUserRequestHeader) {
-
-        User associatedUser = getUser(associatedUserRequestHeader);
-        if (associatedUser == null) {
-            log.error("Invalid user provided with the header: " + ASSOCIATED_USER_ID_HEADER);
-            setFailedAuthentication(authenticationResult);
-            return null;
-        }
-        return associatedUser;
-    }
-
     private void setAssociatedUserInCarbonContext(User user, User associatedUser,
                                                   AuthenticationResult authenticationResult) {
 
-        if (isUsersInSameTenant(user, associatedUser)) {
-            UserAccountConnector userAccountConnector = AuthenticationServiceHolder.getInstance()
-                    .getUserAccountConnector();
-            if (userAccountConnector != null) {
-                try {
-                    UserAccountAssociationDTO[] userAccountAssociations = userAccountConnector
-                            .getAccountAssociationsOfUser(user.toFullQualifiedUsername());
-                    for (UserAccountAssociationDTO userAccountAssociationDTO : userAccountAssociations) {
-                        if (isSameUser(associatedUser, userAccountAssociationDTO)) {
-                            if (log.isDebugEnabled()) {
-                                log.debug("Setting the Associated user: " + associatedUser.toFullQualifiedUsername()
-                                        + ", sent with the header: "  + ASSOCIATED_USER_ID_HEADER + ", in the carbon " +
-                                        "context since it is a valid association of the user: "
-                                        + user.toFullQualifiedUsername());
-                            }
-                            setUserInCarbonContext(MultitenantUtils.getTenantAwareUsername(
-                                    associatedUser.toFullQualifiedUsername()));
-                            return;
-                        }
-                    }
-                    log.error("Associated user: " + associatedUser.toFullQualifiedUsername() + ", sent with the " +
-                            "header: "  + ASSOCIATED_USER_ID_HEADER + ", does not have a valid association with the " +
-                            "user: " + user.toFullQualifiedUsername());
-                    setFailedAuthentication(authenticationResult);
-                } catch (UserAccountAssociationException e) {
-                    log.error("Error while getting account associations of the user: "
-                            + user.toFullQualifiedUsername(), e);
-                    setFailedAuthentication(authenticationResult);
-                }
-            } else {
-                log.error("Unable to get the UserAccountConnector service");
-                setFailedAuthentication(authenticationResult);
-            }
-        } else {
+        if (!associatedUser.getTenantDomain().equals(user.getTenantDomain())) {
             log.error("Cannot switch to an Associated user: " + associatedUser.toFullQualifiedUsername() + ", " +
                     "in a different tenant domain to the authenticated user: " + user.toFullQualifiedUsername());
             setFailedAuthentication(authenticationResult);
+            return;
         }
+
+        UserAccountConnector userAccountConnector = AuthenticationServiceHolder.getInstance().getUserAccountConnector();
+        if (userAccountConnector == null) {
+            log.error("Unable to get the UserAccountConnector service");
+            setFailedAuthentication(authenticationResult);
+            return;
+        }
+
+        if (!hasValidAssociation(user, associatedUser, userAccountConnector)) {
+            log.error("Associated user: " + associatedUser.toFullQualifiedUsername() + ", sent with the " +
+                    "header: " + ASSOCIATED_USER_ID_HEADER + ", does not have a valid association with the " +
+                    "user: " + user.toFullQualifiedUsername());
+            setFailedAuthentication(authenticationResult);
+            return;
+        }
+
+        if (log.isDebugEnabled()) {
+            log.debug("Setting the Associated user: " + associatedUser.toFullQualifiedUsername()
+                    + ", sent with the header: " + ASSOCIATED_USER_ID_HEADER + ", in the carbon " +
+                    "context since it is a valid association of the user: " + user.toFullQualifiedUsername());
+        }
+        setUserInCarbonContext(MultitenantUtils.getTenantAwareUsername(associatedUser.toFullQualifiedUsername()));
+    }
+
+    private boolean hasValidAssociation(User user, User associatedUser, UserAccountConnector userAccountConnector) {
+
+        try {
+            UserAccountAssociationDTO[] userAccountAssociations = userAccountConnector.getAccountAssociationsOfUser(
+                    user.toFullQualifiedUsername());
+            for (UserAccountAssociationDTO userAccountAssociation : userAccountAssociations) {
+                if (associatedUser.equals(getUser(userAccountAssociation))) {
+                    return true;
+                }
+            }
+        } catch (UserAccountAssociationException e) {
+            if (log.isDebugEnabled()) {
+                log.debug("Error while getting account associations of the user: " + user.toFullQualifiedUsername(),
+                        e);
+            }
+        }
+        return false;
     }
 
     private void setFailedAuthentication(AuthenticationResult authenticationResult) {
@@ -187,45 +184,12 @@ public abstract class AuthenticationHandler extends AbstractIdentityMessageHandl
         authenticationResult.setAuthenticationStatus(AuthenticationStatus.FAILED);
     }
 
-    private boolean isUsersInSameTenant(User user, User associatedUser) {
-
-        return associatedUser.getTenantDomain().equals(user.getTenantDomain());
-    }
-
-    private boolean isSameUser(User user, UserAccountAssociationDTO userAccountAssociationDTO) {
-
-        User associatedUser = new User();
-        associatedUser.setTenantDomain(userAccountAssociationDTO.getTenantDomain());
-        associatedUser.setUserStoreDomain(userAccountAssociationDTO.getDomain());
-        associatedUser.setUserName(userAccountAssociationDTO.getUsername());
-        return isSameUser(user, associatedUser);
-    }
-
-    private boolean isSameUser(User firstUser, User secondUser) {
-
-        return firstUser.toFullQualifiedUsername().equals(secondUser.toFullQualifiedUsername());
-    }
-
-    private User getUser(String fullyQualifiedUserName) {
-
-        String realm = UserStoreConfigConstants.PRIMARY;
-        String tenantDomain = MultitenantUtils.getTenantDomain(fullyQualifiedUserName);
-        String username;
-        String[] strComponent = MultitenantUtils.getTenantAwareUsername(fullyQualifiedUserName).split("/");
-
-        if (strComponent.length == 1) {
-            username = strComponent[0];
-        } else if (strComponent.length == 2) {
-            realm = strComponent[0];
-            username = strComponent[1];
-        } else {
-            return null;
-        }
+    private User getUser(UserAccountAssociationDTO userAccountAssociationDTO) {
 
         User user = new User();
-        user.setUserName(username);
-        user.setUserStoreDomain(realm);
-        user.setTenantDomain(tenantDomain);
+        user.setTenantDomain(userAccountAssociationDTO.getTenantDomain());
+        user.setUserStoreDomain(userAccountAssociationDTO.getDomain());
+        user.setUserName(userAccountAssociationDTO.getUsername());
         return user;
     }
 
