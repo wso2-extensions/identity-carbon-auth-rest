@@ -171,7 +171,7 @@ public class AuthConfigurationUtil {
                     String hash = resource.getAttributeValue(new QName(Constants.APPLICATION_HASH_ATTR));
                     String secretAlias = resource.getAttributeValue
                             (new QName(SECRET_ALIAS_NAMESPACE_URI, SECRET_ALIAS, SECRET_ALIAS_PREFIX));
-                    if (secretAlias != null) {
+                    if (StringUtils.isNotBlank(secretAlias)) {
                         hash = MiscellaneousUtil.resolve(secretAlias, secretResolver);
                     } else {
                         hash = MiscellaneousUtil.resolve(hash, secretResolver);
