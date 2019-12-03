@@ -167,6 +167,12 @@ public class ClientCertificateBasedAuthenticationHandler extends AuthenticationH
         return authenticationResult;
     }
 
+    /**
+     * Checks whether intermediate certificate validation is required for the incoming request.
+     *
+     * @param authenticationContext authenticationContext.
+     * @return True if intermediate certificate validation is required.
+     */
     private boolean requireIntermediateCertValidation(AuthenticationContext authenticationContext) {
 
         if (!AuthConfigurationUtil.getInstance().isIntermediateCertValidationEnabled()) {
@@ -180,6 +186,13 @@ public class ClientCertificateBasedAuthenticationHandler extends AuthenticationH
         return true;
     }
 
+    /**
+     * Retrieve the common name from the subject DN.
+     *
+     * @param dn Subject DN.
+     * @return Common name.
+     * @throws InvalidNameException
+     */
     private String getCN(String dn) throws InvalidNameException {
 
         LdapName ln = new LdapName(dn);
