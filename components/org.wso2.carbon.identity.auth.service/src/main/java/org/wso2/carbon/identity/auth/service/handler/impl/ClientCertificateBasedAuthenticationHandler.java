@@ -126,8 +126,8 @@ public class ClientCertificateBasedAuthenticationHandler extends AuthenticationH
                     }
                     if (StringUtils.isEmpty(certIssuerCN) || !AuthConfigurationUtil.getInstance()
                             .getIntermediateCertCNList().contains(certIssuerCN)) {
-                        log.error("Authentication failed for certificate issuer: " + certIssuerCN + "called by user: "
-                                + username + ".");
+                        log.error("Authentication failed for certificate issuer: " + certIssuerCN +
+                                " called by user: "+ username + ".");
                         return authenticationResult;
                     }
                 }
