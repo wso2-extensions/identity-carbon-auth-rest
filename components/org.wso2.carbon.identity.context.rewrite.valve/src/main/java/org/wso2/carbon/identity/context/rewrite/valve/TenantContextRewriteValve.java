@@ -34,19 +34,21 @@ import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.user.core.tenant.TenantManager;
 
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletResponse;
 
 public class TenantContextRewriteValve extends ValveBase {
 
     private static final String TENANT_NAME_FROM_CONTEXT = "TenantNameFromContext";
     private static List<RewriteContext> contextsToRewrite;
+    private static List<String> contextListToOverwriteDispatch;
     private TenantManager tenantManager;
 
     private static final Log log = LogFactory.getLog(TenantContextRewriteValve.class);
@@ -57,6 +59,10 @@ public class TenantContextRewriteValve extends ValveBase {
 
         if (contextsToRewrite == null) {
             contextsToRewrite = getContextsToRewrite();
+        }
+
+        if (contextListToOverwriteDispatch == null) {
+            contextListToOverwriteDispatch = getContextListToOverwriteDispatchLocation();
         }
 
         String contextToForward = null;
@@ -93,8 +99,11 @@ public class TenantContextRewriteValve extends ValveBase {
 
                 if (isWebApp) {
                     String dispatchLocation;
-                    //Need to rewrite
-                    dispatchLocation = requestURI.replace("/t/" + tenantDomain + contextToForward, "");
+                    if (contextListToOverwriteDispatch.contains(contextToForward)) {
+                        dispatchLocation = "";
+                    } else {
+                        dispatchLocation = requestURI.replace("/t/" + tenantDomain + contextToForward, "");
+                    }
                     request.getContext().setCrossContext(true);
                     request.getServletContext().getContext(contextToForward)
                             .getRequestDispatcher("/" + dispatchLocation).forward
@@ -145,6 +154,27 @@ public class TenantContextRewriteValve extends ValveBase {
             }
         }
         return rewriteContexts;
+    }
+
+    /**
+     * Get context list to overwrite dispatch location.
+     *
+     * @return list of contexts.
+     */
+    private List<String> getContextListToOverwriteDispatchLocation() {
+
+        Map<String, Object> configuration = IdentityConfigParser.getInstance().getConfiguration();
+        Object contexts = configuration.get("TenantContextsToRewrite.OverwriteDispatch.Context");
+        if (contexts != null) {
+            List<String> overridingContexts = new ArrayList<>();
+            if (contexts instanceof List) {
+                overridingContexts.addAll((List<String>) contexts);
+            } else {
+                overridingContexts.add(contexts.toString());
+            }
+            return overridingContexts;
+        }
+        return Collections.emptyList();
     }
 
     private void handleInvalidTenantDomainErrorResponse(Response response, int error, String tenantDomain) throws
