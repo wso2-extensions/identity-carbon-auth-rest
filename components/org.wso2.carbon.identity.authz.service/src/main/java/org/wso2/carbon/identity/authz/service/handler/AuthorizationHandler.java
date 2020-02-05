@@ -46,6 +46,8 @@ import static org.wso2.carbon.identity.auth.service.util.Constants.OAUTH2_VALIDA
 public class AuthorizationHandler extends AbstractIdentityHandler {
     private static final Log log = LogFactory.getLog(AuthorizationHandler.class);
 
+    private static final String RESOURCE_PERMISSION_NONE = "none";
+
 
     /**
      * Handle Authorization.
@@ -99,6 +101,11 @@ public class AuthorizationHandler extends AbstractIdentityHandler {
     }
 
     private void validatePermissions(AuthorizationResult authorizationResult, User user, String permissionString, UserRealm tenantUserRealm) throws UserStoreException {
+
+        if (RESOURCE_PERMISSION_NONE.equalsIgnoreCase(permissionString)) {
+            authorizationResult.setAuthorizationStatus(AuthorizationStatus.GRANT);
+            return;
+        }
 
         AuthorizationManager authorizationManager = tenantUserRealm.getAuthorizationManager();
         boolean isUserAuthorized = authorizationManager
