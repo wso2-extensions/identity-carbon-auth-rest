@@ -36,6 +36,7 @@ import org.wso2.carbon.identity.core.handler.InitConfig;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.user.api.UserRealm;
 import org.wso2.carbon.user.core.UserStoreManager;
+import org.wso2.carbon.user.core.util.UserCoreUtil;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
 import java.nio.charset.Charset;
@@ -119,6 +120,11 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
                                 getTenantAwareUsername(userName), password);
                         if (isAuthenticated) {
                             authenticationResult.setAuthenticationStatus(AuthenticationStatus.SUCCESS);
+                            String domain = UserCoreUtil.getDomainFromThreadLocal();
+                            if (StringUtils.isNotBlank(domain)) {
+                                user.setUserStoreDomain(domain);
+                            }
+                            authenticationContext.setUser(user);
                             if (log.isDebugEnabled()) {
                                 log.debug("Basic Authentication successful for the user: " + userName);
                             }
