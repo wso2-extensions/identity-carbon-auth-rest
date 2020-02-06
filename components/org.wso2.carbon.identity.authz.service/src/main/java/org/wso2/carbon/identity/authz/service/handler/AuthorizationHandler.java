@@ -36,6 +36,7 @@ import org.wso2.carbon.user.api.AuthorizationManager;
 import org.wso2.carbon.user.api.UserRealm;
 import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.user.core.service.RealmService;
+import org.wso2.carbon.user.core.util.UserCoreUtil;
 
 import static org.wso2.carbon.identity.auth.service.util.Constants.OAUTH2_ALLOWED_SCOPES;
 import static org.wso2.carbon.identity.auth.service.util.Constants.OAUTH2_VALIDATE_SCOPE;
@@ -108,8 +109,9 @@ public class AuthorizationHandler extends AbstractIdentityHandler {
         }
 
         AuthorizationManager authorizationManager = tenantUserRealm.getAuthorizationManager();
-        boolean isUserAuthorized = authorizationManager
-                .isUserAuthorized(user.getUserName(), permissionString, CarbonConstants.UI_PERMISSION_ACTION);
+        boolean isUserAuthorized =
+                authorizationManager.isUserAuthorized(UserCoreUtil.addDomainToName(user.getUserName(),
+                        user.getUserStoreDomain()), permissionString, CarbonConstants.UI_PERMISSION_ACTION);
         if (isUserAuthorized) {
             authorizationResult.setAuthorizationStatus(AuthorizationStatus.GRANT);
         }
