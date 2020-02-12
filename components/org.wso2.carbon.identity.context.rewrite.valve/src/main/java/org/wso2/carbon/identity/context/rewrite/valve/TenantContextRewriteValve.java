@@ -19,6 +19,7 @@
 package org.wso2.carbon.identity.context.rewrite.valve;
 
 import com.google.gson.JsonObject;
+import org.apache.catalina.LifecycleException;
 import org.apache.catalina.connector.Request;
 import org.apache.catalina.connector.Response;
 import org.apache.catalina.valves.ValveBase;
@@ -39,7 +40,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
@@ -54,26 +54,26 @@ public class TenantContextRewriteValve extends ValveBase {
     private static final Log log = LogFactory.getLog(TenantContextRewriteValve.class);
 
     @Override
+    protected synchronized void startInternal() throws LifecycleException {
+
+        super.startInternal();
+        // Initialize the tenant context rewrite valve.
+        contextsToRewrite = getContextsToRewrite();
+        contextListToOverwriteDispatch = getContextListToOverwriteDispatchLocation();
+    }
+
+    @Override
     public void invoke(Request request, Response response) throws IOException, ServletException {
+
         String requestURI = request.getRequestURI();
-
-        if (contextsToRewrite == null) {
-            contextsToRewrite = getContextsToRewrite();
-        }
-
-        if (contextListToOverwriteDispatch == null) {
-            contextListToOverwriteDispatch = getContextListToOverwriteDispatchLocation();
-        }
-
         String contextToForward = null;
         boolean isContextRewrite = false;
         boolean isWebApp = false;
 
         //Get the rewrite contexts and check whether request URI contains any of rewrite contains.
         for (RewriteContext context : contextsToRewrite) {
-            Pattern pattern = Pattern.compile("/t/([^/]+)" + context.getContext());
-            Matcher matcher = pattern.matcher(requestURI);
-            if (matcher.find()) {
+            Pattern pattern = context.getPattern();
+            if (pattern.matcher(requestURI).find() || pattern.matcher(requestURI + "/").find()) {
                 isContextRewrite = true;
                 isWebApp = context.isWebApp();
                 contextToForward = context.getContext();
