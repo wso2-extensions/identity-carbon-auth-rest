@@ -17,28 +17,50 @@
  */
 package org.wso2.carbon.identity.context.rewrite.bean;
 
+import java.util.regex.Pattern;
+
 public class RewriteContext {
+
     private boolean isWebApp;
+
     private String context;
 
+    private Pattern pattern;
+
     public RewriteContext(boolean isWebApp, String context) {
+
         this.isWebApp = isWebApp;
         this.context = context;
+        this.pattern = Pattern.compile("/t/([^/]+)" + context);
     }
 
     public boolean isWebApp() {
+
         return isWebApp;
     }
 
     public void setIsWebApp(boolean isWebApp) {
+
         this.isWebApp = isWebApp;
     }
 
     public String getContext() {
+
         return context;
     }
 
     public void setContext(String context) {
+
         this.context = context;
+    }
+
+    public Pattern getPattern() {
+
+        return pattern;
+    }
+
+    public void setPattern(Pattern pattern) {
+
+        this.pattern = pattern;
     }
 }
