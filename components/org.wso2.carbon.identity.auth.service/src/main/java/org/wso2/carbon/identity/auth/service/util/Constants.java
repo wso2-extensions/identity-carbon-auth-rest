@@ -6,6 +6,7 @@ public class Constants {
     public final static String RESOURCE_ACCESS_CONTROL_ELE = "ResourceAccessControl";
     public final static String RESOURCE_ELE = "Resource";
     public final static String RESOURCE_DEFAULT_ACCESS = "default-access";
+    public final static String RESOURCE_DISABLE_SCOPE_VALIDATION = "disable-scope-validation";
     public final static String RESOURCE_CONTEXT_ATTR = "context";
     public final static String RESOURCE_SECURED_ATTR = "secured";
     public final static String RESOURCE_HTTP_METHOD_ATTR = "http-method";
