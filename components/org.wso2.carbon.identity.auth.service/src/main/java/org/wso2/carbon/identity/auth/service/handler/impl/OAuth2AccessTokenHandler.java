@@ -29,6 +29,7 @@ import org.wso2.carbon.identity.auth.service.AuthenticationRequest;
 import org.wso2.carbon.identity.auth.service.AuthenticationResult;
 import org.wso2.carbon.identity.auth.service.AuthenticationStatus;
 import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
+import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
 import org.wso2.carbon.identity.core.handler.InitConfig;
 import org.wso2.carbon.identity.oauth2.OAuth2TokenValidationService;
@@ -117,7 +118,8 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
 
                 authenticationContext.addParameter(CONSUMER_KEY, clientApplicationDTO.getConsumerKey());
                 authenticationContext.addParameter(OAUTH2_ALLOWED_SCOPES, responseDTO.getScope());
-                authenticationContext.addParameter(OAUTH2_VALIDATE_SCOPE, true);
+                authenticationContext.addParameter(OAUTH2_VALIDATE_SCOPE,
+                        AuthConfigurationUtil.getInstance().isScopeValidationEnabled());
             }
         }
         return authenticationResult;
