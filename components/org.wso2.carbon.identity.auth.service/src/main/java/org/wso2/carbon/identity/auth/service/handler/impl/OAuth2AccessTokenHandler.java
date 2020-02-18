@@ -38,6 +38,7 @@ import org.wso2.carbon.identity.oauth2.dto.OAuth2TokenValidationRequestDTO;
 import org.wso2.carbon.identity.oauth2.dto.OAuth2TokenValidationResponseDTO;
 import org.wso2.carbon.identity.oauth2.token.bindings.TokenBinding;
 import org.wso2.carbon.identity.oauth2.util.OAuth2Util;
+import org.wso2.carbon.user.core.util.UserCoreUtil;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
 import javax.servlet.http.Cookie;
@@ -111,7 +112,10 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
 
                 if (StringUtils.isNotEmpty(responseDTO.getAuthorizedUser())) {
                     User user = new User();
-                    user.setUserName(MultitenantUtils.getTenantAwareUsername(responseDTO.getAuthorizedUser()));
+                    String tenantAwareUsername =
+                            MultitenantUtils.getTenantAwareUsername(responseDTO.getAuthorizedUser());
+                    user.setUserName(UserCoreUtil.removeDomainFromName(tenantAwareUsername));
+                    user.setUserStoreDomain(UserCoreUtil.extractDomainFromName(tenantAwareUsername));
                     user.setTenantDomain(MultitenantUtils.getTenantDomain(responseDTO.getAuthorizedUser()));
                     authenticationContext.setUser(user);
                 }
