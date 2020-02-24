@@ -37,6 +37,7 @@ import org.wso2.carbon.identity.auth.service.module.ResourceConfigKey;
 import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
 import org.wso2.carbon.identity.auth.service.util.Constants;
 import org.wso2.carbon.identity.auth.valve.util.AuthHandlerManager;
+import org.wso2.carbon.identity.base.IdentityRuntimeException;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 
 import javax.servlet.ServletException;
@@ -97,12 +98,15 @@ public class AuthenticationValve extends ValveBase {
         } catch (AuthClientException e) {
             handleErrorResponse(authenticationContext, response, HttpServletResponse.SC_BAD_REQUEST, e);
         } catch (AuthServerException e) {
-            log.error("Auth Server Expection occured in Authentication valve :", e);
+            log.error("Auth Server Exception occurred in Authentication valve :", e);
             handleErrorResponse(authenticationContext, response, HttpServletResponse.SC_BAD_REQUEST, null);
         } catch (AuthenticationFailException e) {
             handleErrorResponse(authenticationContext, response, HttpServletResponse.SC_UNAUTHORIZED, e);
         } catch (AuthRuntimeException e) {
-            log.error("Auth Runtime Expection occured in Authentication valve :", e);
+            log.error("Auth Runtime Exception occurred in Authentication valve :", e);
+            handleErrorResponse(authenticationContext, response, HttpServletResponse.SC_UNAUTHORIZED, null);
+        } catch (IdentityRuntimeException e) {
+            log.error("Identity Runtime Exception occurred in Authentication valve :", e);
             handleErrorResponse(authenticationContext, response, HttpServletResponse.SC_UNAUTHORIZED, null);
         } finally {
             // Clear 'IdentityError' thread local.

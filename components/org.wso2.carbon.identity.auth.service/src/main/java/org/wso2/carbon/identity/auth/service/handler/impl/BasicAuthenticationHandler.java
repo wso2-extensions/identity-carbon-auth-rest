@@ -108,11 +108,11 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
                     //TODO: Related to this https://wso2.org/jira/browse/IDENTITY-4752 - Class IdentityMgtEventListener
                     // : Line 563: Have to check whether why we can't continue
                     //without following lines as previous code.
-                    PrivilegedCarbonContext.startTenantFlow();
-                    PrivilegedCarbonContext.getThreadLocalCarbonContext().setTenantDomain(tenantDomain);
-                    PrivilegedCarbonContext.getThreadLocalCarbonContext().setTenantId(tenantId);
-
                     try {
+                        PrivilegedCarbonContext.startTenantFlow();
+                        PrivilegedCarbonContext.getThreadLocalCarbonContext().setTenantDomain(tenantDomain);
+                        PrivilegedCarbonContext.getThreadLocalCarbonContext().setTenantId(tenantId);
+
                         UserRealm userRealm = AuthenticationServiceHolder.getInstance().getRealmService().
                                 getTenantUserRealm(tenantId);
                         if (userRealm != null) {
