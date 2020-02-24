@@ -112,35 +112,37 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
                     PrivilegedCarbonContext.getThreadLocalCarbonContext().setTenantDomain(tenantDomain);
                     PrivilegedCarbonContext.getThreadLocalCarbonContext().setTenantId(tenantId);
 
-                    UserRealm userRealm = AuthenticationServiceHolder.getInstance().getRealmService().
-                            getTenantUserRealm(tenantId);
-                    if (userRealm != null) {
-                        userStoreManager = (UserStoreManager) userRealm.getUserStoreManager();
-                        boolean isAuthenticated = userStoreManager.authenticate(MultitenantUtils.
-                                getTenantAwareUsername(userName), password);
-                        if (isAuthenticated) {
-                            authenticationResult.setAuthenticationStatus(AuthenticationStatus.SUCCESS);
-                            String domain = UserCoreUtil.getDomainFromThreadLocal();
-                            if (StringUtils.isNotBlank(domain)) {
-                                user.setUserStoreDomain(domain);
+                    try {
+                        UserRealm userRealm = AuthenticationServiceHolder.getInstance().getRealmService().
+                                getTenantUserRealm(tenantId);
+                        if (userRealm != null) {
+                            userStoreManager = (UserStoreManager) userRealm.getUserStoreManager();
+                            boolean isAuthenticated = userStoreManager.authenticate(MultitenantUtils.
+                                    getTenantAwareUsername(userName), password);
+                            if (isAuthenticated) {
+                                authenticationResult.setAuthenticationStatus(AuthenticationStatus.SUCCESS);
+                                String domain = UserCoreUtil.getDomainFromThreadLocal();
+                                if (StringUtils.isNotBlank(domain)) {
+                                    user.setUserStoreDomain(domain);
+                                }
+                                authenticationContext.setUser(user);
+                                if (log.isDebugEnabled()) {
+                                    log.debug("Basic Authentication successful for the user: " + userName);
+                                }
                             }
-                            authenticationContext.setUser(user);
-                            if (log.isDebugEnabled()) {
-                                log.debug("Basic Authentication successful for the user: " + userName);
-                            }
+                        } else {
+                            String errorMessage = "Error occurred while trying to load the user realm for the tenant: " +
+                                    tenantId;
+                            log.error(errorMessage);
+                            throw new AuthenticationFailException(errorMessage);
                         }
-                    } else {
-                        String errorMessage = "Error occurred while trying to load the user realm for the tenant: " +
-                                tenantId;
-                        log.error(errorMessage);
-                        throw new AuthenticationFailException(errorMessage);
+                    } finally {
+                        PrivilegedCarbonContext.endTenantFlow();
                     }
                 } catch (org.wso2.carbon.user.api.UserStoreException e) {
                     String errorMessage = "Error occurred while trying to authenticate. " + e.getMessage();
                     log.error(errorMessage);
                     throw new AuthenticationFailException(errorMessage);
-                } finally {
-                    PrivilegedCarbonContext.endTenantFlow();
                 }
             } else {
                 String errorMessage = "Error occurred while trying to authenticate. The auth user credentials " +
