@@ -49,6 +49,7 @@ public class TenantContextRewriteValve extends ValveBase {
     private static final String TENANT_NAME_FROM_CONTEXT = "TenantNameFromContext";
     private static List<RewriteContext> contextsToRewrite;
     private static List<String> contextListToOverwriteDispatch;
+    private boolean isTenantQualifiedUrlsEnabled;
     private TenantManager tenantManager;
 
     private static final Log log = LogFactory.getLog(TenantContextRewriteValve.class);
@@ -59,7 +60,9 @@ public class TenantContextRewriteValve extends ValveBase {
         super.startInternal();
         // Initialize the tenant context rewrite valve.
         contextsToRewrite = getContextsToRewrite();
+        isTenantQualifiedUrlsEnabled = isTenantQualifiedUrlsEnabled();
         contextListToOverwriteDispatch = getContextListToOverwriteDispatchLocation();
+
     }
 
     @Override
@@ -81,7 +84,7 @@ public class TenantContextRewriteValve extends ValveBase {
             }
         }
 
-        if (isTenantQualifiedUrlsEnabled()) {
+        if (isTenantQualifiedUrlsEnabled) {
             String tenantDomain = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain();
             IdentityUtil.threadLocalProperties.get().put(TENANT_NAME_FROM_CONTEXT, tenantDomain);
         }
