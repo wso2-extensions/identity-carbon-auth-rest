@@ -81,7 +81,7 @@ public class TenantContextRewriteValve extends ValveBase {
             }
         }
 
-        if (isTenantQualifiedModeEnabled()) {
+        if (isTenantQualifiedUrlsEnabled()) {
             String tenantDomain = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain();
             IdentityUtil.threadLocalProperties.get().put(TENANT_NAME_FROM_CONTEXT, tenantDomain);
         }
@@ -160,7 +160,7 @@ public class TenantContextRewriteValve extends ValveBase {
         return rewriteContexts;
     }
 
-    private boolean isTenantQualifiedModeEnabled() {
+    private boolean isTenantQualifiedUrlsEnabled() {
         Map<String, Object> configuration = IdentityConfigParser.getInstance().getConfiguration();
         return Boolean.parseBoolean(String.valueOf(configuration.get("EnableTenantQualifiedUrls")));
     }
