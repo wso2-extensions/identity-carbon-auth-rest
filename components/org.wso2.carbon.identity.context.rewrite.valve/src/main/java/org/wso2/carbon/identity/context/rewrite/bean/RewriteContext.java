@@ -34,7 +34,7 @@ public class RewriteContext {
         this.isWebApp = isWebApp;
         this.context = context;
         this.patternTenant = Pattern.compile("/t/([^/]+)" + context);
-        this.patternSuperTenant = Pattern.compile(context);
+        this.patternSuperTenant = Pattern.compile("^" + context);
     }
 
     public boolean isWebApp() {
