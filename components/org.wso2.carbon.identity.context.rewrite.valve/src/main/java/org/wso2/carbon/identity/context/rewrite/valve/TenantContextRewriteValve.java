@@ -41,6 +41,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
+
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
 
@@ -75,19 +76,23 @@ public class TenantContextRewriteValve extends ValveBase {
 
         //Get the rewrite contexts and check whether request URI contains any of rewrite contains.
         for (RewriteContext context : contextsToRewrite) {
-            Pattern pattern = context.getPattern();
-            if (pattern.matcher(requestURI).find() || pattern.matcher(requestURI + "/").find()) {
+            Pattern patternTenant = context.getPatternTenant();
+            Pattern patternSuperTenant = context.getPatternSuperTenant();
+            if (patternTenant.matcher(requestURI).find() || patternTenant.matcher(requestURI + "/").find()) {
                 isContextRewrite = true;
                 isWebApp = context.isWebApp();
                 contextToForward = context.getContext();
                 break;
             }
+            if (isTenantQualifiedUrlsEnabled) {
+                if (patternSuperTenant.matcher(requestURI).find() ||
+                        patternSuperTenant.matcher(requestURI + "/").find()) {
+                    String tenantDomain = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain();
+                    IdentityUtil.threadLocalProperties.get().put(TENANT_NAME_FROM_CONTEXT, tenantDomain);
+                }
+            }
         }
 
-        if (isTenantQualifiedUrlsEnabled) {
-            String tenantDomain = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain();
-            IdentityUtil.threadLocalProperties.get().put(TENANT_NAME_FROM_CONTEXT, tenantDomain);
-        }
         //request URI is not a rewrite one
         if (!isContextRewrite) {
             getNext().invoke(request, response);
