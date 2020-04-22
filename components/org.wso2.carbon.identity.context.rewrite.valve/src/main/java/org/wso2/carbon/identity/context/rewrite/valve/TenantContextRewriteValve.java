@@ -47,7 +47,7 @@ import javax.servlet.http.HttpServletResponse;
 
 public class TenantContextRewriteValve extends ValveBase {
 
-    private static final String TENANT_NAME_FROM_CONTEXT = "TenantNameFromContext";
+    public static final String TENANT_NAME_FROM_CONTEXT = "TenantNameFromContext";
     private static List<RewriteContext> contextsToRewrite;
     private static List<String> contextListToOverwriteDispatch;
     private TenantManager tenantManager;
@@ -74,8 +74,8 @@ public class TenantContextRewriteValve extends ValveBase {
 
         //Get the rewrite contexts and check whether request URI contains any of rewrite contains.
         for (RewriteContext context : contextsToRewrite) {
-            Pattern patternTenant = context.getPatternTenant();
-            Pattern patternSuperTenant = context.getPatternSuperTenant();
+            Pattern patternTenant = context.getTenantContextPattern();
+            Pattern patternSuperTenant = context.getBaseContextPattern();
             if (patternTenant.matcher(requestURI).find() || patternTenant.matcher(requestURI + "/").find()) {
                 isContextRewrite = true;
                 isWebApp = context.isWebApp();

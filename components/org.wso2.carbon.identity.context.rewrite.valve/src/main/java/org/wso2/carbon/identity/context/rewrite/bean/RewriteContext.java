@@ -17,6 +17,8 @@
  */
 package org.wso2.carbon.identity.context.rewrite.bean;
 
+import org.wso2.carbon.identity.base.IdentityRuntimeException;
+
 import java.util.regex.Pattern;
 
 public class RewriteContext {
@@ -25,16 +27,16 @@ public class RewriteContext {
 
     private String context;
 
-    private Pattern patternTenant;
+    private Pattern tenantContextPattern;
 
-    private Pattern patternSuperTenant;
+    private Pattern baseContextPattern;
 
     public RewriteContext(boolean isWebApp, String context) {
 
         this.isWebApp = isWebApp;
         this.context = context;
-        this.patternTenant = Pattern.compile("/t/([^/]+)" + context);
-        this.patternSuperTenant = Pattern.compile("^" + context);
+        this.tenantContextPattern = Pattern.compile("/t/([^/]+)" + context);
+        this.baseContextPattern = Pattern.compile(context);
     }
 
     public boolean isWebApp() {
@@ -57,18 +59,38 @@ public class RewriteContext {
         this.context = context;
     }
 
-    public Pattern getPatternTenant() {
+    public Pattern getTenantContextPattern() {
 
-        return patternTenant;
+        return tenantContextPattern;
     }
 
-    public Pattern getPatternSuperTenant() {
+    public Pattern getBaseContextPattern() {
 
-        return patternSuperTenant;
+        return baseContextPattern;
     }
 
-    public void setPatternTenant(Pattern patternTenant) {
+    public void setTenantContextPattern(Pattern tenantContextPattern) {
 
-        this.patternTenant = patternTenant;
+        this.tenantContextPattern = tenantContextPattern;
+    }
+
+    /**
+     * @deprecated as of release 1.4.1
+     * Replaced by getTenantContextPattern()
+     */
+    @Deprecated
+    public Pattern getPattern() {
+
+        return tenantContextPattern;
+    }
+
+    /**
+     * @deprecated as of release 1.4.1
+     * Replaced by setTenantContextPattern(Pattern tenantContextPattern)
+     */
+    @Deprecated
+    public void setPattern(Pattern pattern) {
+
+        this.tenantContextPattern = pattern;
     }
 }
