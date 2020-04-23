@@ -356,7 +356,7 @@
         <!--Carbon identity version-->
         <identity.framework.version>5.17.50</identity.framework.version>
         <carbon.identity.package.export.version>${identity.framework.version}</carbon.identity.package.export.version>
-        <carbon.identity.package.import.version.range>[5.14.67, 6.0.0)</carbon.identity.package.import.version.range>
+        <carbon.identity.package.import.version.range>[5.17.8, 6.0.0)</carbon.identity.package.import.version.range>
 
         <org.wso2.carbon.identity.oauth.version>6.2.41</org.wso2.carbon.identity.oauth.version>
         <org.wso2.carbon.identity.oauth.import.version.range>[6.2.18, 7.0.0)
