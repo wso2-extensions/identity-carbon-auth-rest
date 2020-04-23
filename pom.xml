@@ -354,7 +354,7 @@
         <org.wso2.carbon.identity.context.rewrite.valve.version>${project.version}</org.wso2.carbon.identity.context.rewrite.valve.version>
 
         <!--Carbon identity version-->
-        <identity.framework.version>5.16.120</identity.framework.version>
+        <identity.framework.version>5.17.50</identity.framework.version>
         <carbon.identity.package.export.version>${identity.framework.version}</carbon.identity.package.export.version>
         <carbon.identity.package.import.version.range>[5.14.67, 6.0.0)</carbon.identity.package.import.version.range>
 
