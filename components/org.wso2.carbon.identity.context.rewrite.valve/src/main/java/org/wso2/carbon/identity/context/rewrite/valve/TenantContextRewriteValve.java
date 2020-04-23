@@ -83,9 +83,10 @@ public class TenantContextRewriteValve extends ValveBase {
                 contextToForward = context.getContext();
                 break;
             }
-            if (patternSuperTenant.matcher(requestURI).find() || patternSuperTenant.matcher(requestURI + "/").find()) {
+            else if (patternSuperTenant.matcher(requestURI).find() || patternSuperTenant.matcher(requestURI + "/").find()) {
                 String tenantDomain = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain();
                 IdentityUtil.threadLocalProperties.get().put(TENANT_NAME_FROM_CONTEXT, tenantDomain);
+                break;
             }
         }
 
