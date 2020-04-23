@@ -45,9 +45,10 @@ import java.util.regex.Pattern;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
 
+import static org.wso2.carbon.identity.core.util.IdentityCoreConstants.TENANT_NAME_FROM_CONTEXT;
+
 public class TenantContextRewriteValve extends ValveBase {
 
-    public static final String TENANT_NAME_FROM_CONTEXT = "TenantNameFromContext";
     private static List<RewriteContext> contextsToRewrite;
     private static List<String> contextListToOverwriteDispatch;
     private TenantManager tenantManager;

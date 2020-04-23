@@ -17,8 +17,6 @@
  */
 package org.wso2.carbon.identity.context.rewrite.bean;
 
-import org.wso2.carbon.identity.base.IdentityRuntimeException;
-
 import java.util.regex.Pattern;
 
 public class RewriteContext {
