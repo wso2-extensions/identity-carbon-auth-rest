@@ -25,16 +25,13 @@ public class RewriteContext {
 
     private String context;
 
-    private Pattern tenantContextPattern;
-
-    private Pattern baseContextPattern;
+    private Pattern pattern;
 
     public RewriteContext(boolean isWebApp, String context) {
 
         this.isWebApp = isWebApp;
         this.context = context;
-        this.tenantContextPattern = Pattern.compile("/t/([^/]+)" + context);
-        this.baseContextPattern = Pattern.compile(context);
+        this.pattern = Pattern.compile("/t/([^/]+)" + context);
     }
 
     public boolean isWebApp() {
@@ -57,38 +54,13 @@ public class RewriteContext {
         this.context = context;
     }
 
-    public Pattern getTenantContextPattern() {
-
-        return tenantContextPattern;
-    }
-
-    public Pattern getBaseContextPattern() {
-
-        return baseContextPattern;
-    }
-
-    public void setTenantContextPattern(Pattern tenantContextPattern) {
-
-        this.tenantContextPattern = tenantContextPattern;
-    }
-
-    /**
-     * @deprecated as of release 1.4.1
-     * Replaced by getTenantContextPattern()
-     */
-    @Deprecated
     public Pattern getPattern() {
 
-        return tenantContextPattern;
+        return pattern;
     }
 
-    /**
-     * @deprecated as of release 1.4.1
-     * Replaced by setTenantContextPattern(Pattern tenantContextPattern)
-     */
-    @Deprecated
     public void setPattern(Pattern pattern) {
 
-        this.tenantContextPattern = pattern;
+        this.pattern = pattern;
     }
 }
