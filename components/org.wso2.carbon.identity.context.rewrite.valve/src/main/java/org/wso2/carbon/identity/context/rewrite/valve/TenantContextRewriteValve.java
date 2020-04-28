@@ -72,7 +72,6 @@ public class TenantContextRewriteValve extends ValveBase {
         String contextToForward = null;
         boolean isContextRewrite = false;
         boolean isWebApp = false;
-        boolean isTenantDomainInThreadLocal = false;
 
         //Get the rewrite contexts and check whether request URI contains any of rewrite contains.
         for (RewriteContext context : contextsToRewrite) {
@@ -83,11 +82,11 @@ public class TenantContextRewriteValve extends ValveBase {
                 isWebApp = context.isWebApp();
                 contextToForward = context.getContext();
                 break;
-            } else if (!isTenantDomainInThreadLocal && patternSuperTenant.matcher(requestURI).find() ||
-                    patternSuperTenant.matcher(requestURI + "/").find()) {
+            } else if (patternSuperTenant.matcher(requestURI).find() || patternSuperTenant.matcher(requestURI + "/")
+                    .find()) {
                 String tenantDomain = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain();
                 IdentityUtil.threadLocalProperties.get().put(TENANT_NAME_FROM_CONTEXT, tenantDomain);
-                isTenantDomainInThreadLocal = true;
+                break;
             }
         }
 
