@@ -25,6 +25,7 @@ import org.apache.catalina.connector.Response;
 import org.apache.catalina.valves.ValveBase;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.wso2.carbon.base.MultitenantConstants;
 import org.wso2.carbon.base.ServerConfiguration;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.identity.context.rewrite.bean.RewriteContext;
@@ -84,8 +85,8 @@ public class TenantContextRewriteValve extends ValveBase {
                 break;
             } else if (patternSuperTenant.matcher(requestURI).find() || patternSuperTenant.matcher(requestURI + "/")
                     .find()) {
-                String tenantDomain = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain();
-                IdentityUtil.threadLocalProperties.get().put(TENANT_NAME_FROM_CONTEXT, tenantDomain);
+                IdentityUtil.threadLocalProperties.get().put(TENANT_NAME_FROM_CONTEXT, MultitenantConstants
+                        .SUPER_TENANT_DOMAIN_NAME);
                 break;
             }
         }
