@@ -52,6 +52,7 @@ public class TenantContextRewriteValve extends ValveBase {
 
     private static List<RewriteContext> contextsToRewrite;
     private static List<String> contextListToOverwriteDispatch;
+    private boolean isTenantQualifiedUrlsEnabled;
     private TenantManager tenantManager;
 
     private static final Log log = LogFactory.getLog(TenantContextRewriteValve.class);
@@ -63,6 +64,7 @@ public class TenantContextRewriteValve extends ValveBase {
         // Initialize the tenant context rewrite valve.
         contextsToRewrite = getContextsToRewrite();
         contextListToOverwriteDispatch = getContextListToOverwriteDispatchLocation();
+        isTenantQualifiedUrlsEnabled = isTenantQualifiedModeEnabled();
 
     }
 
@@ -83,8 +85,8 @@ public class TenantContextRewriteValve extends ValveBase {
                 isWebApp = context.isWebApp();
                 contextToForward = context.getContext();
                 break;
-            } else if (patternSuperTenant.matcher(requestURI).find() || patternSuperTenant.matcher(requestURI + "/")
-                    .find()) {
+            } else if (isTenantQualifiedUrlsEnabled && patternSuperTenant.matcher(requestURI).find() ||
+                    patternSuperTenant.matcher(requestURI + "/").find()) {
                 IdentityUtil.threadLocalProperties.get().put(TENANT_NAME_FROM_CONTEXT, MultitenantConstants
                         .SUPER_TENANT_DOMAIN_NAME);
                 break;
@@ -199,5 +201,11 @@ public class TenantContextRewriteValve extends ValveBase {
         errorResponse.addProperty("message", errorMsg);
         errorResponse.addProperty("description", errorMsg);
         response.getWriter().print(errorResponse.toString());
+    }
+
+    private boolean isTenantQualifiedModeEnabled() {
+
+        Map<String, Object> configuration = IdentityConfigParser.getInstance().getConfiguration();
+        return Boolean.parseBoolean(String.valueOf(configuration.get("EnableTenantQualifiedUrls")));
     }
 }
