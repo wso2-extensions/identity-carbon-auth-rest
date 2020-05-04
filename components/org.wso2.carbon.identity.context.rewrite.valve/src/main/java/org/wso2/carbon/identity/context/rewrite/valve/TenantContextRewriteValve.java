@@ -46,6 +46,7 @@ import java.util.regex.Pattern;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
 
+import static org.wso2.carbon.identity.core.util.IdentityCoreConstants.ENABLE_TENANT_QUALIFIED_URLS;
 import static org.wso2.carbon.identity.core.util.IdentityCoreConstants.TENANT_NAME_FROM_CONTEXT;
 
 public class TenantContextRewriteValve extends ValveBase {
@@ -64,7 +65,7 @@ public class TenantContextRewriteValve extends ValveBase {
         // Initialize the tenant context rewrite valve.
         contextsToRewrite = getContextsToRewrite();
         contextListToOverwriteDispatch = getContextListToOverwriteDispatchLocation();
-        isTenantQualifiedUrlsEnabled = IdentityTenantUtil.isTenantQualifiedUrlsEnabled();
+        isTenantQualifiedUrlsEnabled = isTenantQualifiedUrlsEnabled();
 
     }
 
@@ -139,6 +140,13 @@ public class TenantContextRewriteValve extends ValveBase {
         } finally {
             IdentityUtil.threadLocalProperties.get().remove(TENANT_NAME_FROM_CONTEXT);
         }
+    }
+
+    private boolean isTenantQualifiedUrlsEnabled() {
+
+        Map<String, Object> configuration = IdentityConfigParser.getInstance().getConfiguration();
+        String enableTenantQualifiedUrls = (String) configuration.get(ENABLE_TENANT_QUALIFIED_URLS);
+        return Boolean.parseBoolean(enableTenantQualifiedUrls);
     }
 
     private List<RewriteContext> getContextsToRewrite() {
