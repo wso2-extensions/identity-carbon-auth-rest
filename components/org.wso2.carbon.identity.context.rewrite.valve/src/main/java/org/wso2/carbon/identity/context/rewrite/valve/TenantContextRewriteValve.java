@@ -25,6 +25,7 @@ import org.apache.catalina.connector.Response;
 import org.apache.catalina.valves.ValveBase;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.log4j.MDC;
 import org.wso2.carbon.base.MultitenantConstants;
 import org.wso2.carbon.base.ServerConfiguration;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
@@ -51,6 +52,7 @@ import static org.wso2.carbon.identity.core.util.IdentityCoreConstants.TENANT_NA
 
 public class TenantContextRewriteValve extends ValveBase {
 
+    private static final String TENANT_DOMAIN = "tenantDomain";
     private static List<RewriteContext> contextsToRewrite;
     private static List<String> contextListToOverwriteDispatch;
     private boolean isTenantQualifiedUrlsEnabled;
@@ -94,14 +96,15 @@ public class TenantContextRewriteValve extends ValveBase {
             }
         }
 
-        //request URI is not a rewrite one
-        if (!isContextRewrite) {
-            getNext().invoke(request, response);
-            return;
-        }
 
         String tenantDomain = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain();
         try {
+            MDC.put(TENANT_DOMAIN, tenantDomain);
+            //request URI is not a rewrite one
+            if (!isContextRewrite) {
+                getNext().invoke(request, response);
+                return;
+            }
             tenantManager = ContextRewriteValveServiceComponentHolder.getInstance().getRealmService()
                     .getTenantManager();
             if (tenantDomain != null &&
@@ -139,6 +142,7 @@ public class TenantContextRewriteValve extends ValveBase {
             }
         } finally {
             IdentityUtil.threadLocalProperties.get().remove(TENANT_NAME_FROM_CONTEXT);
+            MDC.remove(TENANT_DOMAIN);
         }
     }
 
