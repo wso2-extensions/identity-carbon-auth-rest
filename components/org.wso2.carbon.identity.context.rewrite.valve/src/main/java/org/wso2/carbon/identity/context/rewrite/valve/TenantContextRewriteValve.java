@@ -110,6 +110,15 @@ public class TenantContextRewriteValve extends ValveBase {
             if (tenantDomain != null &&
                     !tenantManager.isTenantActive(IdentityTenantUtil.getTenantId(tenantDomain))) {
                 handleInvalidTenantDomainErrorResponse(response, HttpServletResponse.SC_NOT_FOUND, tenantDomain);
+            } else if (IdentityTenantUtil.isTenantQualifiedUrlsEnabled() && MultitenantConstants
+                    .SUPER_TENANT_DOMAIN_NAME.equals(tenantDomain)) {
+                if (log.isDebugEnabled()) {
+                    log.debug("Tenant qualified URL feature is enabled. Hence restricting the access to super tenant" +
+                            " domain via /t/carbon.super context. Super tenant should be invoked without the tenant " +
+                            "in context path using the server base path.");
+                }
+                handleRestrictedTenantDomainErrorResponse(response);
+
             } else {
                 IdentityUtil.threadLocalProperties.get().put(TENANT_NAME_FROM_CONTEXT, tenantDomain);
 
@@ -210,6 +219,20 @@ public class TenantContextRewriteValve extends ValveBase {
         JsonObject errorResponse = new JsonObject();
         String errorMsg = "invalid tenant domain : " + tenantDomain;
         errorResponse.addProperty("code", error);
+        errorResponse.addProperty("message", errorMsg);
+        errorResponse.addProperty("description", errorMsg);
+        response.getWriter().print(errorResponse.toString());
+    }
+
+    private void handleRestrictedTenantDomainErrorResponse(Response response) throws IOException, ServletException {
+
+        response.setContentType("application/json");
+        response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+        response.setCharacterEncoding("UTF-8");
+        JsonObject errorResponse = new JsonObject();
+        String errorMsg = "Access to super tenant domain over tenanted URL format (/t/carbon.super) is restricted. " +
+                "Please use the server base path instead.";
+        errorResponse.addProperty("code", HttpServletResponse.SC_FORBIDDEN);
         errorResponse.addProperty("message", errorMsg);
         errorResponse.addProperty("description", errorMsg);
         response.getWriter().print(errorResponse.toString());
