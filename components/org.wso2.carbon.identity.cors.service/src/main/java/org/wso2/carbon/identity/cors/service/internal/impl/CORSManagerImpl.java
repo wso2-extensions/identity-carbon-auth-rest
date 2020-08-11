@@ -20,18 +20,14 @@ package org.wso2.carbon.identity.cors.service.internal.impl;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.wso2.carbon.identity.application.authentication.framework.util.FrameworkUtils;
-import org.wso2.carbon.identity.configuration.mgt.core.ConfigurationManager;
-import org.wso2.carbon.identity.configuration.mgt.core.exception.ConfigurationManagementException;
-import org.wso2.carbon.identity.configuration.mgt.core.model.Resource;
-import org.wso2.carbon.identity.configuration.mgt.core.model.Resources;
+import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.cors.mgt.core.constant.ErrorMessages;
+import org.wso2.carbon.identity.cors.mgt.core.dao.CORSConfigurationDAO;
+import org.wso2.carbon.identity.cors.mgt.core.dao.CORSOriginDAO;
 import org.wso2.carbon.identity.cors.mgt.core.exception.CORSManagementServiceException;
 import org.wso2.carbon.identity.cors.mgt.core.exception.CORSManagementServiceServerException;
-import org.wso2.carbon.identity.cors.mgt.core.internal.function.ResourceToCORSConfiguration;
-import org.wso2.carbon.identity.cors.mgt.core.internal.function.ResourcesToValidatedOrigins;
-import org.wso2.carbon.identity.cors.mgt.core.internal.util.CORSConfigurationUtils;
 import org.wso2.carbon.identity.cors.mgt.core.model.CORSConfiguration;
+import org.wso2.carbon.identity.cors.mgt.core.model.CORSOrigin;
 import org.wso2.carbon.identity.cors.mgt.core.model.ValidatedOrigin;
 import org.wso2.carbon.identity.cors.service.CORSManager;
 import org.wso2.carbon.identity.cors.service.internal.CORSServiceHolder;
@@ -41,12 +37,11 @@ import org.wso2.carbon.identity.cors.service.internal.cache.CORSConfigurationCac
 import org.wso2.carbon.identity.cors.service.internal.cache.CORSOriginCache;
 import org.wso2.carbon.identity.cors.service.internal.cache.CORSOriginCacheEntry;
 import org.wso2.carbon.identity.cors.service.internal.cache.CORSOriginCacheKey;
+import org.wso2.carbon.identity.cors.service.internal.function.CORSOriginToValidatedOrigin;
 import org.wso2.carbon.identity.cors.service.internal.store.ServerCORSStore;
 
-import static org.wso2.carbon.identity.configuration.mgt.core.constant.ConfigurationConstants.ErrorMessages.ERROR_CODE_RESOURCE_DOES_NOT_EXISTS;
-import static org.wso2.carbon.identity.cors.mgt.core.internal.Constants.CORS_CONFIGURATION_RESOURCE_NAME;
-import static org.wso2.carbon.identity.cors.mgt.core.internal.Constants.CORS_CONFIGURATION_RESOURCE_TYPE_NAME;
-import static org.wso2.carbon.identity.cors.mgt.core.internal.Constants.CORS_ORIGIN_RESOURCE_TYPE_NAME;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * CORSManager implementation.
@@ -64,25 +59,24 @@ public class CORSManagerImpl implements CORSManager {
         }
 
         try {
-            FrameworkUtils.startTenantFlow(tenantDomain);
+            int tenantId = IdentityTenantUtil.getTenantId(tenantDomain);
+            List<CORSOrigin> corsOriginList = getCORSOriginDAO().getCORSOriginsByTenantId(tenantId);
 
-            Resources resources = getResources(CORS_ORIGIN_RESOURCE_TYPE_NAME);
-            ValidatedOrigin[] validatedOrigins;
-            if (resources.getResources().isEmpty()) {
-                validatedOrigins = ServerCORSStore.getServerCORSOrigins();
-            } else {
-                validatedOrigins = new ResourcesToValidatedOrigins().apply(resources).toArray(new ValidatedOrigin[0]);
+            List<ValidatedOrigin> validatedOriginList = ServerCORSStore.getServerCORSOrigins();
+            if (!corsOriginList.isEmpty()) {
+                validatedOriginList.addAll(corsOriginList.stream()
+                        .map(new CORSOriginToValidatedOrigin()).collect(Collectors.toList()));
             }
 
-            // Add to cache.
-            addCORSOriginsToCache(validatedOrigins, tenantDomain);
+            ValidatedOrigin[] validatedOriginArray = validatedOriginList.toArray(new ValidatedOrigin[0]);
 
-            return validatedOrigins;
-        } catch (ConfigurationManagementException e) {
+            // Add to cache.
+            addCORSOriginsToCache(validatedOriginArray, tenantDomain);
+
+            return validatedOriginArray;
+        } catch (CORSManagementServiceException e) {
             throw new CORSManagementServiceServerException(ErrorMessages.ERROR_CODE_CORS_RETRIEVE.getCode(),
                     String.format(ErrorMessages.ERROR_CODE_CORS_RETRIEVE.getDescription(), tenantDomain), e);
-        } finally {
-            FrameworkUtils.endTenantFlow();
         }
     }
 
@@ -95,74 +89,37 @@ public class CORSManagerImpl implements CORSManager {
         }
 
         try {
-            FrameworkUtils.startTenantFlow(tenantDomain);
-
-            Resource resource = getResource(CORS_CONFIGURATION_RESOURCE_TYPE_NAME, CORS_CONFIGURATION_RESOURCE_NAME);
-            CORSConfiguration corsConfiguration;
-            if (resource == null) {
-                corsConfiguration = CORSConfigurationUtils.getServerCORSConfiguration();
-                if (log.isDebugEnabled()) {
-                    log.debug(String.format("CORS configuration not found for tenant %s. Using the server CORS " +
-                            "configuration instead.", tenantDomain));
-                }
-            } else {
-                corsConfiguration = new ResourceToCORSConfiguration().apply(resource);
-            }
+            CORSConfiguration corsConfiguration = getCORSConfigurationDAO()
+                    .getCORSConfigurationByTenantDomain(tenantDomain);
 
             // Add to cache.
             addCORSConfigurationToCache(corsConfiguration, tenantDomain);
 
             return corsConfiguration;
-        } catch (ConfigurationManagementException e) {
-            throw new CORSManagementServiceServerException(ErrorMessages.ERROR_CODE_CORS_RETRIEVE.getCode(),
-                    String.format(ErrorMessages.ERROR_CODE_CORS_RETRIEVE.getDescription(), tenantDomain), e);
-        } finally {
-            FrameworkUtils.endTenantFlow();
+        } catch (CORSManagementServiceException e) {
+            throw new CORSManagementServiceServerException(ErrorMessages.ERROR_CODE_CORS_CONFIG_RETRIEVE.getCode(),
+                    String.format(ErrorMessages.ERROR_CODE_CORS_CONFIG_RETRIEVE.getDescription(), tenantDomain), e);
         }
     }
 
     /**
-     * Retrieve the ConfigurationManager instance from the CORSServiceHolder.
+     * Returns a CORSOriginDAO instance.
      *
-     * @return ConfigurationManager The ConfigurationManager instance.
+     * @return A CORSOriginDAO instance.
      */
-    private ConfigurationManager getConfigurationManager() {
+    private CORSOriginDAO getCORSOriginDAO() {
 
-        return CORSServiceHolder.getInstance().getConfigurationManager();
+        return CORSServiceHolder.getInstance().getCorsOriginDAO();
     }
 
     /**
-     * Returns the resources of a tenant with the given type.
+     * Returns a CORSConfigurationDAO instance.
      *
-     * @param resourceTypeName Type of the resource to be retrieved.
-     * @return Returns an instance of {@code Resources} with the resources of given type.
-     * @throws ConfigurationManagementException
+     * @return A CORSConfigurationDAO instance.
      */
-    private Resources getResources(String resourceTypeName) throws ConfigurationManagementException {
+    private CORSConfigurationDAO getCORSConfigurationDAO() {
 
-        return getConfigurationManager().getResourcesByType(resourceTypeName);
-    }
-
-    /**
-     * Configuration Management API returns a ConfigurationManagementException with the error code CONFIGM_00017 when
-     * resource is not found. This method wraps the original method and returns null if the resource is not found.
-     *
-     * @param resourceTypeName Resource type name.
-     * @param resourceName     Resource name.
-     * @return Retrieved resource from the configuration store. Returns {@code null} if the resource is not found.
-     * @throws ConfigurationManagementException
-     */
-    private Resource getResource(String resourceTypeName, String resourceName) throws ConfigurationManagementException {
-
-        try {
-            return getConfigurationManager().getResource(resourceTypeName, resourceName);
-        } catch (ConfigurationManagementException e) {
-            if (e.getErrorCode().equals(ERROR_CODE_RESOURCE_DOES_NOT_EXISTS.getCode())) {
-                return null;
-            } else {
-                throw e;
-            }
-        }
+        return CORSServiceHolder.getInstance().getCorsConfigurationDAO();
     }
 
     /**
