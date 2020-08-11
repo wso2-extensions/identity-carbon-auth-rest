@@ -16,7 +16,8 @@
   ~ specific language governing permissions and limitations
   ~ under the License.
   -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
     <parent>
         <groupId>org.wso2.carbon.identity.auth.rest</groupId>
@@ -41,12 +42,12 @@
             <artifactId>org.wso2.carbon.utils</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.ops4j.pax.logging</groupId>
-            <artifactId>pax-logging-api</artifactId>
+            <groupId>org.wso2.carbon.identity.framework</groupId>
+            <artifactId>org.wso2.carbon.identity.core</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.wso2.carbon.identity.framework</groupId>
-            <artifactId>org.wso2.carbon.identity.configuration.mgt.core</artifactId>
+            <groupId>org.ops4j.pax.logging</groupId>
+            <artifactId>pax-logging-api</artifactId>
         </dependency>
         <dependency>
             <groupId>org.wso2.carbon.identity.framework</groupId>
@@ -68,32 +69,18 @@
                             org.wso2.carbon.identity.cors.service.internal
                         </Private-Package>
                         <Import-Package>
-                            org.wso2.carbon.identity.core.util;
-                            version="${carbon.identity.package.import.version.range}",
-                            org.wso2.carbon.identity.cors.mgt.core.exception;version="${carbon.identity.package.import.version.range}",
-                            org.wso2.carbon.identity.cors.mgt.core.internal.util;version="${carbon.identity.package.import.version.range}",
-                            org.wso2.carbon.identity.cors.mgt.core.model;version="${carbon.identity.package.import.version.range}",
-                            org.wso2.carbon.identity.configuration.mgt.core;version="${carbon.identity.package.import.version.range}",
-                            org.wso2.carbon.identity.configuration.mgt.core.constant;
-                            version="${carbon.identity.package.import.version.range}",
-                            org.wso2.carbon.identity.configuration.mgt.core.exception;
-                            version="${carbon.identity.package.import.version.range}",
-                            org.wso2.carbon.identity.configuration.mgt.core.model;
-                            version="${carbon.identity.package.import.version.range}",
-                            org.wso2.carbon.identity.application.authentication.framework.util;
-                            version="${carbon.identity.package.import.version.range}",
-                            org.wso2.carbon.identity.application.common;
-                            version="${carbon.identity.package.import.version.range}",
+                            org.wso2.carbon.identity.core.util;version="${carbon.identity.package.import.version.range}",
+                            org.wso2.carbon.identity.cors.mgt.core.*;version="${carbon.identity.package.import.version.range}",
+                            org.wso2.carbon.identity.application.authentication.framework.util;version="${carbon.identity.package.import.version.range}",
+                            org.wso2.carbon.identity.application.common;version="${carbon.identity.package.import.version.range}",
                             org.wso2.carbon.identity.application.common.cache;version="${carbon.identity.package.import.version.range}",
                             org.osgi.framework; version="${osgi.framework.imp.pkg.version.range}",
                             org.osgi.service.component; version="${osgi.service.component.imp.pkg.version.range}",
-                            org.apache.commons.lang; version="${commons-lang.wso2.version}",
                             org.apache.commons.logging; version="${commons-logging.version}",
                         </Import-Package>
                         <Export-Package>
                             !org.wso2.carbon.identity.cors.service.internal,
-                            org.wso2.carbon.identity.cors.service.*;
-                            version="${org.wso2.carbon.identity.cors.service.version}"
+                            org.wso2.carbon.identity.cors.service.*;version="${org.wso2.carbon.identity.cors.service.version}"
                         </Export-Package>
                     </instructions>
                 </configuration>

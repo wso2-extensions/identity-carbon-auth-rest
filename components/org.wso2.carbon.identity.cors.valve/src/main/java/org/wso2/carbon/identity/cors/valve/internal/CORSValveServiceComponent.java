@@ -32,7 +32,7 @@ import org.wso2.carbon.identity.cors.service.CORSManager;
 /**
  * Service component class for the CORS valve.
  */
-@Component(name = "cors.valve", immediate = true)
+@Component(name = "identity.cors.valve.component", immediate = true)
 public class CORSValveServiceComponent {
 
     private static final Log log = LogFactory.getLog(CORSValveServiceComponent.class);
@@ -64,7 +64,7 @@ public class CORSValveServiceComponent {
     }
 
     /**
-     * Set the CORSManager.
+     * Register the CORSManager.
      *
      * @param corsManager
      */
@@ -73,24 +73,24 @@ public class CORSValveServiceComponent {
             service = CORSManager.class,
             cardinality = ReferenceCardinality.MANDATORY,
             policy = ReferencePolicy.DYNAMIC,
-            unbind = "unsetCORSManager")
-    protected void setCorsManager(CORSManager corsManager) {
+            unbind = "unregisterCORSManager")
+    protected void registerCorsManager(CORSManager corsManager) {
 
         if (log.isDebugEnabled()) {
-            log.debug("Setting the CORSService.");
+            log.debug("Registering the CORSConfigurationDAO in CORSValve.");
         }
         CORSValveServiceHolder.getInstance().setCorsManager(corsManager);
     }
 
     /**
-     * Unset the CORSManager.
+     * Unregister the CORSManager.
      *
      * @param corsManager
      */
-    protected void unsetCORSManager(CORSManager corsManager) {
+    protected void unregisterCORSManager(CORSManager corsManager) {
 
         if (log.isDebugEnabled()) {
-            log.debug("Unsetting the CORSService.");
+            log.debug("Unregistering the CORSConfigurationDAO in CORSValve.");
         }
         CORSValveServiceHolder.getInstance().setCorsManager(null);
     }
