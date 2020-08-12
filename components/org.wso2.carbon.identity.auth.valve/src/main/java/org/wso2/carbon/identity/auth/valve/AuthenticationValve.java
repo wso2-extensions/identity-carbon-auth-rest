@@ -21,8 +21,10 @@ package org.wso2.carbon.identity.auth.valve;
 import org.apache.catalina.connector.Request;
 import org.apache.catalina.connector.Response;
 import org.apache.catalina.valves.ValveBase;
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.log4j.MDC;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
 import org.wso2.carbon.identity.auth.service.AuthenticationManager;
 import org.wso2.carbon.identity.auth.service.AuthenticationRequest;
@@ -40,10 +42,10 @@ import org.wso2.carbon.identity.auth.valve.util.AuthHandlerManager;
 import org.wso2.carbon.identity.base.IdentityRuntimeException;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletResponse;
 
 /**
  * AuthenticationValve can be used to intercept any request.
@@ -52,6 +54,8 @@ public class AuthenticationValve extends ValveBase {
 
     private static final String AUTH_CONTEXT = "auth-context";
     private static final String AUTH_HEADER_NAME = "WWW-Authenticate";
+    private static final String USER_AGENT = "User-Agent";
+    private static final String REMOTE_ADDRESS = "remoteAddress";
 
     private static final Log log = LogFactory.getLog(AuthenticationValve.class);
 
@@ -79,7 +83,14 @@ public class AuthenticationValve extends ValveBase {
             if (log.isDebugEnabled()) {
                 log.debug("AuthenticationValve hit on secured resource : " + request.getRequestURI());
             }
-
+            String userAgent = request.getHeader(USER_AGENT);
+            String remoteAddr = request.getRemoteAddr();
+            if (StringUtils.isNotEmpty(userAgent) && MDC.get(USER_AGENT) != null) {
+                MDC.put(USER_AGENT, request.getHeader(USER_AGENT));
+            }
+            if (StringUtils.isNotEmpty(remoteAddr) && MDC.get(REMOTE_ADDRESS) != null) {
+                MDC.put(REMOTE_ADDRESS, remoteAddr);
+            }
             AuthenticationRequest.AuthenticationRequestBuilder authenticationRequestBuilder = AuthHandlerManager
                     .getInstance().getRequestBuilder(request, response).createRequestBuilder(request, response);
             authenticationContext = new AuthenticationContext(authenticationRequestBuilder.build());

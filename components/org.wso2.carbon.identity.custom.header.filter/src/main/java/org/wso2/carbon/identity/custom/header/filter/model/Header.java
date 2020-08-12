@@ -22,6 +22,7 @@ package org.wso2.carbon.identity.custom.header.filter.model;
  * Custom Header Model
  */
 public class Header {
+
     private String name;
     private String value;
 
