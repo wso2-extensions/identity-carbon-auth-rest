@@ -23,6 +23,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpHeaders;
+import org.apache.log4j.MDC;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.identity.application.common.model.User;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
@@ -51,6 +52,7 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
 
     private static final Log log = LogFactory.getLog(BasicAuthenticationHandler.class);
     private final String BASIC_AUTH_HEADER = "Basic";
+    private final String USER_NAME = "userName";
 
     @Override
     public void init(InitConfig initConfig) {
@@ -128,6 +130,9 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
                                 authenticationContext.setUser(user);
                                 if (log.isDebugEnabled()) {
                                     log.debug("Basic Authentication successful for the user: " + userName);
+                                }
+                                if (MDC.get(USER_NAME) != null) {
+                                    MDC.put(USER_NAME, userName);
                                 }
                             }
                         } else {

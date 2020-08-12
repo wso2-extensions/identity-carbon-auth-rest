@@ -20,7 +20,7 @@
         <groupId>org.wso2.carbon.identity.auth.rest</groupId>
         <artifactId>identity-carbon-auth-rest</artifactId>
         <relativePath>../../pom.xml</relativePath>
-        <version>1.4.8-SNAPSHOT</version>
+        <version>1.4.11-SNAPSHOT</version>
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
@@ -167,8 +167,7 @@
                         </Import-Package>
                         <Export-Package>
                             !org.wso2.carbon.identity.cors.valve.internal,
-                            org.wso2.carbon.identity.cors.valve.*;
-                            version="${org.wso2.carbon.identity.cors.valve.version}"
+                            org.wso2.carbon.identity.cors.valve.*;version="${org.wso2.carbon.identity.cors.valve.version}"
                         </Export-Package>
                     </instructions>
                 </configuration>
