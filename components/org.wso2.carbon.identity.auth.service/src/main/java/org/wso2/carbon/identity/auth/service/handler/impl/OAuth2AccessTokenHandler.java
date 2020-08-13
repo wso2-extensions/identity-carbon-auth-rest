@@ -23,7 +23,6 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpHeaders;
-import org.apache.log4j.MDC;
 import org.wso2.carbon.identity.application.common.model.User;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
 import org.wso2.carbon.identity.auth.service.AuthenticationRequest;
@@ -33,7 +32,6 @@ import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
 import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
 import org.wso2.carbon.identity.core.handler.InitConfig;
-import org.wso2.carbon.identity.oauth2.IdentityOAuth2Exception;
 import org.wso2.carbon.identity.oauth2.OAuth2TokenValidationService;
 import org.wso2.carbon.identity.oauth2.dto.OAuth2ClientApplicationDTO;
 import org.wso2.carbon.identity.oauth2.dto.OAuth2TokenValidationRequestDTO;
@@ -48,6 +46,7 @@ import javax.servlet.http.Cookie;
 import static org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil.isAuthHeaderMatch;
 import static org.wso2.carbon.identity.auth.service.util.Constants.COOKIE_BASED_TOKEN_BINDING;
 import static org.wso2.carbon.identity.auth.service.util.Constants.COOKIE_BASED_TOKEN_BINDING_EXT_PARAM;
+
 import static org.wso2.carbon.identity.auth.service.util.Constants.OAUTH2_ALLOWED_SCOPES;
 import static org.wso2.carbon.identity.auth.service.util.Constants.OAUTH2_VALIDATE_SCOPE;
 
@@ -61,7 +60,6 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
     private static final Log log = LogFactory.getLog(OAuth2AccessTokenHandler.class);
     private final String OAUTH_HEADER = "Bearer";
     private final String CONSUMER_KEY = "consumer-key";
-    private final String SERVICE_PROVIDER = "serviceProvider";
 
     @Override
     protected AuthenticationResult doAuthenticate(MessageContext messageContext) {
@@ -126,15 +124,6 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
                 authenticationContext.addParameter(OAUTH2_ALLOWED_SCOPES, responseDTO.getScope());
                 authenticationContext.addParameter(OAUTH2_VALIDATE_SCOPE,
                         AuthConfigurationUtil.getInstance().isScopeValidationEnabled());
-                try {
-                    if (MDC.get(SERVICE_PROVIDER) != null) {
-                        MDC.put(SERVICE_PROVIDER,
-                                OAuth2Util.getServiceProvider(clientApplicationDTO.getConsumerKey())
-                                        .getApplicationName());
-                    }
-                } catch (IdentityOAuth2Exception e) {
-                    log.error("Error occurred while getting the Service Provider by Consumer key");
-                }
             }
         }
         return authenticationResult;
