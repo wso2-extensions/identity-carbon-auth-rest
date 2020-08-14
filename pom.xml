@@ -171,6 +171,11 @@
                 <artifactId>org.wso2.carbon.identity.cors.mgt.core</artifactId>
                 <version>${identity.framework.version}</version>
             </dependency>
+            <dependency>
+                <groupId>org.wso2.carbon.identity.framework</groupId>
+                <artifactId>org.wso2.carbon.identity.configuration.mgt.core</artifactId>
+                <version>${identity.framework.version}</version>
+            </dependency>
 
             <dependency>
                 <groupId>org.wso2.carbon.identity.auth.rest</groupId>
