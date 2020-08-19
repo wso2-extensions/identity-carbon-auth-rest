@@ -33,6 +33,7 @@ import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
 import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
 import org.wso2.carbon.identity.core.handler.InitConfig;
+import org.wso2.carbon.identity.oauth.common.exception.InvalidOAuthClientException;
 import org.wso2.carbon.identity.oauth2.IdentityOAuth2Exception;
 import org.wso2.carbon.identity.oauth2.OAuth2TokenValidationService;
 import org.wso2.carbon.identity.oauth2.dto.OAuth2ClientApplicationDTO;
@@ -62,6 +63,7 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
     private final String OAUTH_HEADER = "Bearer";
     private final String CONSUMER_KEY = "consumer-key";
     private final String SERVICE_PROVIDER = "serviceProvider";
+    private final String SERVICE_PROVIDER_TENANT_DOMAIN = "serviceProviderTenantDomain";
 
     @Override
     protected AuthenticationResult doAuthenticate(MessageContext messageContext) {
@@ -126,11 +128,31 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
                 authenticationContext.addParameter(OAUTH2_ALLOWED_SCOPES, responseDTO.getScope());
                 authenticationContext.addParameter(OAUTH2_VALIDATE_SCOPE,
                         AuthConfigurationUtil.getInstance().isScopeValidationEnabled());
+                String serviceProvider = null;
                 try {
-                    MDC.put(SERVICE_PROVIDER,
-                            OAuth2Util.getServiceProvider(clientApplicationDTO.getConsumerKey()).getApplicationName());
+                    serviceProvider =
+                            OAuth2Util.getServiceProvider(clientApplicationDTO.getConsumerKey()).getApplicationName();
                 } catch (IdentityOAuth2Exception e) {
-                    log.error("Error occurred while getting the Service Provider by Consumer key");
+                    log.error("Error occurred while getting the Service Provider by Consumer key: "
+                            + clientApplicationDTO.getConsumerKey());
+                }
+
+                String serviceProviderTenantDomain = null;
+                try {
+                    serviceProviderTenantDomain =
+                            OAuth2Util.getTenantDomainOfOauthApp(clientApplicationDTO.getConsumerKey());
+                } catch (InvalidOAuthClientException | IdentityOAuth2Exception e) {
+                    log.error("Error occurred while getting the OAuth App tenantDomain by Consumer key: "
+                            + clientApplicationDTO.getConsumerKey());
+                }
+
+                if (serviceProvider != null) {
+                    authenticationContext.addParameter(SERVICE_PROVIDER, serviceProvider);
+                    if (serviceProviderTenantDomain != null) {
+                        authenticationContext.addParameter(SERVICE_PROVIDER_TENANT_DOMAIN, serviceProviderTenantDomain);
+                    }
+
+                    MDC.put(SERVICE_PROVIDER, serviceProvider);
                 }
             }
         }
