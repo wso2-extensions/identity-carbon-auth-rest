@@ -182,20 +182,14 @@ public class CORSRequestHandler {
             response.addHeader(Header.ACCESS_CONTROL_MAX_AGE, Integer.toString(config.getMaxAge()));
         }
 
-        String supportedMethods = HeaderUtils.serialize(config.getSupportedHeaders(), ", ");
+        String supportedMethods = HeaderUtils.serialize(config.getSupportedMethods(), ", ");
         response.addHeader(Header.ACCESS_CONTROL_ALLOW_METHODS, supportedMethods);
 
-        String supportedHeaders;
-        if (!config.isSupportAnyHeader()) {
-            supportedHeaders = HeaderUtils.serialize(config.getSupportedHeaders(), ", ");
-        } else {
-            supportedHeaders = null;
-        }
-
+        String supportedHeaders = HeaderUtils.serialize(config.getSupportedHeaders(), ", ");
         if (config.isSupportAnyHeader() && rawRequestHeadersString != null) {
-            // Echo author headers
+            // Echo author headers.
             response.addHeader(Header.ACCESS_CONTROL_ALLOW_HEADERS, rawRequestHeadersString);
-        } else if (supportedHeaders != null && !supportedHeaders.isEmpty()) {
+        } else if (!supportedHeaders.isEmpty()) {
             response.addHeader(Header.ACCESS_CONTROL_ALLOW_HEADERS, supportedHeaders);
         }
     }
