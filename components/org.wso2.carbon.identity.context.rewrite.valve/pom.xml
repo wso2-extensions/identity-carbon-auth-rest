@@ -47,7 +47,8 @@
                         <Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
                         <Bundle-Name>${project.artifactId}</Bundle-Name>
                         <Import-Package>
-                            org.wso2.carbon.identity.core.*; version="${carbon.identity.package.import.version.range}"
+                            org.wso2.carbon.identity.core.*; version="${carbon.identity.package.import.version.range}",
+                            org.slf4j; version="${org.slf4j.imp.pkg.version.range}"
                         </Import-Package>
                         <Export-Package>
                             org.wso2.carbon.identity.context.rewrite.valve.*;
