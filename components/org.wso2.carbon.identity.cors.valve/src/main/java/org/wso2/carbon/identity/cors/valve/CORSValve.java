@@ -94,7 +94,7 @@ public class CORSValve extends ValveBase {
         } catch (CORSException e) {
             printMessage(e, response);
         } catch (CORSManagementServiceException e) {
-            log.error(e);
+            log.error("CORS management service error when intercepting an HTTP request.", e);
         }
     }
 
@@ -120,7 +120,7 @@ public class CORSValve extends ValveBase {
         out.println("CORS Valve: " + e.getMessage());
 
         if (log.isDebugEnabled()) {
-            log.debug(e);
+            log.debug("CORS valve error when intercepting an HTTP request.", e);
         }
     }
 }
