@@ -43,7 +43,6 @@ import org.wso2.carbon.identity.base.IdentityRuntimeException;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 
 import java.io.IOException;
-
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
 
@@ -56,6 +55,8 @@ public class AuthenticationValve extends ValveBase {
     private static final String AUTH_HEADER_NAME = "WWW-Authenticate";
     private static final String USER_AGENT = "User-Agent";
     private static final String REMOTE_ADDRESS = "remoteAddress";
+    private static final String SERVICE_PROVIDER = "serviceProvider";
+    private final String SERVICE_PROVIDER_TENANT_DOMAIN = "serviceProviderTenantDomain";
 
     private static final Log log = LogFactory.getLog(AuthenticationValve.class);
 
@@ -101,6 +102,9 @@ public class AuthenticationValve extends ValveBase {
 
             AuthenticationStatus authenticationStatus = authenticationResult.getAuthenticationStatus();
             if (authenticationStatus.equals(AuthenticationStatus.SUCCESS)) {
+                // Set service provider info used in authentication if any.
+                setThreadLocalServiceProvider(authenticationContext);
+
                 //Set the User object as an attribute for further references.
                 request.setAttribute(AUTH_CONTEXT, authenticationContext);
                 getNext().invoke(request, response);
@@ -125,6 +129,9 @@ public class AuthenticationValve extends ValveBase {
             if (IdentityUtil.getIdentityErrorMsg() != null) {
                 IdentityUtil.clearIdentityErrorMsg();
             }
+
+            // Clear thread local service provider info.
+            unsetThreadLocalServiceProvider();
         }
 
 
@@ -134,6 +141,22 @@ public class AuthenticationValve extends ValveBase {
 
         String defaultAccess = AuthConfigurationUtil.getInstance().getDefaultAccess();
         return Constants.DENY_DEFAULT_ACCESS.equalsIgnoreCase(defaultAccess) && securedResource == null;
+    }
+
+    private void setThreadLocalServiceProvider(AuthenticationContext authenticationContext) {
+
+        Object serviceProvider = authenticationContext.getParameter(SERVICE_PROVIDER);
+        Object serviceProviderTenantDomain = authenticationContext.getParameter(SERVICE_PROVIDER_TENANT_DOMAIN);
+        if (serviceProvider != null && serviceProviderTenantDomain != null) {
+            IdentityUtil.threadLocalProperties.get().put(SERVICE_PROVIDER, serviceProvider);
+            IdentityUtil.threadLocalProperties.get().put(SERVICE_PROVIDER_TENANT_DOMAIN, serviceProviderTenantDomain);
+        }
+    }
+
+    private void unsetThreadLocalServiceProvider() {
+
+        IdentityUtil.threadLocalProperties.get().remove(SERVICE_PROVIDER);
+        IdentityUtil.threadLocalProperties.get().remove(SERVICE_PROVIDER_TENANT_DOMAIN);
     }
 
     private void handleErrorResponse(AuthenticationContext authenticationContext, Response response, int error,
