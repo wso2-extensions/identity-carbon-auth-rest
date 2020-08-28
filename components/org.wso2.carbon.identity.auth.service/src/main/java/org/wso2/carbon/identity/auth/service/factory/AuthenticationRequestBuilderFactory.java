@@ -82,6 +82,7 @@ public class AuthenticationRequestBuilderFactory extends AbstractIdentityHandler
         authenticationRequestBuilder.setRequestUri(request.getRequestURI());
         authenticationRequestBuilder.setContextPath(request.getContextPath());
         authenticationRequestBuilder.setMethod(request.getMethod());
+        authenticationRequestBuilder.setRequest(request);
 
         return authenticationRequestBuilder;
     }

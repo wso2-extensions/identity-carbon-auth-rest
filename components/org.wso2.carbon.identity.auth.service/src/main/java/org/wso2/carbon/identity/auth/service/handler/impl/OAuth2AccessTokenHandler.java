@@ -18,7 +18,6 @@
 
 package org.wso2.carbon.identity.auth.service.handler.impl;
 
-import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -34,6 +33,7 @@ import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
 import org.wso2.carbon.identity.core.handler.InitConfig;
 import org.wso2.carbon.identity.oauth.common.exception.InvalidOAuthClientException;
+import org.wso2.carbon.identity.oauth.dao.OAuthAppDO;
 import org.wso2.carbon.identity.oauth2.IdentityOAuth2Exception;
 import org.wso2.carbon.identity.oauth2.OAuth2TokenValidationService;
 import org.wso2.carbon.identity.oauth2.dto.OAuth2ClientApplicationDTO;
@@ -44,11 +44,7 @@ import org.wso2.carbon.identity.oauth2.util.OAuth2Util;
 import org.wso2.carbon.user.core.util.UserCoreUtil;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
-import javax.servlet.http.Cookie;
-
 import static org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil.isAuthHeaderMatch;
-import static org.wso2.carbon.identity.auth.service.util.Constants.COOKIE_BASED_TOKEN_BINDING;
-import static org.wso2.carbon.identity.auth.service.util.Constants.COOKIE_BASED_TOKEN_BINDING_EXT_PARAM;
 import static org.wso2.carbon.identity.auth.service.util.Constants.OAUTH2_ALLOWED_SCOPES;
 import static org.wso2.carbon.identity.auth.service.util.Constants.OAUTH2_VALIDATE_SCOPE;
 
@@ -108,7 +104,8 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
                     return authenticationResult;
                 }
 
-                if (!isTokenBindingValid(messageContext, responseDTO.getTokenBinding())) {
+                if (!isTokenBindingValid(messageContext, responseDTO.getTokenBinding(),
+                        clientApplicationDTO.getConsumerKey())) {
                     return authenticationResult;
                 }
 
@@ -193,26 +190,28 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
      *
      * @param messageContext message context.
      * @param tokenBinding token binding.
+     * @param clientId OAuth2 client id
      * @return true if token binding is valid.
      */
-    private boolean isTokenBindingValid(MessageContext messageContext, TokenBinding tokenBinding) {
+    private boolean isTokenBindingValid(MessageContext messageContext, TokenBinding tokenBinding, String clientId) {
 
         if (tokenBinding == null || StringUtils.isBlank(tokenBinding.getBindingReference())) {
             return true;
         }
 
-        if (COOKIE_BASED_TOKEN_BINDING.equals(tokenBinding.getBindingType())) {
-            Cookie[] cookies = ((AuthenticationContext) messageContext).getAuthenticationRequest().getCookies();
-            if (ArrayUtils.isEmpty(cookies)) {
-                return false;
-            }
-            for (Cookie cookie : cookies) {
-                if (COOKIE_BASED_TOKEN_BINDING_EXT_PARAM.equals(cookie.getName())) {
-                    String tokenBindingReference = OAuth2Util.getTokenBindingReference(cookie.getValue());
-                    return tokenBinding.getBindingReference().equals(tokenBindingReference);
-                }
-            }
+        OAuthAppDO oAuthAppDO;
+        try {
+            oAuthAppDO = OAuth2Util.getAppInformationByClientId(clientId);
+        } catch (IdentityOAuth2Exception | InvalidOAuthClientException e) {
+            log.error("Failed to retrieve application information by client id: " + clientId, e);
+            return false;
         }
-        return false;
+
+        if (!oAuthAppDO.isTokenBindingValidationEnabled()) {
+            return true;
+        }
+
+        return OAuth2Util.isValidTokenBinding(tokenBinding,
+                ((AuthenticationContext) messageContext).getAuthenticationRequest().getRequest());
     }
 }
