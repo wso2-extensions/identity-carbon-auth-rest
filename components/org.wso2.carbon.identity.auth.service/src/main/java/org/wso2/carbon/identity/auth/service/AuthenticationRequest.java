@@ -18,6 +18,7 @@
 
 package org.wso2.carbon.identity.auth.service;
 
+import org.apache.catalina.connector.Request;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -60,6 +61,7 @@ public class AuthenticationRequest implements Serializable
     protected String contextPath;
     protected String method;
     protected String requestUri;
+    private Request request;
 
     protected AuthenticationRequest(AuthenticationRequestBuilder builder) {
         this.attributes = builder.attributes;
@@ -69,6 +71,7 @@ public class AuthenticationRequest implements Serializable
         this.contextPath = builder.contextPath;
         this.method = builder.method;
         this.requestUri = builder.requestUri;
+        this.request = builder.request;
     }
 
     public Map<String, Object> getAttributeMap() {
@@ -106,6 +109,16 @@ public class AuthenticationRequest implements Serializable
             name = name.toLowerCase();
         }
         return headers.get(name);
+    }
+
+    public Request getRequest() {
+
+        return request;
+    }
+
+    public void setRequest(Request request) {
+
+        this.request = request;
     }
 
     @Deprecated
@@ -147,6 +160,7 @@ public class AuthenticationRequest implements Serializable
         private String contextPath;
         private String method;
         private String requestUri;
+        private Request request;
 
         public AuthenticationRequestBuilder() {
 
@@ -199,6 +213,12 @@ public class AuthenticationRequest implements Serializable
 
         public AuthenticationRequestBuilder setRequestUri(String requestUri) {
             this.requestUri = requestUri;
+            return this;
+        }
+
+        public AuthenticationRequestBuilder setRequest(Request request) {
+
+            this.request = request;
             return this;
         }
 
