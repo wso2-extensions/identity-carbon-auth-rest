@@ -27,6 +27,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.testng.PowerMockTestCase;
+import org.slf4j.MDC;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.DataProvider;
@@ -44,6 +45,7 @@ import org.wso2.carbon.identity.auth.service.module.ResourceConfig;
 import org.wso2.carbon.identity.auth.service.module.ResourceConfigKey;
 import org.wso2.carbon.identity.auth.valve.util.AuthHandlerManager;
 import org.wso2.carbon.identity.core.model.IdentityErrorMsgContext;
+import org.wso2.carbon.identity.core.util.IdentityConfigParser;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 
 import java.io.IOException;
@@ -52,6 +54,7 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
 
@@ -60,13 +63,17 @@ import static org.powermock.api.mockito.PowerMockito.doNothing;
 import static org.powermock.api.mockito.PowerMockito.mockStatic;
 import static org.powermock.api.mockito.PowerMockito.when;
 
-@PrepareForTest({ AuthHandlerManager.class, AuthenticationManager.class })
+@PrepareForTest({AuthHandlerManager.class, AuthenticationManager.class, IdentityConfigParser.class})
 public class AuthenticationValveTest extends PowerMockTestCase {
 
     private static final String DUMMY_RESOURCE = "/test/resource";
     private static final String HTTP_METHOD_POST = "POST";
 
     private static final String AUTH_CONTEXT = "auth-context";
+    private static final String USER_AGENT = "User-Agent";
+    private final String CONFIG_CONTEXTUAL_PARAM = "LoggableContextualParams.contextual_param";
+    private final String CONFIG_LOG_PARAM_USER_AGENT = "user_agent";
+    private final String CONFIG_LOG_PARAM_REMOTE_ADDRESS = "remote_address";
 
     @Mock
     private ResourceConfig securedResourceConfig;
@@ -80,16 +87,19 @@ public class AuthenticationValveTest extends PowerMockTestCase {
     private AuthHandlerManager authHandlerManager;
     @Mock
     private AuthenticationManager authenticationManager;
+    @Mock
+    private IdentityConfigParser mockConfigParser;
 
     private AuthenticationValve authenticationValve;
 
     @DataProvider
     public Object[][] getExceptionTypeData() {
-        return new Object[][] {
-                { new AuthClientException("Test exception AuthClientException."), HttpServletResponse.SC_BAD_REQUEST,
+
+        return new Object[][]{
+                {new AuthClientException("Test exception AuthClientException."), HttpServletResponse.SC_BAD_REQUEST,
                         true},
-                { new AuthServerException("Test exception AuthServerException."), HttpServletResponse.SC_BAD_REQUEST,
-               true},
+                {new AuthServerException("Test exception AuthServerException."), HttpServletResponse.SC_BAD_REQUEST,
+                        true},
                 { new AuthenticationFailException("Test exception AuthenticationFailException."),
                   HttpServletResponse.SC_UNAUTHORIZED, true},
                 { new AuthRuntimeException("Test exception AuthRuntimeException."),
@@ -114,6 +124,15 @@ public class AuthenticationValveTest extends PowerMockTestCase {
 
     @BeforeMethod
     public void setUp() throws Exception {
+
+        mockStatic(IdentityConfigParser.class);
+        Map<String, Object> mockConfig = new HashMap<>();
+        List<String> contextualParam = new ArrayList<>();
+        contextualParam.add(CONFIG_LOG_PARAM_USER_AGENT);
+        contextualParam.add(CONFIG_LOG_PARAM_REMOTE_ADDRESS);
+        mockConfig.put(CONFIG_CONTEXTUAL_PARAM, contextualParam);
+        when(IdentityConfigParser.getInstance()).thenReturn(mockConfigParser);
+        when(mockConfigParser.getConfiguration()).thenReturn(mockConfig);
 
         authenticationValve = new AuthenticationValve();
 
@@ -204,6 +223,21 @@ public class AuthenticationValveTest extends PowerMockTestCase {
         invokeAuthenticationValve();
         AuthenticationContext authContext = (AuthenticationContext) attributes.get(AUTH_CONTEXT);
         Assert.assertNotNull(authContext);
+    }
+
+    @Test(dataProvider = "getUnclearedThreadLocalData")
+    public void testInvokeForContextualParam(boolean hasThreadLocal) throws Exception {
+
+        when(request.getHeader(USER_AGENT)).thenReturn(USER_AGENT);
+        if (hasThreadLocal) {
+            setIdentityErrorThreadLocal();
+        }
+        when(securedResourceConfig.isSecured()).thenReturn(true);
+        AuthenticationResult authenticationResult = new AuthenticationResult(AuthenticationStatus.SUCCESS);
+        when(authenticationManager.authenticate(Matchers.any(AuthenticationContext.class))).thenReturn
+                (authenticationResult);
+        invokeAuthenticationValve();
+        Assert.assertEquals(MDC.get(USER_AGENT), USER_AGENT);
     }
 
     @Test
