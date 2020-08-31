@@ -40,9 +40,13 @@ import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
 import org.wso2.carbon.identity.auth.service.util.Constants;
 import org.wso2.carbon.identity.auth.valve.util.AuthHandlerManager;
 import org.wso2.carbon.identity.base.IdentityRuntimeException;
+import org.wso2.carbon.identity.core.util.IdentityConfigParser;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
 
@@ -57,6 +61,10 @@ public class AuthenticationValve extends ValveBase {
     private static final String REMOTE_ADDRESS = "remoteAddress";
     private static final String SERVICE_PROVIDER = "serviceProvider";
     private final String SERVICE_PROVIDER_TENANT_DOMAIN = "serviceProviderTenantDomain";
+    private static final String X_FORWARDED_USER_AGENT = "X-Forwarded-User-Agent";
+    private final String CONFIG_CONTEXTUAL_PARAM = "LoggableContextualParams.contextual_param";
+    private final String CONFIG_LOG_PARAM_USER_AGENT = "user_agent";
+    private final String CONFIG_LOG_PARAM_REMOTE_ADDRESS = "remote_address";
 
     private static final Log log = LogFactory.getLog(AuthenticationValve.class);
 
@@ -72,11 +80,15 @@ public class AuthenticationValve extends ValveBase {
                     .getRequestURI(), request.getMethod()));
 
             String userAgent = request.getHeader(USER_AGENT);
+            String forwardedUserAgent = request.getHeader(X_FORWARDED_USER_AGENT);
+            if (StringUtils.isNotEmpty(forwardedUserAgent)) {
+                userAgent = forwardedUserAgent;
+            }
             String remoteAddr = request.getRemoteAddr();
-            if (StringUtils.isNotEmpty(userAgent)) {
+            if (StringUtils.isNotEmpty(userAgent) && isLoggableParam(CONFIG_LOG_PARAM_USER_AGENT)) {
                 MDC.put(USER_AGENT, request.getHeader(USER_AGENT));
             }
-            if (StringUtils.isNotEmpty(remoteAddr)) {
+            if (StringUtils.isNotEmpty(remoteAddr) && isLoggableParam(CONFIG_LOG_PARAM_REMOTE_ADDRESS)) {
                 MDC.put(REMOTE_ADDRESS, remoteAddr);
             }
 
@@ -174,5 +186,20 @@ public class AuthenticationValve extends ValveBase {
         value.append('\"');
         response.setHeader(AUTH_HEADER_NAME, value.toString());
         response.sendError(error);
+    }
+
+    private boolean isLoggableParam(String param) {
+
+        if (IdentityConfigParser.getInstance() != null) {
+            Object configValue = IdentityConfigParser.getInstance().getConfiguration().get(CONFIG_CONTEXTUAL_PARAM);
+            List<String> claimsFilters = new ArrayList<>();
+            if (configValue instanceof ArrayList) {
+                claimsFilters = (ArrayList) configValue;
+            } else if (configValue instanceof String) {
+                claimsFilters.add((String) configValue);
+            }
+            return claimsFilters.contains(param);
+        }
+        return false;
     }
 }
