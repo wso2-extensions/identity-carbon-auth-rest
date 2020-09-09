@@ -213,6 +213,7 @@
                             org.osgi.util.tracker; version="${osgi.util.tracker.imp.pkg.version.range}",
                             org.wso2.carbon.core.*; version="${carbon.kernel.imp.pkg.version.range}",
                             org.wso2.carbon.utils.*; version="${carbon.kernel.imp.pkg.version.range}",
+                            org.wso2.carbon.identity.core.util.*; version="${carbon.identity.package.import.version.range}",
                             org.wso2.carbon.identity.core.*; version="${carbon.identity.package.import.version.range}",
                             org.wso2.carbon.identity.auth.service.*;version="${org.wso2.carbon.identity.auth.service.version.range}",
                             org.apache.catalina.*;version="1.7.0"

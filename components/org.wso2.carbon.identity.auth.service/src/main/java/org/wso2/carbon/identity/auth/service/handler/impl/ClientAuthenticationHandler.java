@@ -23,6 +23,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpHeaders;
+import org.slf4j.MDC;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
 import org.wso2.carbon.identity.auth.service.AuthenticationResult;
 import org.wso2.carbon.identity.auth.service.AuthenticationStatus;
@@ -47,6 +48,8 @@ public class ClientAuthenticationHandler extends AuthenticationHandler {
     private static final Log log = LogFactory.getLog(ClientAuthenticationHandler.class);
     private final String CLIENT_AUTH_HEADER = "Client";
     private final String hashingFunction = "SHA-256";
+    private static final String SERVICE_PROVIDER = "serviceprovider";
+    private final String SERVICE_PROVIDER_KEY = "serviceProvider";
 
     @Override
     public void init(InitConfig initConfig) {
@@ -78,6 +81,10 @@ public class ClientAuthenticationHandler extends AuthenticationHandler {
         AuthenticationContext authenticationContext = (AuthenticationContext) messageContext;
         String authorizationHeader = authenticationContext.getAuthenticationRequest().
                 getHeader(HttpHeaders.AUTHORIZATION);
+        String serviceProvider = authenticationContext.getAuthenticationRequest().getHeader(SERVICE_PROVIDER);
+        if (StringUtils.isNotEmpty(serviceProvider)) {
+            MDC.put(SERVICE_PROVIDER_KEY, serviceProvider);
+        }
 
         String[] splitAuthorizationHeader = authorizationHeader.split(" ");
         if (splitAuthorizationHeader.length == 2) {
