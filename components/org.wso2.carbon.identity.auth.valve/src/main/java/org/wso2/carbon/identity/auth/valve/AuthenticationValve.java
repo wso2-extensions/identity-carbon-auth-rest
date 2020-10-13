@@ -144,6 +144,8 @@ public class AuthenticationValve extends ValveBase {
 
             // Clear thread local service provider info.
             unsetThreadLocalServiceProvider();
+            // Clear thread local current session id.
+            unsetCurrentSessionIdThreadLocal();
         }
 
 
@@ -201,5 +203,15 @@ public class AuthenticationValve extends ValveBase {
             return claimsFilters.contains(param);
         }
         return false;
+    }
+
+    /**
+     * Remove current session id from thread local, which is set in OAuth2AccessTokenHandler.
+     */
+    private void unsetCurrentSessionIdThreadLocal() {
+
+        if (IdentityUtil.threadLocalProperties.get().get(Constants.CURRENT_SESSION_IDENTIFIER) != null) {
+            IdentityUtil.threadLocalProperties.get().remove(Constants.CURRENT_SESSION_IDENTIFIER);
+        }
     }
 }
