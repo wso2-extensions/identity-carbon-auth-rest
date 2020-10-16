@@ -48,7 +48,6 @@ public class ClientAuthenticationHandler extends AuthenticationHandler {
     private static final Log log = LogFactory.getLog(ClientAuthenticationHandler.class);
     private final String CLIENT_AUTH_HEADER = "Client";
     private final String hashingFunction = "SHA-256";
-    private static final String SERVICE_PROVIDER = "serviceprovider";
     private final String SERVICE_PROVIDER_KEY = "serviceProvider";
 
     @Override
@@ -81,7 +80,8 @@ public class ClientAuthenticationHandler extends AuthenticationHandler {
         AuthenticationContext authenticationContext = (AuthenticationContext) messageContext;
         String authorizationHeader = authenticationContext.getAuthenticationRequest().
                 getHeader(HttpHeaders.AUTHORIZATION);
-        String serviceProvider = authenticationContext.getAuthenticationRequest().getHeader(SERVICE_PROVIDER);
+        String serviceProvider =
+                authenticationContext.getAuthenticationRequest().getHeader(SERVICE_PROVIDER_KEY.toLowerCase());
         if (StringUtils.isNotEmpty(serviceProvider)) {
             MDC.put(SERVICE_PROVIDER_KEY, serviceProvider);
         }
