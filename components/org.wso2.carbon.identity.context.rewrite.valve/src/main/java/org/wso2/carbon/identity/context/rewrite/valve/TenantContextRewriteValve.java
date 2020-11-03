@@ -23,12 +23,14 @@ import org.apache.catalina.LifecycleException;
 import org.apache.catalina.connector.Request;
 import org.apache.catalina.connector.Response;
 import org.apache.catalina.valves.ValveBase;
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.slf4j.MDC;
 import org.wso2.carbon.base.MultitenantConstants;
 import org.wso2.carbon.base.ServerConfiguration;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
+import org.wso2.carbon.identity.base.IdentityRuntimeException;
 import org.wso2.carbon.identity.context.rewrite.bean.RewriteContext;
 import org.wso2.carbon.identity.context.rewrite.internal.ContextRewriteValveServiceComponentHolder;
 import org.wso2.carbon.identity.core.util.IdentityConfigParser;
@@ -147,7 +149,17 @@ public class TenantContextRewriteValve extends ValveBase {
         } catch (UserStoreException ex) {
             if (log.isDebugEnabled()) {
                 log.debug("Error occurred while validating tenant domain.", ex);
+            }
+            handleInvalidTenantDomainErrorResponse(response, HttpServletResponse.SC_NOT_FOUND, tenantDomain);
+        } catch (IdentityRuntimeException e) {
+            if (log.isDebugEnabled()) {
+                log.debug("Error occurred while validating tenant domain.", e);
+            }
+            String INVALID_TENANT_DOMAIN = "Invalid tenant domain";
+            if (!StringUtils.isBlank(e.getMessage()) && e.getMessage().contains(INVALID_TENANT_DOMAIN)) {
                 handleInvalidTenantDomainErrorResponse(response, HttpServletResponse.SC_NOT_FOUND, tenantDomain);
+            } else {
+                handleRuntimeErrorResponse(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, tenantDomain);
             }
         } finally {
             IdentityUtil.threadLocalProperties.get().remove(TENANT_NAME_FROM_CONTEXT);
@@ -208,6 +220,20 @@ public class TenantContextRewriteValve extends ValveBase {
             return overridingContexts;
         }
         return Collections.emptyList();
+    }
+
+    private void handleRuntimeErrorResponse(Response response, int error, String tenantDomain) throws
+            IOException, ServletException {
+
+        response.setContentType("application/json");
+        response.setStatus(error);
+        response.setCharacterEncoding("UTF-8");
+        JsonObject errorResponse = new JsonObject();
+        String errorMsg = "Error occurred while validating tenant domain: " + tenantDomain;
+        errorResponse.addProperty("code", error);
+        errorResponse.addProperty("message", errorMsg);
+        errorResponse.addProperty("description", errorMsg);
+        response.getWriter().print(errorResponse.toString());
     }
 
     private void handleInvalidTenantDomainErrorResponse(Response response, int error, String tenantDomain) throws
