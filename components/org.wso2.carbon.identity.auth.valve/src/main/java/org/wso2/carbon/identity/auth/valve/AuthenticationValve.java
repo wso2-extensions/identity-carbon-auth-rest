@@ -25,6 +25,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.slf4j.MDC;
+import org.wso2.carbon.identity.application.common.util.IdentityApplicationManagementUtil;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
 import org.wso2.carbon.identity.auth.service.AuthenticationManager;
 import org.wso2.carbon.identity.auth.service.AuthenticationRequest;
@@ -146,6 +147,8 @@ public class AuthenticationValve extends ValveBase {
             unsetThreadLocalServiceProvider();
             // Clear thread local current session id.
             unsetCurrentSessionIdThreadLocal();
+            // Clear thread local provisioning service provider.
+            IdentityApplicationManagementUtil.resetThreadLocalProvisioningServiceProvider();
         }
 
 
