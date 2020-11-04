@@ -69,7 +69,6 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
     private final String SERVICE_PROVIDER = "serviceProvider";
     private final String SERVICE_PROVIDER_TENANT_DOMAIN = "serviceProviderTenantDomain";
     private final String SCIM_ME_ENDPOINT_URI = "scim2/me";
-    private final String DEFAULT_SCIM2_DIALECT = "urn:ietf:params:scim:schemas:core:2.0";
 
     @Override
     protected AuthenticationResult doAuthenticate(MessageContext messageContext) {
@@ -305,7 +304,6 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
                     new ThreadLocalProvisioningServiceProvider();
             provisioningServiceProvider.setServiceProviderName(oauthAppConsumerKey);
             provisioningServiceProvider.setServiceProviderType(ProvisioningServiceProviderType.OAUTH);
-            provisioningServiceProvider.setClaimDialect(DEFAULT_SCIM2_DIALECT);
             provisioningServiceProvider.setTenantDomain(serviceProviderTenantDomain);
             IdentityApplicationManagementUtil.setThreadLocalProvisioningServiceProvider(provisioningServiceProvider);
         }
