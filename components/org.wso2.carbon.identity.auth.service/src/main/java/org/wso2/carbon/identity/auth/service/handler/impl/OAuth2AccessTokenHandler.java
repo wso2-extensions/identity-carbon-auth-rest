@@ -24,7 +24,10 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpHeaders;
 import org.slf4j.MDC;
+import org.wso2.carbon.identity.application.common.model.ProvisioningServiceProviderType;
+import org.wso2.carbon.identity.application.common.model.ThreadLocalProvisioningServiceProvider;
 import org.wso2.carbon.identity.application.common.model.User;
+import org.wso2.carbon.identity.application.common.util.IdentityApplicationManagementUtil;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
 import org.wso2.carbon.identity.auth.service.AuthenticationRequest;
 import org.wso2.carbon.identity.auth.service.AuthenticationResult;
@@ -156,6 +159,9 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
                     }
 
                     MDC.put(SERVICE_PROVIDER, serviceProvider);
+                    // Set OAuth service provider details to be consumed by the provisioning framework.
+                    setProvisioningServiceProviderThreadLocal(clientApplicationDTO.getConsumerKey(),
+                            serviceProviderTenantDomain);
                 }
             }
         }
@@ -282,5 +288,24 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
     private boolean isSSOSessionBasedTokenBinding(String tokenBindingType) {
 
         return SSO_SESSION_BASED_TOKEN_BINDER.equals(tokenBindingType);
+    }
+
+    /**
+     * Set the service provider details to a thread local variable to be consumed by the provisioning framework.
+     *
+     * @param oauthAppConsumerKey           Client ID of the OAuth client application.
+     * @param serviceProviderTenantDomain   Tenant Domain of the OAuth application.
+     */
+    private void setProvisioningServiceProviderThreadLocal(String oauthAppConsumerKey,
+                                                           String serviceProviderTenantDomain) {
+
+        if (serviceProviderTenantDomain != null) {
+            ThreadLocalProvisioningServiceProvider provisioningServiceProvider =
+                    new ThreadLocalProvisioningServiceProvider();
+            provisioningServiceProvider.setServiceProviderName(oauthAppConsumerKey);
+            provisioningServiceProvider.setServiceProviderType(ProvisioningServiceProviderType.OAUTH);
+            provisioningServiceProvider.setTenantDomain(serviceProviderTenantDomain);
+            IdentityApplicationManagementUtil.setThreadLocalProvisioningServiceProvider(provisioningServiceProvider);
+        }
     }
 }
