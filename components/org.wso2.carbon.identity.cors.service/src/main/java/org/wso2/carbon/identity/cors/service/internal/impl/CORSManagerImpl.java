@@ -28,7 +28,7 @@ import org.wso2.carbon.identity.cors.mgt.core.exception.CORSManagementServiceExc
 import org.wso2.carbon.identity.cors.mgt.core.exception.CORSManagementServiceServerException;
 import org.wso2.carbon.identity.cors.mgt.core.model.CORSConfiguration;
 import org.wso2.carbon.identity.cors.mgt.core.model.CORSOrigin;
-import org.wso2.carbon.identity.cors.mgt.core.model.ValidatedOrigin;
+import org.wso2.carbon.identity.cors.mgt.core.model.Origin;
 import org.wso2.carbon.identity.cors.service.CORSManager;
 import org.wso2.carbon.identity.cors.service.internal.CORSServiceHolder;
 import org.wso2.carbon.identity.cors.service.internal.cache.CORSConfigurationCache;
@@ -37,7 +37,7 @@ import org.wso2.carbon.identity.cors.service.internal.cache.CORSConfigurationCac
 import org.wso2.carbon.identity.cors.service.internal.cache.CORSOriginCache;
 import org.wso2.carbon.identity.cors.service.internal.cache.CORSOriginCacheEntry;
 import org.wso2.carbon.identity.cors.service.internal.cache.CORSOriginCacheKey;
-import org.wso2.carbon.identity.cors.service.internal.function.CORSOriginToValidatedOrigin;
+import org.wso2.carbon.identity.cors.service.internal.function.CORSOriginToOrigin;
 import org.wso2.carbon.identity.cors.service.internal.store.ServerCORSStore;
 
 import java.util.List;
@@ -51,9 +51,9 @@ public class CORSManagerImpl implements CORSManager {
     private static final Log log = LogFactory.getLog(CORSManagerImpl.class);
 
     @Override
-    public ValidatedOrigin[] getCORSOrigins(String tenantDomain) throws CORSManagementServiceServerException {
+    public Origin[] getCORSOrigins(String tenantDomain) throws CORSManagementServiceServerException {
 
-        ValidatedOrigin[] cachedResult = getCORSOriginsFromCache(tenantDomain);
+        Origin[] cachedResult = getCORSOriginsFromCache(tenantDomain);
         if (cachedResult != null) {
             return cachedResult;
         }
@@ -62,18 +62,18 @@ public class CORSManagerImpl implements CORSManager {
             int tenantId = IdentityTenantUtil.getTenantId(tenantDomain);
             List<CORSOrigin> corsOriginList = getCORSOriginDAO().getCORSOriginsByTenantId(tenantId);
 
-            List<ValidatedOrigin> validatedOriginList = ServerCORSStore.getServerCORSOrigins();
+            List<Origin> originList = ServerCORSStore.getServerCORSOrigins();
             if (!corsOriginList.isEmpty()) {
-                validatedOriginList.addAll(corsOriginList.stream()
-                        .map(new CORSOriginToValidatedOrigin()).collect(Collectors.toList()));
+                originList.addAll(corsOriginList.stream()
+                        .map(new CORSOriginToOrigin()).collect(Collectors.toList()));
             }
 
-            ValidatedOrigin[] validatedOriginArray = validatedOriginList.toArray(new ValidatedOrigin[0]);
+            Origin[] originArray = originList.toArray(new Origin[0]);
 
             // Add to cache.
-            addCORSOriginsToCache(validatedOriginArray, tenantDomain);
+            addCORSOriginsToCache(originArray, tenantDomain);
 
-            return validatedOriginArray;
+            return originArray;
         } catch (CORSManagementServiceException e) {
             throw new CORSManagementServiceServerException(ErrorMessages.ERROR_CODE_CORS_RETRIEVE.getCode(),
                     String.format(ErrorMessages.ERROR_CODE_CORS_RETRIEVE.getDescription(), tenantDomain), e);
@@ -125,13 +125,13 @@ public class CORSManagerImpl implements CORSManager {
     /**
      * Add CORS origins to the cache.
      *
-     * @param validatedOrigins The validated origins that should be added to the cache.
-     * @param tenantDomain     The tenant domain specific to the cache entry.
+     * @param origins      The  origins that should be added to the cache.
+     * @param tenantDomain The tenant domain specific to the cache entry.
      */
-    private void addCORSOriginsToCache(ValidatedOrigin[] validatedOrigins, String tenantDomain) {
+    private void addCORSOriginsToCache(Origin[] origins, String tenantDomain) {
 
         CORSOriginCacheKey cacheKey = new CORSOriginCacheKey(tenantDomain);
-        CORSOriginCacheEntry cacheEntry = new CORSOriginCacheEntry(validatedOrigins);
+        CORSOriginCacheEntry cacheEntry = new CORSOriginCacheEntry(origins);
 
         if (log.isDebugEnabled()) {
             log.debug("Adding CORS origins to Cache with Key: " + tenantDomain);
@@ -144,10 +144,10 @@ public class CORSManagerImpl implements CORSManager {
      * Get CORS origins from the cache.
      *
      * @param tenantDomain The tenant domain specific to the cache entry.
-     * @return Returns an array of {@code ValidatedOrigin}(s) if the cached origins are found for the tenant.
+     * @return Returns an array of {@code Origin}(s) if the cached origins are found for the tenant.
      * Else return {@code null}.
      */
-    private ValidatedOrigin[] getCORSOriginsFromCache(String tenantDomain) {
+    private Origin[] getCORSOriginsFromCache(String tenantDomain) {
 
         CORSOriginCacheKey cacheKey = new CORSOriginCacheKey(tenantDomain);
         CORSOriginCache cache = CORSOriginCache.getInstance();

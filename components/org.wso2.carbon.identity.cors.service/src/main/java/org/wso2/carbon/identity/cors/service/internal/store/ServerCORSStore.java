@@ -23,7 +23,7 @@ import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.identity.base.IdentityConstants;
 import org.wso2.carbon.identity.cors.mgt.core.exception.CORSManagementServiceClientException;
 import org.wso2.carbon.identity.cors.mgt.core.internal.util.CORSConfigurationUtils;
-import org.wso2.carbon.identity.cors.mgt.core.model.ValidatedOrigin;
+import org.wso2.carbon.identity.cors.mgt.core.model.Origin;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -37,9 +37,9 @@ public class ServerCORSStore {
 
     private static final Log log = LogFactory.getLog(ServerCORSStore.class);
 
-    private static List<ValidatedOrigin> serverCORSOrigins;
+    private static List<Origin> serverCORSOrigins;
 
-    public static List<ValidatedOrigin> getServerCORSOrigins() {
+    public static List<Origin> getServerCORSOrigins() {
 
         if (serverCORSOrigins == null) {
             // Get server level allowed CORS origins.
@@ -47,7 +47,7 @@ public class ServerCORSStore {
             serverCORSOrigins = CORSConfigurationUtils.readPropertyArray(IdentityConstants.CORS.ALLOWED_ORIGINS)
                     .stream().map(origin -> {
                         try {
-                            return new ValidatedOrigin(origin);
+                            return new Origin(origin);
                         } catch (CORSManagementServiceClientException e) {
                             log.error(String.format(ERROR_CODE_INVALID_ORIGIN.getDescription(), origin), e);
                         }

@@ -27,7 +27,6 @@ import org.wso2.carbon.identity.cors.mgt.core.exception.CORSManagementServiceExc
 import org.wso2.carbon.identity.cors.mgt.core.exception.CORSManagementServiceServerException;
 import org.wso2.carbon.identity.cors.mgt.core.model.CORSConfiguration;
 import org.wso2.carbon.identity.cors.mgt.core.model.Origin;
-import org.wso2.carbon.identity.cors.mgt.core.model.ValidatedOrigin;
 import org.wso2.carbon.identity.cors.service.CORSManager;
 import org.wso2.carbon.identity.cors.valve.constant.ErrorMessages;
 import org.wso2.carbon.identity.cors.valve.constant.Header;
@@ -212,9 +211,9 @@ public class CORSRequestHandler {
             return false;
         }
 
-        ValidatedOrigin[] validatedOrigins = getCORSManager().getCORSOrigins(tenantDomain);
-        for (ValidatedOrigin validatedOrigin : validatedOrigins) {
-            if (validatedOrigin.getValue().equals(origin.toString())) {
+        Origin[] origins = getCORSManager().getCORSOrigins(tenantDomain);
+        for (Origin o : origins) {
+            if (o.getValue().equals(origin.toString())) {
                 return true;
             }
         }
@@ -244,17 +243,14 @@ public class CORSRequestHandler {
      *
      * @param origin The origin as reported by the web client (browser), {@code null} if unknown.
      * @return {@code true} if the origin is an allowed subdomain origin, else {@code false}.
+     * @throws CORSManagementServiceException
      */
     private boolean isAllowedSubdomainOrigin(final String tenantDomain, final Origin origin)
-            throws CORSManagementServiceServerException, CORSManagementServiceClientException {
+            throws CORSManagementServiceException {
 
-        ValidatedOrigin validatedOrigin = new ValidatedOrigin(origin.toString());
-
-        ValidatedOrigin[] validatedOrigins = getCORSManager().getCORSOrigins(tenantDomain);
-        for (ValidatedOrigin validatedOriginsItem : validatedOrigins) {
-            ValidatedOrigin validatedOriginToCompare = new ValidatedOrigin(validatedOriginsItem.getValue());
-            if (validatedOrigin.getSuffix().endsWith("." + validatedOriginToCompare.getSuffix())
-                    && validatedOrigin.getScheme().equalsIgnoreCase(validatedOriginToCompare.getScheme())) {
+        for (Origin o : getCORSManager().getCORSOrigins(tenantDomain)) {
+            if (origin.getSuffix().endsWith("." + o.getSuffix())
+                    && origin.getScheme().equalsIgnoreCase(o.getScheme())) {
                 return true;
             }
         }
