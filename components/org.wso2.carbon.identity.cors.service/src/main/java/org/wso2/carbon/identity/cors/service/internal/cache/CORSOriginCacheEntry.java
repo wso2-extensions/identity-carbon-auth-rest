@@ -19,7 +19,7 @@
 package org.wso2.carbon.identity.cors.service.internal.cache;
 
 import org.wso2.carbon.identity.application.common.cache.CacheEntry;
-import org.wso2.carbon.identity.cors.mgt.core.model.ValidatedOrigin;
+import org.wso2.carbon.identity.cors.mgt.core.model.Origin;
 
 /**
  * CORS origin container cache entry.
@@ -28,15 +28,15 @@ public class CORSOriginCacheEntry extends CacheEntry {
 
     private static final long serialVersionUID = -6544537094095542728L;
 
-    private final ValidatedOrigin[] validatedOrigins;
+    private final Origin[] origins;
 
-    public CORSOriginCacheEntry(ValidatedOrigin[] validatedOrigins) {
+    public CORSOriginCacheEntry(Origin[] origins) {
 
-        this.validatedOrigins = validatedOrigins;
+        this.origins = origins;
     }
 
-    public ValidatedOrigin[] getValidatedOrigins() {
+    public Origin[] getValidatedOrigins() {
 
-        return validatedOrigins;
+        return origins;
     }
 }

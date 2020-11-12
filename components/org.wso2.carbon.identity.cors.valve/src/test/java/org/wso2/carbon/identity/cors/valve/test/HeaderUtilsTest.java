@@ -202,7 +202,6 @@ public class HeaderUtilsTest {
         HeaderUtils.formatCanonical("Original_Name");
     }
 
-    @Test
     private void assertInvalid(String header) {
 
         try {
