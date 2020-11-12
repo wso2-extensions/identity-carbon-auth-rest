@@ -22,7 +22,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.identity.cors.mgt.core.exception.CORSManagementServiceClientException;
 import org.wso2.carbon.identity.cors.mgt.core.model.CORSOrigin;
-import org.wso2.carbon.identity.cors.mgt.core.model.ValidatedOrigin;
+import org.wso2.carbon.identity.cors.mgt.core.model.Origin;
 import org.wso2.carbon.identity.cors.service.internal.impl.CORSManagerImpl;
 
 import java.util.function.Function;
@@ -31,22 +31,22 @@ import static org.wso2.carbon.identity.cors.service.constant.ErrorMessages.ERROR
 
 
 /**
- * Converts a CORSOrigin object to a ValidatedOrigin object.
+ * Converts a CORSOrigin object to an Origin object.
  */
-public class CORSOriginToValidatedOrigin implements Function<CORSOrigin, ValidatedOrigin> {
+public class CORSOriginToOrigin implements Function<CORSOrigin, Origin> {
 
     private static final Log log = LogFactory.getLog(CORSManagerImpl.class);
 
     @Override
-    public ValidatedOrigin apply(CORSOrigin corsOrigin) {
+    public Origin apply(CORSOrigin corsOrigin) {
 
-        ValidatedOrigin validatedOrigin = null;
+        Origin origin = null;
         try {
-            validatedOrigin = new ValidatedOrigin(corsOrigin.getOrigin());
+            origin = new Origin(corsOrigin.getOrigin());
         } catch (CORSManagementServiceClientException e) {
             // The program should never reach here as all the CORS origins in the database are already validated.
             log.error(String.format(ERROR_CODE_INVALID_STORED_ORIGIN.getDescription(), corsOrigin.getOrigin()), e);
         }
-        return validatedOrigin;
+        return origin;
     }
 }

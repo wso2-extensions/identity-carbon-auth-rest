@@ -18,11 +18,9 @@
 
 package org.wso2.carbon.identity.cors.service;
 
-import org.wso2.carbon.identity.cors.mgt.core.exception.CORSManagementServiceClientException;
 import org.wso2.carbon.identity.cors.mgt.core.exception.CORSManagementServiceException;
-import org.wso2.carbon.identity.cors.mgt.core.exception.CORSManagementServiceServerException;
 import org.wso2.carbon.identity.cors.mgt.core.model.CORSConfiguration;
-import org.wso2.carbon.identity.cors.mgt.core.model.ValidatedOrigin;
+import org.wso2.carbon.identity.cors.mgt.core.model.Origin;
 
 /**
  * CORSManager interface.
@@ -33,12 +31,10 @@ public interface CORSManager {
      * Get all the CORS Origins belonging to a tenant.
      *
      * @param tenantDomain The tenant domain.
-     * @return ValidatedOrigin[] Returns an array of validated CORS origins configured by the tenant.
-     * @throws CORSManagementServiceClientException
-     * @throws CORSManagementServiceServerException
+     * @return Origin[] Returns an array of CORS origins configured by the tenant.
+     * @throws CORSManagementServiceException
      */
-    ValidatedOrigin[] getCORSOrigins(String tenantDomain) throws CORSManagementServiceClientException,
-            CORSManagementServiceServerException;
+    Origin[] getCORSOrigins(String tenantDomain) throws CORSManagementServiceException;
 
     /**
      * Get the CORS configurations of a tenant.
