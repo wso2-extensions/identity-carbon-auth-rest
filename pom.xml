@@ -27,7 +27,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.wso2.carbon.identity.auth.rest</groupId>
     <artifactId>identity-carbon-auth-rest</artifactId>
-    <version>1.4.24-SNAPSHOT</version>
+    <version>1.4.24</version>
     <packaging>pom</packaging>
     <name>WSO2 Carbon - Auth/Authz Modules</name>
     <description>
@@ -39,7 +39,7 @@
         <url>https://github.com/wso2-extensions/identity-carbon-auth-rest.git</url>
         <developerConnection>scm:git:https://github.com/wso2-extensions/identity-carbon-auth-rest.git</developerConnection>
         <connection>scm:git:https://github.com/wso2-extensions/identity-carbon-auth-rest.git</connection>
-        <tag>HEAD</tag>
+        <tag>v1.4.24</tag>
     </scm>
 
     <modules>
