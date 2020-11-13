@@ -19,6 +19,7 @@
 package org.wso2.carbon.identity.cors.valve.internal;
 
 import org.wso2.carbon.identity.cors.service.CORSManager;
+import org.wso2.carbon.user.core.service.RealmService;
 
 /**
  * Service holder class for the CORS valve.
@@ -26,7 +27,7 @@ import org.wso2.carbon.identity.cors.service.CORSManager;
 public class CORSValveServiceHolder {
 
     private static final CORSValveServiceHolder instance = new CORSValveServiceHolder();
-
+    private RealmService realmService;
     private CORSManager corsManager;
 
     private CORSValveServiceHolder() {
@@ -46,5 +47,19 @@ public class CORSValveServiceHolder {
     public void setCorsManager(CORSManager corsManager) {
 
         this.corsManager = corsManager;
+    }
+
+    public RealmService getRealmService() {
+
+        if (realmService == null) {
+            throw new RuntimeException("RealmService is null");
+        }
+
+        return realmService;
+    }
+
+    public void setRealmService(RealmService realmService) {
+
+        this.realmService = realmService;
     }
 }
