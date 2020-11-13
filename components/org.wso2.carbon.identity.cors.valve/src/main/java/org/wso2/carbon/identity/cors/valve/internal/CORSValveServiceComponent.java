@@ -28,6 +28,7 @@ import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ReferenceCardinality;
 import org.osgi.service.component.annotations.ReferencePolicy;
 import org.wso2.carbon.identity.cors.service.CORSManager;
+import org.wso2.carbon.user.core.service.RealmService;
 
 /**
  * Service component class for the CORS valve.
@@ -93,5 +94,25 @@ public class CORSValveServiceComponent {
             log.debug("Unregistering the CORSConfigurationDAO in CORSValve.");
         }
         CORSValveServiceHolder.getInstance().setCorsManager(null);
+    }
+
+    @Reference(
+            name = "user.realmservice.default",
+            service = org.wso2.carbon.user.core.service.RealmService.class,
+            cardinality = ReferenceCardinality.MANDATORY,
+            policy = ReferencePolicy.DYNAMIC,
+            unbind = "unsetRealmService")
+    protected void setRealmService(RealmService realmService) {
+        if (log.isDebugEnabled()) {
+            log.debug("Setting the Realm Service.");
+        }
+        CORSValveServiceHolder.getInstance().setRealmService(realmService);
+    }
+
+    protected void unsetRealmService(RealmService realmService) {
+        if (log.isDebugEnabled()) {
+            log.debug("Unsetting the Realm Service.");
+        }
+        CORSValveServiceHolder.getInstance().setRealmService(null);
     }
 }
