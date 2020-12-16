@@ -45,7 +45,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
-
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
 
@@ -57,6 +56,7 @@ public class TenantContextRewriteValve extends ValveBase {
     private static final String TENANT_DOMAIN = "tenantDomain";
     private static List<RewriteContext> contextsToRewrite;
     private static List<String> contextListToOverwriteDispatch;
+    private static List<String> ignorePathListForOverwriteDispatch;
     private boolean isTenantQualifiedUrlsEnabled;
     private TenantManager tenantManager;
 
@@ -69,6 +69,7 @@ public class TenantContextRewriteValve extends ValveBase {
         // Initialize the tenant context rewrite valve.
         contextsToRewrite = getContextsToRewrite();
         contextListToOverwriteDispatch = getContextListToOverwriteDispatchLocation();
+        ignorePathListForOverwriteDispatch = getIgnorePathListForOverwriteDispatch();
         isTenantQualifiedUrlsEnabled = isTenantQualifiedUrlsEnabled();
 
     }
@@ -125,17 +126,14 @@ public class TenantContextRewriteValve extends ValveBase {
                 IdentityUtil.threadLocalProperties.get().put(TENANT_NAME_FROM_CONTEXT, tenantDomain);
 
                 if (isWebApp) {
-                    String dispatchLocation;
-                    if (contextListToOverwriteDispatch.contains(contextToForward)) {
-                        dispatchLocation = "";
-                    } else {
-                        dispatchLocation = requestURI.replace("/t/" + tenantDomain + contextToForward, "");
+                    String dispatchLocation = "/" + requestURI.replace("/t/" + tenantDomain + contextToForward, "");
+                    if (contextListToOverwriteDispatch.contains(contextToForward) && !isIgnorePath(dispatchLocation)) {
+                        dispatchLocation = "/";
                     }
+
                     request.getContext().setCrossContext(true);
                     request.getServletContext().getContext(contextToForward)
-                            .getRequestDispatcher("/" + dispatchLocation).forward
-                            (request, response);
-
+                            .getRequestDispatcher(dispatchLocation).forward(request, response);
                 } else {
                     String carbonWebContext = ServerConfiguration.getInstance().getFirstProperty("WebContextRoot");
                     if (requestURI.contains(carbonWebContext)) {
@@ -208,18 +206,43 @@ public class TenantContextRewriteValve extends ValveBase {
      */
     private List<String> getContextListToOverwriteDispatchLocation() {
 
+        return getConfigValues("TenantContextsToRewrite.OverwriteDispatch.Context");
+    }
+
+    /**
+     * Get path list to ignore for overwrite dispatch.
+     *
+     * @return list of paths.
+     */
+    private List<String> getIgnorePathListForOverwriteDispatch() {
+
+        return getConfigValues("TenantContextsToRewrite.OverwriteDispatch.IgnorePath");
+    }
+
+    private List<String> getConfigValues(String elementPath) {
+
         Map<String, Object> configuration = IdentityConfigParser.getInstance().getConfiguration();
-        Object contexts = configuration.get("TenantContextsToRewrite.OverwriteDispatch.Context");
-        if (contexts != null) {
-            List<String> overridingContexts = new ArrayList<>();
-            if (contexts instanceof List) {
-                overridingContexts.addAll((List<String>) contexts);
+        Object elements = configuration.get(elementPath);
+        if (elements != null) {
+            List<String> configValues = new ArrayList<>();
+            if (elements instanceof List) {
+                configValues.addAll((List<String>) elements);
             } else {
-                overridingContexts.add(contexts.toString());
+                configValues.add(elements.toString());
             }
-            return overridingContexts;
+            return configValues;
         }
         return Collections.emptyList();
+    }
+
+    private boolean isIgnorePath(String dispatchLocation) {
+
+        for (String path : ignorePathListForOverwriteDispatch) {
+            if (dispatchLocation.startsWith(path)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void handleRuntimeErrorResponse(Response response, int error, String tenantDomain) throws
