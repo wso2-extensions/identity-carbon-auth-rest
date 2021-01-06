@@ -74,7 +74,8 @@ public class AuthenticationValveServiceComponent {
             String errorPage = FileUtils.readFileToString(file, StandardCharsets.UTF_8);
             AuthenticationValveDataHolder.getInstance().setInvalidTenantDomainErrorPage(errorPage);
         } catch (IOException e) {
-            log.error("Error while reading the invalid_tenant_domain_response.html file", e);
+            log.warn(
+                    "File invalid_tenant_domain_response.html not found. The default content will be used as the error page content.");
         }
     }
 
