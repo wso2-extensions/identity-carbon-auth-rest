@@ -72,9 +72,6 @@ public class CORSValve extends ValveBase {
         CORSRequestType corsRequestType = CORSUtils.getRequestType(request);
         String tenantDomain = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain();
 
-        if (!validateTenantDomain(response, tenantDomain)) {
-            return;
-        }
         try {
             // Tag if configured.
             CORSManager corsManager = CORSValveServiceHolder.getInstance().getCorsManager();
@@ -107,36 +104,6 @@ public class CORSValve extends ValveBase {
         }
     }
 
-    private boolean validateTenantDomain(Response response, String tenantDomain) throws IOException, ServletException {
-
-        try {
-            TenantManager tenantManager = CORSValveServiceHolder.getInstance().getRealmService()
-                    .getTenantManager();
-            if (tenantDomain != null && !tenantManager.isTenantActive(IdentityTenantUtil.getTenantId(tenantDomain))) {
-                handleInvalidTenantDomainErrorResponse(response, HttpServletResponse.SC_NOT_FOUND, tenantDomain);
-                return false;
-            }
-        } catch (UserStoreException ex) {
-            if (log.isDebugEnabled()) {
-                log.debug("Error occurred while validating tenant domain.", ex);
-            }
-            handleInvalidTenantDomainErrorResponse(response, HttpServletResponse.SC_NOT_FOUND, tenantDomain);
-            return false;
-        } catch (IdentityRuntimeException e) {
-            if (log.isDebugEnabled()) {
-                log.debug("Error occurred while validating tenant domain.", e);
-            }
-            String INVALID_TENANT_DOMAIN = "Invalid tenant domain";
-            if (!StringUtils.isBlank(e.getMessage()) && e.getMessage().contains(INVALID_TENANT_DOMAIN)) {
-                handleInvalidTenantDomainErrorResponse(response, HttpServletResponse.SC_NOT_FOUND, tenantDomain);
-            } else {
-                handleRuntimeErrorResponse(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, tenantDomain);
-            }
-            return false;
-        }
-        return true;
-    }
-
     /**
      * Produces a simple HTTP text/plain response for the specified CORS
      * exception.
@@ -161,33 +128,5 @@ public class CORSValve extends ValveBase {
         if (log.isDebugEnabled()) {
             log.debug("CORS valve error when intercepting an HTTP request.", e);
         }
-    }
-
-    private void handleInvalidTenantDomainErrorResponse(Response response, int error, String tenantDomain) throws
-            IOException {
-
-        response.setContentType("application/json");
-        response.setStatus(error);
-        response.setCharacterEncoding("UTF-8");
-        JsonObject errorResponse = new JsonObject();
-        String errorMsg = "invalid tenant domain : " + tenantDomain;
-        errorResponse.addProperty("code", error);
-        errorResponse.addProperty("message", errorMsg);
-        errorResponse.addProperty("description", errorMsg);
-        response.getWriter().print(errorResponse.toString());
-    }
-
-    private void handleRuntimeErrorResponse(Response response, int error, String tenantDomain) throws
-            IOException {
-
-        response.setContentType("application/json");
-        response.setStatus(error);
-        response.setCharacterEncoding("UTF-8");
-        JsonObject errorResponse = new JsonObject();
-        String errorMsg = "Error occurred while validating tenant domain: " + tenantDomain;
-        errorResponse.addProperty("code", error);
-        errorResponse.addProperty("message", errorMsg);
-        errorResponse.addProperty("description", errorMsg);
-        response.getWriter().print(errorResponse.toString());
     }
 }
