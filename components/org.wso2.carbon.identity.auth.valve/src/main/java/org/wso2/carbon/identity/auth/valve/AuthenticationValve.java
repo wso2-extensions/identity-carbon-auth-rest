@@ -51,7 +51,9 @@ import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.user.core.tenant.TenantManager;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -254,7 +256,8 @@ public class AuthenticationValve extends ValveBase {
                 handleInvalidTenantDomainErrorResponse(request, response, HttpServletResponse.SC_NOT_FOUND,
                         tenantDomain);
             } else {
-                handleRuntimeErrorResponse(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, tenantDomain);
+                handleRuntimeErrorResponse(request, response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                        tenantDomain);
             }
             return false;
         }
@@ -268,10 +271,10 @@ public class AuthenticationValve extends ValveBase {
         String requestContentType = request.getContentType();
         response.setStatus(error);
         response.setCharacterEncoding("UTF-8");
+        String errorMsg = tenantDomain + " is an invalid tenant domain";
         if (StringUtils.equalsIgnoreCase("application/json", requestContentType)) {
             response.setContentType("application/json");
             JsonObject errorResponse = new JsonObject();
-            String errorMsg = "invalid tenant domain : " + tenantDomain;
             errorResponse.addProperty("code", error);
             errorResponse.addProperty("message", errorMsg);
             errorResponse.addProperty("description", errorMsg);
@@ -279,22 +282,52 @@ public class AuthenticationValve extends ValveBase {
         } else {
             response.setContentType("text/html");
             String errorPage = AuthenticationValveDataHolder.getInstance().getInvalidTenantDomainErrorPage();
-            errorPage = errorPage.replace("$tenant.name", tenantDomain);
+            if (StringUtils.isEmpty(errorPage)) {
+                errorPage = readDefaultErrorFromResource("default_error_page_of_invalid_tenant_domain_response.html",
+                        this.getClass());
+            }
+            errorPage = errorPage.replace("$error.msg", errorMsg);
             response.getWriter().print(errorPage);
         }
     }
 
-    private void handleRuntimeErrorResponse(Response response, int error, String tenantDomain) throws
+    private void handleRuntimeErrorResponse(Request request, Response response, int error, String tenantDomain) throws
             IOException {
 
-        response.setContentType("application/json");
+        String requestContentType = request.getContentType();
         response.setStatus(error);
         response.setCharacterEncoding("UTF-8");
-        JsonObject errorResponse = new JsonObject();
-        String errorMsg = "Error occurred while validating tenant domain: " + tenantDomain;
-        errorResponse.addProperty("code", error);
-        errorResponse.addProperty("message", errorMsg);
-        errorResponse.addProperty("description", errorMsg);
-        response.getWriter().print(errorResponse.toString());
+        String errorMsg = "Error occurred while validating tenant domain " + tenantDomain;
+        if (StringUtils.equalsIgnoreCase("application/json", requestContentType)) {
+            response.setContentType("application/json");
+            JsonObject errorResponse = new JsonObject();
+            errorResponse.addProperty("code", error);
+            errorResponse.addProperty("message", errorMsg);
+            errorResponse.addProperty("description", errorMsg);
+            response.getWriter().print(errorResponse.toString());
+        } else {
+            response.setContentType("text/html");
+            String errorPage = AuthenticationValveDataHolder.getInstance().getInvalidTenantDomainErrorPage();
+            if (StringUtils.isEmpty(errorPage)) {
+                errorPage = readDefaultErrorFromResource("default_error_page_of_invalid_tenant_domain_response.html",
+                        this.getClass());
+            }
+            errorPage = errorPage.replace("$error.msg", errorMsg);
+            response.getWriter().print(errorPage);
+        }
+    }
+
+    private String readDefaultErrorFromResource(String filename, Class cClass) throws IOException {
+
+        try (InputStream resourceAsStream = cClass.getResourceAsStream(filename);
+             BufferedInputStream bufferedInputStream = new BufferedInputStream(resourceAsStream)) {
+            StringBuilder resourceFile = new StringBuilder();
+            int character;
+            while ((character = bufferedInputStream.read()) != -1) {
+                char value = (char) character;
+                resourceFile.append(value);
+            }
+            return resourceFile.toString();
+        }
     }
 }
