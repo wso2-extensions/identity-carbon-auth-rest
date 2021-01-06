@@ -20,6 +20,7 @@ package org.wso2.carbon.identity.auth.valve.internal;
 
 import org.wso2.carbon.identity.auth.service.AuthenticationManager;
 import org.wso2.carbon.identity.auth.service.factory.AuthenticationRequestBuilderFactory;
+import org.wso2.carbon.user.core.service.RealmService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,6 +33,7 @@ public class AuthenticationValveServiceHolder {
     private static AuthenticationValveServiceHolder authenticationValveServiceHolder = new
             AuthenticationValveServiceHolder();
     private List<AuthenticationRequestBuilderFactory> requestBuilderFactories = new ArrayList<>();
+    private RealmService realmService;
 
     private List<AuthenticationManager> authenticationManagers = new ArrayList<>();
 
@@ -48,5 +50,19 @@ public class AuthenticationValveServiceHolder {
 
     public List<AuthenticationRequestBuilderFactory> getRequestBuilderFactories() {
         return requestBuilderFactories;
+    }
+
+    public RealmService getRealmService() {
+
+        if (realmService == null) {
+            throw new RuntimeException("RealmService is null");
+        }
+
+        return realmService;
+    }
+
+    public void setRealmService(RealmService realmService) {
+
+        this.realmService = realmService;
     }
 }

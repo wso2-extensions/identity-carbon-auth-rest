@@ -18,6 +18,7 @@
 
 package org.wso2.carbon.identity.auth.valve;
 
+import com.google.gson.JsonObject;
 import org.apache.catalina.connector.Request;
 import org.apache.catalina.connector.Response;
 import org.apache.catalina.valves.ValveBase;
@@ -25,6 +26,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.slf4j.MDC;
+import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.identity.application.common.util.IdentityApplicationManagementUtil;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
 import org.wso2.carbon.identity.auth.service.AuthenticationManager;
@@ -39,10 +41,15 @@ import org.wso2.carbon.identity.auth.service.module.ResourceConfig;
 import org.wso2.carbon.identity.auth.service.module.ResourceConfigKey;
 import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
 import org.wso2.carbon.identity.auth.service.util.Constants;
+import org.wso2.carbon.identity.auth.valve.internal.AuthenticationValveDataHolder;
+import org.wso2.carbon.identity.auth.valve.internal.AuthenticationValveServiceHolder;
 import org.wso2.carbon.identity.auth.valve.util.AuthHandlerManager;
 import org.wso2.carbon.identity.base.IdentityRuntimeException;
 import org.wso2.carbon.identity.core.util.IdentityConfigParser;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
+import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
+import org.wso2.carbon.user.api.UserStoreException;
+import org.wso2.carbon.user.core.tenant.TenantManager;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -74,7 +81,10 @@ public class AuthenticationValve extends ValveBase {
 
         AuthenticationContext authenticationContext = null;
         AuthenticationResult authenticationResult = null;
-
+        String tenantDomain = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain();
+        if (!validateTenantDomain(request, response, tenantDomain)) {
+            return;
+        }
         try {
             AuthenticationManager authenticationManager = AuthHandlerManager.getInstance().getAuthenticationManager();
             ResourceConfig securedResource = authenticationManager.getSecuredResource(new ResourceConfigKey(request
@@ -216,5 +226,75 @@ public class AuthenticationValve extends ValveBase {
         if (IdentityUtil.threadLocalProperties.get().get(Constants.CURRENT_SESSION_IDENTIFIER) != null) {
             IdentityUtil.threadLocalProperties.get().remove(Constants.CURRENT_SESSION_IDENTIFIER);
         }
+    }
+
+    private boolean validateTenantDomain(Request request, Response response, String tenantDomain)
+            throws IOException, ServletException {
+
+        try {
+            TenantManager tenantManager = AuthenticationValveServiceHolder.getInstance().getRealmService()
+                    .getTenantManager();
+            if (tenantDomain != null && !tenantManager.isTenantActive(IdentityTenantUtil.getTenantId(tenantDomain))) {
+                handleInvalidTenantDomainErrorResponse(request, response, HttpServletResponse.SC_NOT_FOUND,
+                        tenantDomain);
+                return false;
+            }
+        } catch (UserStoreException ex) {
+            if (log.isDebugEnabled()) {
+                log.debug("Error occurred while validating tenant domain.", ex);
+            }
+            handleInvalidTenantDomainErrorResponse(request, response, HttpServletResponse.SC_NOT_FOUND, tenantDomain);
+            return false;
+        } catch (IdentityRuntimeException e) {
+            if (log.isDebugEnabled()) {
+                log.debug("Error occurred while validating tenant domain.", e);
+            }
+            String INVALID_TENANT_DOMAIN = "Invalid tenant domain";
+            if (!StringUtils.isBlank(e.getMessage()) && e.getMessage().contains(INVALID_TENANT_DOMAIN)) {
+                handleInvalidTenantDomainErrorResponse(request, response, HttpServletResponse.SC_NOT_FOUND,
+                        tenantDomain);
+            } else {
+                handleRuntimeErrorResponse(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, tenantDomain);
+            }
+            return false;
+        }
+        return true;
+    }
+
+    private void handleInvalidTenantDomainErrorResponse(Request request, Response response, int error,
+                                                        String tenantDomain) throws
+            IOException {
+
+        String requestContentType = request.getContentType();
+        response.setStatus(error);
+        response.setCharacterEncoding("UTF-8");
+        if (StringUtils.equalsIgnoreCase("application/json", requestContentType)) {
+            response.setContentType("application/json");
+            JsonObject errorResponse = new JsonObject();
+            String errorMsg = "invalid tenant domain : " + tenantDomain;
+            errorResponse.addProperty("code", error);
+            errorResponse.addProperty("message", errorMsg);
+            errorResponse.addProperty("description", errorMsg);
+            response.getWriter().print(errorResponse.toString());
+        } else {
+            response.setContentType("text/html");
+            String errorPage = AuthenticationValveDataHolder.getInstance().getInvalidTenantDomainErrorPage();
+            errorPage = errorPage.replace("$tenant.name", tenantDomain);
+            response.getWriter().print(errorPage);
+        }
+    }
+
+    private void handleRuntimeErrorResponse(Response response, int error, String tenantDomain) throws
+            IOException {
+
+        response.setContentType("application/json");
+        response.setStatus(error);
+        response.setCharacterEncoding("UTF-8");
+        JsonObject errorResponse = new JsonObject();
+        String errorMsg = "Error occurred while validating tenant domain: " + tenantDomain;
+        errorResponse.addProperty("code", error);
+        errorResponse.addProperty("message", errorMsg);
+        errorResponse.addProperty("description", errorMsg);
+        response.getWriter().print(errorResponse.toString());
     }
 }
