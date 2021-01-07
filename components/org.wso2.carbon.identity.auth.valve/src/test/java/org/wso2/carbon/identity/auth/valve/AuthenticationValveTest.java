@@ -129,7 +129,27 @@ public class AuthenticationValveTest extends PowerMockTestCase {
     }
 
     @DataProvider
+    public Object[][] getRequestContentTypeAndCustomErrorPagesForInvalidTenantResponse() {
+
+        /*
+        Content-Type of request, error page content if default_error_page_of_invalid_tenant_domain_response.html file found,
+        unclear thread local data.
+         */
+        return new Object[][]{
+                {"application/json", "<p>$error.msg</p>", true},
+                {"application/json", "<p>$error.msg</p>", false},
+                {"application/json", null, true},
+                {"application/json", null, false},
+                {"text/html", "<p>$error.msg</p>", true},
+                {"text/html", "<p>$error.msg</p>", false},
+                {"text/html", null, true},
+                {"text/html", null, false},
+        };
+    }
+
+    @DataProvider
     public Object[][] getUnclearedThreadLocalData() {
+
         return new Object[][]{
                 {true}, {false}
         };
@@ -258,13 +278,15 @@ public class AuthenticationValveTest extends PowerMockTestCase {
         Assert.assertEquals(MDC.get(USER_AGENT), USER_AGENT);
     }
 
-    @Test(dataProvider = "getUnclearedThreadLocalData")
-    public void testInvokeForInvalidTenantDomain(boolean hasThreadLocal) throws Exception {
+    @Test(dataProvider = "getRequestContentTypeAndCustomErrorPagesForInvalidTenantResponse")
+    public void testInvokeForInvalidTenantDomain(String requestContentType, String errorPage,
+                                                           boolean hasThreadLocal) throws Exception {
 
         mockRealmService(false);
-        AuthenticationValveDataHolder.getInstance().setInvalidTenantDomainErrorPage("errorPage");
+        AuthenticationValveDataHolder.getInstance().setInvalidTenantDomainErrorPage(errorPage);
         PrintWriter printWriter = mock(PrintWriter.class);
         when(response.getWriter()).thenReturn(printWriter);
+        when(request.getContentType()).thenReturn(requestContentType);
         final Map<String, Object> attributes = mockAttributeMap();
         if (hasThreadLocal) {
             setIdentityErrorThreadLocal();
