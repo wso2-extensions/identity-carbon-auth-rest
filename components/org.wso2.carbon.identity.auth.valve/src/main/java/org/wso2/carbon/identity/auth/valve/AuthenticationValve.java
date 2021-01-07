@@ -237,7 +237,8 @@ public class AuthenticationValve extends ValveBase {
             TenantManager tenantManager = AuthenticationValveServiceHolder.getInstance().getRealmService()
                     .getTenantManager();
             if (tenantDomain != null && !tenantManager.isTenantActive(IdentityTenantUtil.getTenantId(tenantDomain))) {
-                handleInvalidTenantDomainErrorResponse(request, response, HttpServletResponse.SC_NOT_FOUND,
+                String errorMsg = tenantDomain + " is an invalid tenant domain";
+                handleInvalidTenantDomainErrorResponse(request, response, HttpServletResponse.SC_NOT_FOUND, errorMsg,
                         tenantDomain);
                 return false;
             }
@@ -245,7 +246,9 @@ public class AuthenticationValve extends ValveBase {
             if (log.isDebugEnabled()) {
                 log.debug("Error occurred while validating tenant domain.", ex);
             }
-            handleInvalidTenantDomainErrorResponse(request, response, HttpServletResponse.SC_NOT_FOUND, tenantDomain);
+            String errorMsg = tenantDomain + " is an invalid tenant domain";
+            handleInvalidTenantDomainErrorResponse(request, response, HttpServletResponse.SC_NOT_FOUND, errorMsg,
+                    tenantDomain);
             return false;
         } catch (IdentityRuntimeException e) {
             if (log.isDebugEnabled()) {
@@ -253,51 +256,26 @@ public class AuthenticationValve extends ValveBase {
             }
             String INVALID_TENANT_DOMAIN = "Invalid tenant domain";
             if (!StringUtils.isBlank(e.getMessage()) && e.getMessage().contains(INVALID_TENANT_DOMAIN)) {
-                handleInvalidTenantDomainErrorResponse(request, response, HttpServletResponse.SC_NOT_FOUND,
+                String errorMsg = tenantDomain + " is an invalid tenant domain";
+                handleInvalidTenantDomainErrorResponse(request, response, HttpServletResponse.SC_NOT_FOUND, errorMsg,
                         tenantDomain);
             } else {
-                handleRuntimeErrorResponse(request, response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                        tenantDomain);
+                String errorMsg = "Error occurred while validating tenant domain " + tenantDomain;
+                handleInvalidTenantDomainErrorResponse(request, response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                        errorMsg, tenantDomain);
             }
             return false;
         }
         return true;
     }
 
-    private void handleInvalidTenantDomainErrorResponse(Request request, Response response, int error,
+    private void handleInvalidTenantDomainErrorResponse(Request request, Response response, int error, String errorMsg,
                                                         String tenantDomain) throws
             IOException {
 
         String requestContentType = request.getContentType();
         response.setStatus(error);
         response.setCharacterEncoding("UTF-8");
-        String errorMsg = tenantDomain + " is an invalid tenant domain";
-        if (StringUtils.equalsIgnoreCase("application/json", requestContentType)) {
-            response.setContentType("application/json");
-            JsonObject errorResponse = new JsonObject();
-            errorResponse.addProperty("code", error);
-            errorResponse.addProperty("message", errorMsg);
-            errorResponse.addProperty("description", errorMsg);
-            response.getWriter().print(errorResponse.toString());
-        } else {
-            response.setContentType("text/html");
-            String errorPage = AuthenticationValveDataHolder.getInstance().getInvalidTenantDomainErrorPage();
-            if (StringUtils.isEmpty(errorPage)) {
-                errorPage = readDefaultErrorFromResource("default_error_page_of_invalid_tenant_domain_response.html",
-                        this.getClass());
-            }
-            errorPage = errorPage.replace("$error.msg", errorMsg);
-            response.getWriter().print(errorPage);
-        }
-    }
-
-    private void handleRuntimeErrorResponse(Request request, Response response, int error, String tenantDomain) throws
-            IOException {
-
-        String requestContentType = request.getContentType();
-        response.setStatus(error);
-        response.setCharacterEncoding("UTF-8");
-        String errorMsg = "Error occurred while validating tenant domain " + tenantDomain;
         if (StringUtils.equalsIgnoreCase("application/json", requestContentType)) {
             response.setContentType("application/json");
             JsonObject errorResponse = new JsonObject();
