@@ -276,7 +276,7 @@ public class AuthenticationValve extends ValveBase {
         String requestContentType = request.getContentType();
         response.setStatus(error);
         response.setCharacterEncoding("UTF-8");
-        if (StringUtils.equalsIgnoreCase("application/json", requestContentType)) {
+        if (StringUtils.contains(requestContentType, "application/json")) {
             response.setContentType("application/json");
             JsonObject errorResponse = new JsonObject();
             errorResponse.addProperty("code", error);
