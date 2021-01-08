@@ -22,6 +22,7 @@ import org.apache.catalina.connector.Response;
 import org.apache.commons.collections.iterators.IteratorEnumeration;
 import org.mockito.Matchers;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -32,6 +33,9 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
+import org.wso2.carbon.context.PrivilegedCarbonContext;
+import org.wso2.carbon.identity.auth.valve.internal.AuthenticationValveDataHolder;
+import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
 import org.wso2.carbon.identity.auth.service.AuthenticationManager;
 import org.wso2.carbon.identity.auth.service.AuthenticationResult;
@@ -49,6 +53,7 @@ import org.wso2.carbon.identity.core.util.IdentityConfigParser;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -58,12 +63,20 @@ import java.util.Map;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
 
+import static org.mockito.Mockito.mock;
 import static org.powermock.api.mockito.PowerMockito.doAnswer;
 import static org.powermock.api.mockito.PowerMockito.doNothing;
 import static org.powermock.api.mockito.PowerMockito.mockStatic;
 import static org.powermock.api.mockito.PowerMockito.when;
+import static org.wso2.carbon.base.MultitenantConstants.SUPER_TENANT_DOMAIN_NAME;
+import static org.wso2.carbon.base.MultitenantConstants.SUPER_TENANT_ID;
+import static org.wso2.carbon.identity.auth.valve.util.CarbonUtils.mockCarbonContextForTenant;
+import static org.wso2.carbon.identity.auth.valve.util.CarbonUtils.mockIdentityTenantUtility;
+import static org.wso2.carbon.identity.auth.valve.util.CarbonUtils.mockRealmService;
+import static org.wso2.carbon.identity.auth.valve.util.CarbonUtils.setCarbonHome;
 
-@PrepareForTest({AuthHandlerManager.class, AuthenticationManager.class, IdentityConfigParser.class})
+@PrepareForTest({AuthHandlerManager.class, AuthenticationManager.class, IdentityConfigParser.class,
+        IdentityTenantUtil.class, PrivilegedCarbonContext.class})
 public class AuthenticationValveTest extends PowerMockTestCase {
 
     private static final String DUMMY_RESOURCE = "/test/resource";
@@ -116,7 +129,27 @@ public class AuthenticationValveTest extends PowerMockTestCase {
     }
 
     @DataProvider
+    public Object[][] getRequestContentTypeAndCustomErrorPagesForInvalidTenantResponse() {
+
+        /*
+        Content-Type of request, error page content if default_error_page_of_invalid_tenant_domain_response.html file found,
+        unclear thread local data.
+         */
+        return new Object[][]{
+                {"application/json", "<p>$error.msg</p>", true},
+                {"application/json", "<p>$error.msg</p>", false},
+                {"application/json", null, true},
+                {"application/json", null, false},
+                {"text/html", "<p>$error.msg</p>", true},
+                {"text/html", "<p>$error.msg</p>", false},
+                {"text/html", null, true},
+                {"text/html", null, false},
+        };
+    }
+
+    @DataProvider
     public Object[][] getUnclearedThreadLocalData() {
+
         return new Object[][]{
                 {true}, {false}
         };
@@ -164,6 +197,11 @@ public class AuthenticationValveTest extends PowerMockTestCase {
                 .thenReturn(securedResourceConfig);
         when(authHandlerManager.getRequestBuilder(request, response)).
                 thenReturn(AuthenticationRequestBuilderFactory.getInstance());
+
+        mockIdentityTenantUtility();
+        setCarbonHome();
+        mockCarbonContextForTenant(SUPER_TENANT_ID, SUPER_TENANT_DOMAIN_NAME);
+        mockRealmService(true);
     }
 
     @Test(dataProvider = "getExceptionTypeData")
@@ -238,6 +276,24 @@ public class AuthenticationValveTest extends PowerMockTestCase {
                 (authenticationResult);
         invokeAuthenticationValve();
         Assert.assertEquals(MDC.get(USER_AGENT), USER_AGENT);
+    }
+
+    @Test(dataProvider = "getRequestContentTypeAndCustomErrorPagesForInvalidTenantResponse")
+    public void testInvokeForInvalidTenantDomain(String requestContentType, String errorPage,
+                                                           boolean hasThreadLocal) throws Exception {
+
+        mockRealmService(false);
+        AuthenticationValveDataHolder.getInstance().setInvalidTenantDomainErrorPage(errorPage);
+        PrintWriter printWriter = mock(PrintWriter.class);
+        when(response.getWriter()).thenReturn(printWriter);
+        when(request.getContentType()).thenReturn(requestContentType);
+        final Map<String, Object> attributes = mockAttributeMap();
+        if (hasThreadLocal) {
+            setIdentityErrorThreadLocal();
+        }
+        invokeAuthenticationValve();
+        AuthenticationContext authContext = (AuthenticationContext) attributes.get(AUTH_CONTEXT);
+        Assert.assertNull(authContext);
     }
 
     @Test

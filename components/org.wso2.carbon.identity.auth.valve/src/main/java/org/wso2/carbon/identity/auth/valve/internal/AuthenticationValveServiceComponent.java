@@ -17,12 +17,20 @@
  */
 package org.wso2.carbon.identity.auth.valve.internal;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.osgi.service.component.ComponentContext;
 import org.wso2.carbon.identity.auth.service.AuthenticationManager;
 import org.wso2.carbon.identity.auth.service.factory.AuthenticationRequestBuilderFactory;
 import org.wso2.carbon.identity.core.handler.HandlerComparator;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import static java.util.Collections.sort;
 import org.osgi.service.component.annotations.Activate;
@@ -31,6 +39,8 @@ import org.osgi.service.component.annotations.Deactivate;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ReferenceCardinality;
 import org.osgi.service.component.annotations.ReferencePolicy;
+import org.wso2.carbon.user.core.service.RealmService;
+import org.wso2.carbon.utils.CarbonUtils;
 
 @Component(
          name = "org.wso2.carbon.identity.auth.valve", 
@@ -41,8 +51,31 @@ public class AuthenticationValveServiceComponent {
 
     @Activate
     protected void activate(ComponentContext cxt) {
+
+        loadInvalidTenantErrorPage();
         if (log.isDebugEnabled()) {
             log.debug("AuthenticationValveServiceComponent is activated");
+        }
+    }
+
+    private void loadInvalidTenantErrorPage() {
+
+        try {
+            Path invalidTenantDomainHtmlResponse =
+                    Paths.get(CarbonUtils.getCarbonHome(), "repository", "resources", "identity", "pages",
+                            "invalid_tenant_domain_response.html");
+            if (!Files.exists(invalidTenantDomainHtmlResponse) ||
+                    !Files.isRegularFile(invalidTenantDomainHtmlResponse)) {
+                if (log.isDebugEnabled()) {
+                    log.debug("invalidTenantDomainHtmlResponse is not present at: " + invalidTenantDomainHtmlResponse);
+                }
+            }
+            File file = new File(invalidTenantDomainHtmlResponse.toString());
+            String errorPage = FileUtils.readFileToString(file, StandardCharsets.UTF_8);
+            AuthenticationValveDataHolder.getInstance().setInvalidTenantDomainErrorPage(errorPage);
+        } catch (IOException e) {
+            log.warn(
+                    "File invalid_tenant_domain_response.html not found. The default content will be used as the error page content.");
         }
     }
 
@@ -87,6 +120,28 @@ public class AuthenticationValveServiceComponent {
             log.debug("Unset AuthenticationRequestBuilderFactory, " + requestBuilderFactory != null ? requestBuilderFactory.getName() : "Unknown");
         }
         AuthenticationValveServiceHolder.getInstance().getRequestBuilderFactories().remove(requestBuilderFactory);
+    }
+
+    @Reference(
+            name = "user.realmservice.default",
+            service = org.wso2.carbon.user.core.service.RealmService.class,
+            cardinality = ReferenceCardinality.MANDATORY,
+            policy = ReferencePolicy.DYNAMIC,
+            unbind = "unsetRealmService")
+    protected void setRealmService(RealmService realmService) {
+
+        if (log.isDebugEnabled()) {
+            log.debug("Setting the Realm Service.");
+        }
+        AuthenticationValveServiceHolder.getInstance().setRealmService(realmService);
+    }
+
+    protected void unsetRealmService(RealmService realmService) {
+
+        if (log.isDebugEnabled()) {
+            log.debug("Unsetting the Realm Service.");
+        }
+        AuthenticationValveServiceHolder.getInstance().setRealmService(null);
     }
 }
 
