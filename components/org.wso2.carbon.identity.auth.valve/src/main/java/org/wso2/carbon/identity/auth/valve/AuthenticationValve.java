@@ -46,8 +46,8 @@ import org.wso2.carbon.identity.auth.valve.internal.AuthenticationValveServiceHo
 import org.wso2.carbon.identity.auth.valve.util.AuthHandlerManager;
 import org.wso2.carbon.identity.base.IdentityRuntimeException;
 import org.wso2.carbon.identity.core.util.IdentityConfigParser;
-import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
+import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.user.core.tenant.TenantManager;
 
@@ -70,6 +70,7 @@ public class AuthenticationValve extends ValveBase {
     private static final String USER_AGENT = "User-Agent";
     private static final String REMOTE_ADDRESS = "remoteAddress";
     private static final String SERVICE_PROVIDER = "serviceProvider";
+    private static final String AUTH_USER_TENANT_DOMAIN = "authUserTenantDomain";
     private final String SERVICE_PROVIDER_TENANT_DOMAIN = "serviceProviderTenantDomain";
     private static final String X_FORWARDED_USER_AGENT = "X-Forwarded-User-Agent";
     private final String CONFIG_CONTEXTUAL_PARAM = "LoggableContextualParams.contextual_param";
@@ -129,7 +130,8 @@ public class AuthenticationValve extends ValveBase {
             if (authenticationStatus.equals(AuthenticationStatus.SUCCESS)) {
                 // Set service provider info used in authentication if any.
                 setThreadLocalServiceProvider(authenticationContext);
-
+                // Set authenticated user tenant domain.
+                setThreadLocalAuthUserTenantDomain(authenticationContext);
                 //Set the User object as an attribute for further references.
                 request.setAttribute(AUTH_CONTEXT, authenticationContext);
                 getNext().invoke(request, response);
@@ -159,6 +161,8 @@ public class AuthenticationValve extends ValveBase {
             unsetThreadLocalServiceProvider();
             // Clear thread local current session id.
             unsetCurrentSessionIdThreadLocal();
+            // Clear thread local authenticated user tenant domain.
+            unsetThreadLocalAuthUserTenantDomain();
             // Clear thread local provisioning service provider.
             IdentityApplicationManagementUtil.resetThreadLocalProvisioningServiceProvider();
         }
@@ -186,6 +190,22 @@ public class AuthenticationValve extends ValveBase {
 
         IdentityUtil.threadLocalProperties.get().remove(SERVICE_PROVIDER);
         IdentityUtil.threadLocalProperties.get().remove(SERVICE_PROVIDER_TENANT_DOMAIN);
+    }
+
+    private void setThreadLocalAuthUserTenantDomain(AuthenticationContext authenticationContext) {
+
+        if (authenticationContext.getUser() != null) {
+            IdentityUtil.threadLocalProperties.get().put(AUTH_USER_TENANT_DOMAIN,
+                    authenticationContext.getUser().getTenantDomain());
+        } else if (log.isDebugEnabled()){
+            log.debug("Authenticated user not available to add user tenant domain to thread local property "
+                    + AUTH_USER_TENANT_DOMAIN);
+        }
+    }
+
+    private void unsetThreadLocalAuthUserTenantDomain() {
+
+        IdentityUtil.threadLocalProperties.get().remove(AUTH_USER_TENANT_DOMAIN);
     }
 
     private void handleErrorResponse(AuthenticationContext authenticationContext, Response response, int error,
