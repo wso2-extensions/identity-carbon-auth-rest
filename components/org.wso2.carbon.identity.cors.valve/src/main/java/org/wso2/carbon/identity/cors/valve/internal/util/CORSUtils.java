@@ -26,11 +26,19 @@ import org.wso2.carbon.identity.cors.valve.constant.RequestMethod;
 import org.wso2.carbon.identity.cors.valve.model.CORSRequestType;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
 
 /**
  * A utility class for CORS operations.
  */
 public class CORSUtils {
+
+    private static final Collection<String> SIMPLE_HTTP_REQUEST_CONTENT_TYPE_VALUES =
+            Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+                    "application/x-www-form-urlencoded", "multipart/form-data", "text/plain")));
 
     /**
      * Private constructor of CORSUtils.
@@ -48,10 +56,14 @@ public class CORSUtils {
     public static CORSRequestType getRequestType(HttpServletRequest request) {
 
         String serverOrigin = request.getScheme() + "://" + request.getHeader(Header.HOST);
+        String method = request.getMethod();
+        String mediaType = HeaderUtils.getMediaType(request.getContentType());
         if (request.getHeader(Header.ORIGIN) == null ||
-                (request.getHeader(Header.HOST) != null && request.getHeader(Header.ORIGIN).equals(serverOrigin))) {
-            // Condition I - A request without the Origin header is never a CORS nor Preflight request.
-            // Condition II - Requests that have Origin header but submitted for the same domain.
+                (request.getHeader(Header.HOST) != null && request.getHeader(Header.ORIGIN).equals(serverOrigin)) ||
+                ("POST".equals(method) && SIMPLE_HTTP_REQUEST_CONTENT_TYPE_VALUES.contains(mediaType))) {
+            // Condition I   - A request without the Origin header is never a CORS nor Preflight request.
+            // Condition II  - Requests that have Origin header but submitted for the same domain.
+            // Condition III - A request with a simple HTTP Post Request content type value.
             return CORSRequestType.OTHER;
         } else if (request.getHeader(Header.ACCESS_CONTROL_REQUEST_METHOD) != null &&
                 request.getMethod() != null &&
