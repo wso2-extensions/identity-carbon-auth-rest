@@ -18,6 +18,7 @@
 
 package org.wso2.carbon.identity.cors.valve.test;
 
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 import org.wso2.carbon.identity.cors.valve.constant.Header;
 import org.wso2.carbon.identity.cors.valve.internal.util.HeaderUtils;
@@ -260,5 +261,21 @@ public class HeaderUtilsTest {
         assertEquals("pears", out[1]);
         assertEquals("oranges", out[2]);
         assertEquals(3, out.length);
+    }
+
+    @DataProvider
+    public Object[][] getMediaTypeTestData() {
+        return new Object[][] {
+                { "multipart/form-data", "multipart/form-data" },
+                { "text/html;", "text/html" },
+                { "text/html; charset=UTF-8", "text/html" },
+                { null, null },
+        };
+    }
+
+    @Test(dataProvider = "getMediaTypeTestData")
+    public void testGetMediaType(String contentType, String mediaType) {
+
+        assertEquals(HeaderUtils.getMediaType(contentType), mediaType);
     }
 }
