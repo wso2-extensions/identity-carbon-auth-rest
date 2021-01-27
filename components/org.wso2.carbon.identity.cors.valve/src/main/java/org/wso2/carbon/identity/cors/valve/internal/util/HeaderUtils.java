@@ -122,24 +122,4 @@ public class HeaderUtils {
 
         return out.toString();
     }
-
-    /**
-     * Get the media type from a content-type string.
-     *
-     * @param contentType The content-type value of the request.
-     * @return The media type as a string.
-     */
-    public static String getMediaType(String contentType) {
-
-        if (contentType == null) {
-            return null;
-        }
-        String result = contentType.toLowerCase();
-        int firstSemiColonIndex = result.indexOf(';');
-        if (firstSemiColonIndex > -1) {
-            result = result.substring(0, firstSemiColonIndex);
-        }
-        result = result.trim();
-        return result;
-    }
 }
