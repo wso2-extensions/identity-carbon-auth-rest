@@ -19,16 +19,12 @@
 
 package org.wso2.carbon.identity.cors.valve;
 
-import com.google.gson.JsonObject;
 import org.apache.catalina.connector.Request;
 import org.apache.catalina.connector.Response;
 import org.apache.catalina.valves.ValveBase;
-import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
-import org.wso2.carbon.identity.base.IdentityRuntimeException;
-import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.cors.mgt.core.exception.CORSManagementServiceException;
 import org.wso2.carbon.identity.cors.mgt.core.model.CORSConfiguration;
 import org.wso2.carbon.identity.cors.service.CORSManager;
@@ -39,14 +35,11 @@ import org.wso2.carbon.identity.cors.valve.internal.handler.CORSRequestHandler;
 import org.wso2.carbon.identity.cors.valve.internal.util.CORSUtils;
 import org.wso2.carbon.identity.cors.valve.internal.util.RequestTagger;
 import org.wso2.carbon.identity.cors.valve.model.CORSRequestType;
-import org.wso2.carbon.user.api.UserStoreException;
-import org.wso2.carbon.user.core.tenant.TenantManager;
-
-import java.io.IOException;
-import java.io.PrintWriter;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.io.PrintWriter;
 
 /**
  * Valve class for CORS.
@@ -92,6 +85,7 @@ public class CORSValve extends ValveBase {
                 corsRequestHandler.handlePreflightRequest(request, response);
             } else if (config.isAllowGenericHttpRequests()) {
                 // OTHER request - Not a CORS request, but allow it through.
+                corsRequestHandler.handleOtherRequest(request, response);
                 getNext().invoke(request, response);
             } else {
                 // Generic HTTP requests denied.

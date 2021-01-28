@@ -22,9 +22,7 @@
 package org.wso2.carbon.identity.cors.valve.internal.handler;
 
 import org.wso2.carbon.context.PrivilegedCarbonContext;
-import org.wso2.carbon.identity.cors.mgt.core.exception.CORSManagementServiceClientException;
 import org.wso2.carbon.identity.cors.mgt.core.exception.CORSManagementServiceException;
-import org.wso2.carbon.identity.cors.mgt.core.exception.CORSManagementServiceServerException;
 import org.wso2.carbon.identity.cors.mgt.core.model.CORSConfiguration;
 import org.wso2.carbon.identity.cors.mgt.core.model.Origin;
 import org.wso2.carbon.identity.cors.service.CORSManager;
@@ -36,6 +34,7 @@ import org.wso2.carbon.identity.cors.valve.internal.util.HeaderUtils;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.net.URISyntaxException;
 
 /**
  * Request handler for the CORS valve.
@@ -76,26 +75,46 @@ public class CORSRequestHandler {
             throw new CORSException(ErrorMessages.ERROR_CODE_UNSUPPORTED_METHOD);
         }
 
-        // Append response headers.
-        if (config.isSupportsCredentials()) {
-            response.addHeader(Header.ACCESS_CONTROL_ALLOW_CREDENTIALS, "true");
+        addStandardHeaders(request, response, config);
+    }
 
-            // The string "*" cannot be used for a resource that supports credentials.
-            response.addHeader(Header.ACCESS_CONTROL_ALLOW_ORIGIN, requestOrigin.toString());
+    public void handleOtherRequest(HttpServletRequest request, HttpServletResponse response)
+            throws CORSException, CORSManagementServiceException {
 
-            // See https://bitbucket.org/thetransactioncompany/cors-filter/issue/16/
+        String tenantDomain = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain();
+        CORSConfiguration config = getCORSManager().getCORSConfiguration(tenantDomain);
+        addStandardHeaders(request, response, config);
+    }
+
+    private void addStandardHeaders(HttpServletRequest request, HttpServletResponse response, CORSConfiguration config) {
+
+        String requestOrigin = request.getHeader(Header.ORIGIN);
+
+        // If only specific origins are allowed, the response will vary by origin
+        if (!config.isAllowAnyOrigin()) {
             response.addHeader(Header.VARY, "Origin");
-        } else {
-            if (config.isAllowAnyOrigin()) {
-                response.addHeader(Header.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
-            } else {
-                response.addHeader(Header.ACCESS_CONTROL_ALLOW_ORIGIN, requestOrigin.toString());
-
-                // See https://bitbucket.org/thetransactioncompany/cors-filter/issue/16/
-                response.addHeader(Header.VARY, "Origin");
-            }
         }
 
+        // Add a single Access-Control-Allow-Origin header.
+        if (config.isAllowAnyOrigin()) {
+            // If any origin is allowed, return header with '*'.
+            response.addHeader(Header.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
+        } else {
+            // Add a single Access-Control-Allow-Origin header, with the value
+            // of the Origin header as value.
+            response.addHeader(Header.ACCESS_CONTROL_ALLOW_ORIGIN, requestOrigin);
+        }
+
+        // If the resource supports credentials, add a single
+        // Access-Control-Allow-Credentials header with the case-sensitive
+        // string "true" as value.
+        if (config.isSupportsCredentials()) {
+            response.addHeader(Header.ACCESS_CONTROL_ALLOW_CREDENTIALS, "true");
+        }
+
+        // If the list of exposed headers is not empty add one or more
+        // Access-Control-Expose-Headers headers, with as values the header
+        // field names given in the list of exposed headers.
         if (!config.getExposedHeaders().isEmpty()) {
             String exposedHeaders = HeaderUtils.serialize(config.getExposedHeaders(), ", ");
             response.addHeader(Header.ACCESS_CONTROL_EXPOSE_HEADERS, exposedHeaders);
@@ -213,7 +232,11 @@ public class CORSRequestHandler {
 
         Origin[] origins = getCORSManager().getCORSOrigins(tenantDomain);
         for (Origin o : origins) {
-            if (o.getValue().equals(origin.toString())) {
+            String allowedOrigin = o.getValue();
+            if (allowedOrigin.endsWith("/")) {
+                allowedOrigin = allowedOrigin.substring(0, allowedOrigin.length() - 1);
+            }
+            if (allowedOrigin.equals(origin.toString())) {
                 return true;
             }
         }
