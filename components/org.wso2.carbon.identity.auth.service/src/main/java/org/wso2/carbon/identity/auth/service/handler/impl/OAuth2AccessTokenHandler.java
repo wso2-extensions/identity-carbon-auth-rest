@@ -228,7 +228,7 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
                 ((AuthenticationContext) messageContext).getAuthenticationRequest().getRequest();
         if (!oAuthAppDO.isTokenBindingValidationEnabled()) {
             if (log.isDebugEnabled()) {
-                log.debug("TokenBinding is not enabled for application: " + oAuthAppDO.getApplicationName());
+                log.debug("TokenBinding validation is not enabled for application: " + oAuthAppDO.getApplicationName());
             }
             if (authenticationRequest.getRequestURI().toLowerCase().endsWith(SCIM_ME_ENDPOINT_URI) &&
                     isSSOSessionBasedTokenBinding(tokenBinding.getBindingType())) {
