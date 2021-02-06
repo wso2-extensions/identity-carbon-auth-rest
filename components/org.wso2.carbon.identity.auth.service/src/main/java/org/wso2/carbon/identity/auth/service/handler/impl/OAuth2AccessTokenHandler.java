@@ -210,6 +210,9 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
                                         String accessToken) {
 
         if (tokenBinding == null || StringUtils.isBlank(tokenBinding.getBindingReference())) {
+            if (log.isDebugEnabled()) {
+                log.debug("TokenBinding or binding reference is empty.");
+            }
             return true;
         }
 
@@ -224,6 +227,9 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
         Request authenticationRequest =
                 ((AuthenticationContext) messageContext).getAuthenticationRequest().getRequest();
         if (!oAuthAppDO.isTokenBindingValidationEnabled()) {
+            if (log.isDebugEnabled()) {
+                log.debug("TokenBinding validation is not enabled for application: " + oAuthAppDO.getApplicationName());
+            }
             if (authenticationRequest.getRequestURI().toLowerCase().endsWith(SCIM_ME_ENDPOINT_URI) &&
                     isSSOSessionBasedTokenBinding(tokenBinding.getBindingType())) {
                 setCurrentSessionIdThreadLocal(getTokenBindingValueFromAccessToken(accessToken));
@@ -232,11 +238,17 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
         }
 
         if (OAuth2Util.isValidTokenBinding(tokenBinding, authenticationRequest)) {
+            if (log.isDebugEnabled()) {
+                log.debug("TokenBinding validation is successful. TokenBinding: " + tokenBinding.getBindingType());
+            }
             if (authenticationRequest.getRequestURI().toLowerCase().endsWith(SCIM_ME_ENDPOINT_URI) &&
                     isSSOSessionBasedTokenBinding(tokenBinding.getBindingType())) {
                 setCurrentSessionIdThreadLocal(tokenBinding.getBindingValue());
             }
             return true;
+        }
+        if (log.isDebugEnabled()) {
+            log.debug("TokenBinding validation is failed.");
         }
         return false;
     }
