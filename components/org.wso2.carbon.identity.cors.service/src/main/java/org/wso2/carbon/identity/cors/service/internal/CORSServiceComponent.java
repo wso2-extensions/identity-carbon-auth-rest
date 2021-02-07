@@ -25,10 +25,8 @@ import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Deactivate;
 import org.osgi.service.component.annotations.Reference;
-import org.osgi.service.component.annotations.ReferenceCardinality;
 import org.osgi.service.component.annotations.ReferencePolicy;
-import org.wso2.carbon.identity.cors.mgt.core.dao.CORSConfigurationDAO;
-import org.wso2.carbon.identity.cors.mgt.core.dao.CORSOriginDAO;
+import org.wso2.carbon.identity.cors.mgt.core.CORSManagementService;
 import org.wso2.carbon.identity.cors.service.CORSManager;
 import org.wso2.carbon.identity.cors.service.internal.impl.CORSManagerImpl;
 
@@ -73,48 +71,24 @@ public class CORSServiceComponent {
     }
 
     @Reference(
-            name = "cors.origins.dao",
-            service = CORSOriginDAO.class,
-            cardinality = ReferenceCardinality.MULTIPLE,
+            name = "identity.cors.management.component",
+            service = CORSManagementService.class,
             policy = ReferencePolicy.DYNAMIC,
-            unbind = "unregisterCORSOriginDAO"
+            unbind = "unregisterCORSManagementService"
     )
-    protected void registerCORSOriginDAO(CORSOriginDAO corsOriginDAO) {
+    protected void registerCORSManagementService(CORSManagementService corsManagementService) {
 
         if (log.isDebugEnabled()) {
-            log.debug("Registering the CORSOriginDAO in CORSService.");
+            log.debug("Registering the CORSManagementService in CORSService.");
         }
-        CORSServiceHolder.getInstance().setCorsOriginDAO(corsOriginDAO);
+        CORSServiceHolder.getInstance().setCorsManagementService(corsManagementService);
     }
 
-    protected void unregisterCORSOriginDAO(CORSOriginDAO corsOriginDAO) {
+    protected void unregisterCORSManagementService(CORSManagementService corsManagementService) {
 
         if (log.isDebugEnabled()) {
-            log.debug("Unregistering the CORSOriginDAO in CORSService.");
+            log.debug("Unregistering the CORSManagementService in CORSService.");
         }
-        CORSServiceHolder.getInstance().setCorsOriginDAO(null);
-    }
-
-    @Reference(
-            name = "cors.configuration.dao",
-            service = CORSConfigurationDAO.class,
-            cardinality = ReferenceCardinality.MULTIPLE,
-            policy = ReferencePolicy.DYNAMIC,
-            unbind = "unregisterCORSConfigurationDAO"
-    )
-    protected void registerCORSConfigurationDAO(CORSConfigurationDAO corsConfigurationDAO) {
-
-        if (log.isDebugEnabled()) {
-            log.debug("Registering the CORSConfigurationDAO in CORSService.");
-        }
-        CORSServiceHolder.getInstance().setCorsConfigurationDAO(corsConfigurationDAO);
-    }
-
-    protected void unregisterCORSConfigurationDAO(CORSConfigurationDAO corsConfigurationDAO) {
-
-        if (log.isDebugEnabled()) {
-            log.debug("Unregistering the CORSConfigurationDAO in CORSService.");
-        }
-        CORSServiceHolder.getInstance().setCorsConfigurationDAO(null);
+        CORSServiceHolder.getInstance().setCorsManagementService(null);
     }
 }
