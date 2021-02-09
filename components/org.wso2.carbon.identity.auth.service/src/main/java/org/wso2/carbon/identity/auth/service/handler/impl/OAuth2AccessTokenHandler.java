@@ -140,7 +140,7 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
                             OAuth2Util.getServiceProvider(clientApplicationDTO.getConsumerKey()).getApplicationName();
                 } catch (IdentityOAuth2Exception e) {
                     log.error("Error occurred while getting the Service Provider by Consumer key: "
-                            + clientApplicationDTO.getConsumerKey());
+                            + clientApplicationDTO.getConsumerKey(), e);
                 }
 
                 String serviceProviderTenantDomain = null;
@@ -149,7 +149,7 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
                             OAuth2Util.getTenantDomainOfOauthApp(clientApplicationDTO.getConsumerKey());
                 } catch (InvalidOAuthClientException | IdentityOAuth2Exception e) {
                     log.error("Error occurred while getting the OAuth App tenantDomain by Consumer key: "
-                            + clientApplicationDTO.getConsumerKey());
+                            + clientApplicationDTO.getConsumerKey(), e);
                 }
 
                 if (serviceProvider != null) {
