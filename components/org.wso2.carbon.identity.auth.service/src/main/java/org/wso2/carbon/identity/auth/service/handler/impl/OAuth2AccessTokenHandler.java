@@ -42,14 +42,11 @@ import org.wso2.carbon.identity.oauth.common.exception.InvalidOAuthClientExcepti
 import org.wso2.carbon.identity.oauth.dao.OAuthAppDO;
 import org.wso2.carbon.identity.oauth2.IdentityOAuth2Exception;
 import org.wso2.carbon.identity.oauth2.OAuth2TokenValidationService;
-import org.wso2.carbon.identity.oauth2.dto.OAuth2ClientApplicationDTO;
+import org.wso2.carbon.identity.oauth2.dto.OAuth2IntrospectionResponseDTO;
 import org.wso2.carbon.identity.oauth2.dto.OAuth2TokenValidationRequestDTO;
-import org.wso2.carbon.identity.oauth2.dto.OAuth2TokenValidationResponseDTO;
 import org.wso2.carbon.identity.oauth2.model.AccessTokenDO;
 import org.wso2.carbon.identity.oauth2.token.bindings.TokenBinding;
 import org.wso2.carbon.identity.oauth2.util.OAuth2Util;
-import org.wso2.carbon.user.core.util.UserCoreUtil;
-import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
 import static org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil.isAuthHeaderMatch;
 import static org.wso2.carbon.identity.auth.service.util.Constants.OAUTH2_ALLOWED_SCOPES;
@@ -104,52 +101,49 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
                 contextParams[0] = contextParam;
                 requestDTO.setContext(contextParams);
 
-                OAuth2ClientApplicationDTO clientApplicationDTO = oAuth2TokenValidationService
-                        .findOAuthConsumerIfTokenIsValid
-                                (requestDTO);
-                OAuth2TokenValidationResponseDTO responseDTO = clientApplicationDTO.getAccessTokenValidationResponse();
+                OAuth2IntrospectionResponseDTO oAuth2IntrospectionResponseDTO =
+                        oAuth2TokenValidationService.buildIntrospectionResponse(requestDTO);
 
-                if (!responseDTO.isValid()) {
+                if (!oAuth2IntrospectionResponseDTO.isActive()) {
                     return authenticationResult;
                 }
 
-                if (!isTokenBindingValid(messageContext, responseDTO.getTokenBinding(),
-                        clientApplicationDTO.getConsumerKey(), accessToken)) {
+                TokenBinding tokenBinding = new TokenBinding(oAuth2IntrospectionResponseDTO.getBindingType(),
+                        oAuth2IntrospectionResponseDTO.getBindingReference());
+                if (!isTokenBindingValid(messageContext, tokenBinding,
+                        oAuth2IntrospectionResponseDTO.getClientId(), accessToken)) {
                     return authenticationResult;
                 }
 
                 authenticationResult.setAuthenticationStatus(AuthenticationStatus.SUCCESS);
 
-                if (StringUtils.isNotEmpty(responseDTO.getAuthorizedUser())) {
-                    User user = new User();
-                    String tenantAwareUsername =
-                            MultitenantUtils.getTenantAwareUsername(responseDTO.getAuthorizedUser());
-                    user.setUserName(UserCoreUtil.removeDomainFromName(tenantAwareUsername));
-                    user.setUserStoreDomain(UserCoreUtil.extractDomainFromName(tenantAwareUsername));
-                    user.setTenantDomain(MultitenantUtils.getTenantDomain(responseDTO.getAuthorizedUser()));
-                    authenticationContext.setUser(user);
+                User authorizedUser = oAuth2IntrospectionResponseDTO.getAuthorizedUser();
+                if (authorizedUser != null) {
+                    authenticationContext.setUser(authorizedUser);
                 }
 
-                authenticationContext.addParameter(CONSUMER_KEY, clientApplicationDTO.getConsumerKey());
-                authenticationContext.addParameter(OAUTH2_ALLOWED_SCOPES, responseDTO.getScope());
+                authenticationContext.addParameter(CONSUMER_KEY, oAuth2IntrospectionResponseDTO.getClientId());
+                authenticationContext.addParameter(OAUTH2_ALLOWED_SCOPES,
+                        OAuth2Util.buildScopeArray(oAuth2IntrospectionResponseDTO.getScope()));
                 authenticationContext.addParameter(OAUTH2_VALIDATE_SCOPE,
                         AuthConfigurationUtil.getInstance().isScopeValidationEnabled());
                 String serviceProvider = null;
                 try {
                     serviceProvider =
-                            OAuth2Util.getServiceProvider(clientApplicationDTO.getConsumerKey()).getApplicationName();
+                            OAuth2Util.getServiceProvider(oAuth2IntrospectionResponseDTO.getClientId()).
+                                    getApplicationName();
                 } catch (IdentityOAuth2Exception e) {
                     log.error("Error occurred while getting the Service Provider by Consumer key: "
-                            + clientApplicationDTO.getConsumerKey(), e);
+                            + oAuth2IntrospectionResponseDTO.getClientId(), e);
                 }
 
                 String serviceProviderTenantDomain = null;
                 try {
                     serviceProviderTenantDomain =
-                            OAuth2Util.getTenantDomainOfOauthApp(clientApplicationDTO.getConsumerKey());
+                            OAuth2Util.getTenantDomainOfOauthApp(oAuth2IntrospectionResponseDTO.getClientId());
                 } catch (InvalidOAuthClientException | IdentityOAuth2Exception e) {
                     log.error("Error occurred while getting the OAuth App tenantDomain by Consumer key: "
-                            + clientApplicationDTO.getConsumerKey(), e);
+                            + oAuth2IntrospectionResponseDTO.getClientId(), e);
                 }
 
                 if (serviceProvider != null) {
@@ -160,7 +154,7 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
 
                     MDC.put(SERVICE_PROVIDER, serviceProvider);
                     // Set OAuth service provider details to be consumed by the provisioning framework.
-                    setProvisioningServiceProviderThreadLocal(clientApplicationDTO.getConsumerKey(),
+                    setProvisioningServiceProviderThreadLocal(oAuth2IntrospectionResponseDTO.getClientId(),
                             serviceProviderTenantDomain);
                 }
             }
