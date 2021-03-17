@@ -23,6 +23,7 @@ import org.apache.catalina.LifecycleException;
 import org.apache.catalina.connector.Request;
 import org.apache.catalina.connector.Response;
 import org.apache.catalina.valves.ValveBase;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -38,8 +39,14 @@ import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.user.core.tenant.TenantManager;
+import org.wso2.carbon.utils.CarbonUtils;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -120,7 +127,7 @@ public class TenantContextRewriteValve extends ValveBase {
                             " domain via /t/carbon.super context. Super tenant should be invoked without the tenant " +
                             "in context path using the server base path.");
                 }
-                handleRestrictedTenantDomainErrorResponse(response);
+                handleRestrictedTenantDomainErrorResponse(request, response);
 
             } else {
                 IdentityUtil.threadLocalProperties.get().put(TENANT_NAME_FROM_CONTEXT, tenantDomain);
@@ -273,17 +280,47 @@ public class TenantContextRewriteValve extends ValveBase {
         response.getWriter().print(errorResponse.toString());
     }
 
-    private void handleRestrictedTenantDomainErrorResponse(Response response) throws IOException, ServletException {
+    private void handleRestrictedTenantDomainErrorResponse(Request request, Response response) throws IOException {
 
-        response.setContentType("application/json");
-        response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-        response.setCharacterEncoding("UTF-8");
-        JsonObject errorResponse = new JsonObject();
-        String errorMsg = "Access to super tenant domain over tenanted URL format (/t/carbon.super) is restricted. " +
-                "Please use the server base path instead.";
-        errorResponse.addProperty("code", HttpServletResponse.SC_FORBIDDEN);
-        errorResponse.addProperty("message", errorMsg);
-        errorResponse.addProperty("description", errorMsg);
-        response.getWriter().print(errorResponse.toString());
+        String requestContentType = request.getContentType();
+        if (StringUtils.contains(requestContentType, "application/json")) {
+            response.setContentType("application/json");
+            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            response.setCharacterEncoding("UTF-8");
+            JsonObject errorResponse = new JsonObject();
+            errorResponse.addProperty("code", HttpServletResponse.SC_FORBIDDEN);
+            String errorMsg = "Access to super tenant domain over tenanted URL format (/t/carbon.super) is restricted. "
+                    + "Please use the server base path instead.";
+            errorResponse.addProperty("message", errorMsg);
+            errorResponse.addProperty("description", errorMsg);
+            response.getWriter().print(errorResponse.toString());
+        } else {
+            response.setContentType("text/html");
+            String errorPage = loadPageNotFoundErrorPage();
+            response.getWriter().print(errorPage);
+        }
+    }
+
+    private String loadPageNotFoundErrorPage() {
+
+        String errorPage = "Page Not Found";
+        try {
+            Path pageNotFoundHtmlResponse =
+                    Paths.get(CarbonUtils.getCarbonHome(), "repository", "resources", "identity", "pages",
+                            "page_not_found.html");
+            if (!Files.exists(pageNotFoundHtmlResponse) ||
+                    !Files.isRegularFile(pageNotFoundHtmlResponse)) {
+                if (log.isDebugEnabled()) {
+                    log.debug("pageNotFoundHtmlResponse is not present at: " + pageNotFoundHtmlResponse);
+                }
+            }
+            File file = new File(pageNotFoundHtmlResponse.toString());
+            errorPage = FileUtils.readFileToString(file, StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            log.warn(
+                    "File page_not_found.html not found. The default content will be used " +
+                            "as the error page content.");
+        }
+        return errorPage;
     }
 }
