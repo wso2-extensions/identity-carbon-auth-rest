@@ -296,31 +296,8 @@ public class TenantContextRewriteValve extends ValveBase {
             response.getWriter().print(errorResponse.toString());
         } else {
             response.setContentType("text/html");
-            String errorPage = loadPageNotFoundErrorPage();
+            String errorPage = ContextRewriteValveServiceComponentHolder.getInstance().getPageNotFoundErrorPage();
             response.getWriter().print(errorPage);
         }
-    }
-
-    private String loadPageNotFoundErrorPage() {
-
-        String errorPage = "Page Not Found";
-        try {
-            Path pageNotFoundHtmlResponse =
-                    Paths.get(CarbonUtils.getCarbonHome(), "repository", "resources", "identity", "pages",
-                            "page_not_found.html");
-            if (!Files.exists(pageNotFoundHtmlResponse) ||
-                    !Files.isRegularFile(pageNotFoundHtmlResponse)) {
-                if (log.isDebugEnabled()) {
-                    log.debug("pageNotFoundHtmlResponse is not present at: " + pageNotFoundHtmlResponse);
-                }
-            }
-            File file = new File(pageNotFoundHtmlResponse.toString());
-            errorPage = FileUtils.readFileToString(file, StandardCharsets.UTF_8);
-        } catch (IOException e) {
-            log.warn(
-                    "File page_not_found.html not found. The default content will be used " +
-                            "as the error page content.");
-        }
-        return errorPage;
     }
 }
