@@ -17,6 +17,7 @@
  */
 package org.wso2.carbon.identity.context.rewrite.internal;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.osgi.service.component.ComponentContext;
@@ -27,6 +28,14 @@ import org.osgi.service.component.annotations.Deactivate;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ReferenceCardinality;
 import org.osgi.service.component.annotations.ReferencePolicy;
+import org.wso2.carbon.utils.CarbonUtils;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 @Component(
          name = "identity.context.rewrite.valve.component", 
@@ -40,6 +49,7 @@ public class ContextRewriteValveServiceComponent {
         if (log.isDebugEnabled()) {
             log.debug("ContextRewriteValveServiceComponent is activated.");
         }
+        loadPageNotFoundErrorPage();
     }
 
     @Deactivate
@@ -67,6 +77,29 @@ public class ContextRewriteValveServiceComponent {
             log.debug("Unsetting the Realm Service.");
         }
         ContextRewriteValveServiceComponentHolder.getInstance().setRealmService(null);
+    }
+
+    private void loadPageNotFoundErrorPage() {
+
+        String errorPage = "Page Not Found";
+        try {
+            Path pageNotFoundHtmlResponse =
+                    Paths.get(CarbonUtils.getCarbonHome(), "repository", "resources", "identity", "pages",
+                            "page_not_found.html");
+            if (!Files.exists(pageNotFoundHtmlResponse) ||
+                    !Files.isRegularFile(pageNotFoundHtmlResponse)) {
+                if (log.isDebugEnabled()) {
+                    log.debug("pageNotFoundHtmlResponse is not present at: " + pageNotFoundHtmlResponse);
+                }
+            }
+            File file = new File(pageNotFoundHtmlResponse.toString());
+            errorPage = FileUtils.readFileToString(file, StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            log.warn(
+                    "File page_not_found.html not found. The default content will be used " +
+                            "as the error page content.");
+        }
+        ContextRewriteValveServiceComponentHolder.getInstance().setPageNotFoundErrorPage(errorPage);
     }
 }
 
