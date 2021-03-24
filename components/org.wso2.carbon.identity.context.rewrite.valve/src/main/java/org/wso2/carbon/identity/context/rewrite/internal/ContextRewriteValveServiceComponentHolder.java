@@ -26,6 +26,7 @@ public class ContextRewriteValveServiceComponentHolder {
 
     private static ContextRewriteValveServiceComponentHolder instance = new ContextRewriteValveServiceComponentHolder();
     private RealmService realmService;
+    private String pageNotFoundErrorPage;
     private static final Log log = LogFactory.getLog(ContextRewriteValveServiceComponentHolder.class);
 
     private ContextRewriteValveServiceComponentHolder() {
@@ -49,6 +50,21 @@ public class ContextRewriteValveServiceComponentHolder {
     public void setRealmService(RealmService realmService) {
 
         this.realmService = realmService;
+    }
+
+    /**
+     * Get default templates from file artifacts.
+     *
+     * @return Default templates in files.
+     */
+    public String getPageNotFoundErrorPage() {
+
+        return pageNotFoundErrorPage;
+    }
+
+    public void setPageNotFoundErrorPage(String pageNotFoundErrorPage) {
+
+        this.pageNotFoundErrorPage = pageNotFoundErrorPage;
     }
 
 }
