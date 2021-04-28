@@ -61,6 +61,7 @@ import static org.wso2.carbon.identity.core.util.IdentityCoreConstants.TENANT_NA
 public class TenantContextRewriteValve extends ValveBase {
 
     private static final String TENANT_DOMAIN = "tenantDomain";
+    private static final String TENANT_ID = "tenantId";
     private static List<RewriteContext> contextsToRewrite;
     private static List<String> contextListToOverwriteDispatch;
     private static List<String> ignorePathListForOverwriteDispatch;
@@ -110,6 +111,7 @@ public class TenantContextRewriteValve extends ValveBase {
         String tenantDomain = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain();
         try {
             MDC.put(TENANT_DOMAIN, tenantDomain);
+            MDC.put(TENANT_ID, String.valueOf(IdentityTenantUtil.getTenantId(tenantDomain)));
             //request URI is not a rewrite one
             if (!isContextRewrite) {
                 getNext().invoke(request, response);
@@ -169,6 +171,7 @@ public class TenantContextRewriteValve extends ValveBase {
         } finally {
             IdentityUtil.threadLocalProperties.get().remove(TENANT_NAME_FROM_CONTEXT);
             MDC.remove(TENANT_DOMAIN);
+            MDC.remove(TENANT_ID);
         }
     }
 
