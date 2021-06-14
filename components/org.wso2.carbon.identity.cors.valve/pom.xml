@@ -155,7 +155,7 @@
                         </Private-Package>
                         <Import-Package>
                             javax.servlet.*; version="${imp.pkg.version.javax.servlet}",
-                            org.wso2.carbon.context; version="${carbon.kernel.version}",
+                            org.wso2.carbon.context; version="${carbon.kernel.imp.pkg.version.range}",
                             org.wso2.carbon.identity.cors.service; version="${project.version}",
                             org.wso2.carbon.identity.cors.mgt.core.exception;version="${carbon.identity.package.import.version.range}",
                             org.wso2.carbon.identity.cors.mgt.core.model;version="${carbon.identity.package.import.version.range}",
