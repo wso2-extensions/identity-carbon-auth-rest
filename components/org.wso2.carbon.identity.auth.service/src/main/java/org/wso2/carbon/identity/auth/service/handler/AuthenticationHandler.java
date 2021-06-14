@@ -103,6 +103,7 @@ public abstract class AuthenticationHandler extends AbstractIdentityMessageHandl
                         .getThreadLocalCarbonContext().getTenantDomain())) {
                     PrivilegedCarbonContext.getThreadLocalCarbonContext().setUsername(IdentityUtil.addDomainToName
                             (user.getUserName(), user.getUserStoreDomain()));
+                    PrivilegedCarbonContext.getThreadLocalCarbonContext().setUserId(user.getUserId());
                 }
             }
         }
