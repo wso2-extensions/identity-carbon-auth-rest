@@ -28,6 +28,7 @@ import org.wso2.carbon.identity.auth.service.AuthenticationResult;
 import org.wso2.carbon.identity.auth.service.AuthenticationStatus;
 import org.wso2.carbon.identity.auth.service.exception.AuthenticationFailException;
 import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
+import org.wso2.carbon.identity.auth.service.util.Constants;
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
 import org.wso2.carbon.identity.core.handler.InitConfig;
 import org.wso2.carbon.identity.oauth.IdentityOAuthAdminException;
@@ -40,7 +41,8 @@ import java.nio.charset.Charset;
 import static org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil.isAuthHeaderMatch;
 
 /**
- * BasicAuthenticationHandler is for authenticate the request based on Basic Authentication.
+ * BasicClientAuthenticationHandler is for authenticate the request based on Basic Authentication
+ * using the client credentials.
  * canHandle method will confirm whether this request can be handled by this authenticator or not.
  */
 public class BasicClientAuthenticationHandler extends AuthenticationHandler {
@@ -56,7 +58,7 @@ public class BasicClientAuthenticationHandler extends AuthenticationHandler {
     @Override
     public String getName() {
 
-        return "BasicClientAuthenticationHandler";
+        return Constants.BASIC_CLIENT_AUTH_HANDLER;
     }
 
     @Override
@@ -89,27 +91,27 @@ public class BasicClientAuthenticationHandler extends AuthenticationHandler {
         if (splitAuthorizationHeader.length == 2) {
             byte[] decodedAuthHeader = Base64.decodeBase64(splitAuthorizationHeader[1].getBytes());
             String authHeader = new String(decodedAuthHeader, Charset.defaultCharset());
-            String[] splitCredentials = authHeader.split(":", 2);
+            String[] credentials = authHeader.split(":", 2);
 
-            if (splitCredentials.length == 2 && StringUtils.isNotBlank(splitCredentials[0]) &&
-                    StringUtils.isNotBlank(splitCredentials[1])) {
-                String clientId = splitCredentials[0];
-                String clientSecret = splitCredentials[1];
+            if (credentials.length == 2 && StringUtils.isNotBlank(credentials[0]) &&
+                    StringUtils.isNotBlank(credentials[1])) {
+                String clientId = credentials[0];
+                String clientSecret = credentials[1];
 
                 try {
                     if (log.isDebugEnabled()) {
-                        log.debug("Authenticating client : " + clientId + " with client " + "secret.");
+                        log.debug("Authenticating client : " + clientId + " with client secret.");
                     }
                     if (OAuth2Util.authenticateClient(clientId, clientSecret)) {
                         authenticationResult.setAuthenticationStatus(AuthenticationStatus.SUCCESS);
                     }
                 } catch (IdentityOAuthAdminException e) {
                     String errorMessage = "Error while authenticating " + clientId;
-                    log.error(errorMessage);
+                    log.error(errorMessage, e);
                     throw new AuthenticationFailException(errorMessage, e);
                 } catch (InvalidOAuthClientException | IdentityOAuth2Exception e) {
                     String errorMessage = "Invalid client : " + clientId;
-                    log.error(errorMessage);
+                    log.error(errorMessage, e);
                     throw new AuthenticationFailException(errorMessage, e);
                 }
             } else {

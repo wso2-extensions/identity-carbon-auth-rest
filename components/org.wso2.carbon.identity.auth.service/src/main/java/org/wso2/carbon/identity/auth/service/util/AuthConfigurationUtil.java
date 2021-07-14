@@ -149,7 +149,7 @@ public class AuthConfigurationUtil {
                     AuthenticationServiceHolder.getInstance().getAuthenticationHandlers();
             for (AuthenticationHandler handler : allAvailableAuthHandlers) {
                 String handlerName = handler.getName();
-                if (handlerName.equals("BasicClientAuthenticationHandler")){
+                if (handlerName.equals(Constants.BASIC_CLIENT_AUTH_HANDLER)) {
                     continue;
                 }
                 allowedAuthHandlersList.add(handlerName);
