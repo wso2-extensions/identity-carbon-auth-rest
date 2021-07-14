@@ -87,42 +87,49 @@ public class BasicClientAuthenticationHandler extends AuthenticationHandler {
         String authorizationHeader = authenticationContext.getAuthenticationRequest().
                 getHeader(HttpHeaders.AUTHORIZATION);
 
-        String[] splitAuthorizationHeader = authorizationHeader.split(" ");
-        if (splitAuthorizationHeader.length == 2) {
-            byte[] decodedAuthHeader = Base64.decodeBase64(splitAuthorizationHeader[1].getBytes());
-            String authHeader = new String(decodedAuthHeader, Charset.defaultCharset());
-            String[] credentials = authHeader.split(":", 2);
+        if (authorizationHeader != null){
+            String[] splitAuthorizationHeader = authorizationHeader.split(" ");
+            if (splitAuthorizationHeader.length == 2) {
+                byte[] decodedAuthHeader = Base64.decodeBase64(splitAuthorizationHeader[1].getBytes());
+                String authHeader = new String(decodedAuthHeader, Charset.defaultCharset());
+                String[] credentials = authHeader.split(":", 2);
 
-            if (credentials.length == 2 && StringUtils.isNotBlank(credentials[0]) &&
-                    StringUtils.isNotBlank(credentials[1])) {
-                String clientId = credentials[0];
-                String clientSecret = credentials[1];
+                if (credentials.length == 2 && StringUtils.isNotBlank(credentials[0]) &&
+                        StringUtils.isNotBlank(credentials[1])) {
+                    String clientId = credentials[0];
+                    String clientSecret = credentials[1];
 
-                try {
-                    if (log.isDebugEnabled()) {
-                        log.debug("Authenticating client : " + clientId + " with client secret.");
+                    try {
+                        if (log.isDebugEnabled()) {
+                            log.debug("Authenticating application with client ID: " + clientId
+                                    + " with client secret.");
+                        }
+                        if (OAuth2Util.authenticateClient(clientId, clientSecret)) {
+                            authenticationResult.setAuthenticationStatus(AuthenticationStatus.SUCCESS);
+                        }
+                    } catch (IdentityOAuthAdminException e) {
+                        String errorMessage = "Error while authenticating application with client ID : " + clientId;
+                        log.error(errorMessage, e);
+                        throw new AuthenticationFailException(errorMessage, e);
+                    } catch (InvalidOAuthClientException | IdentityOAuth2Exception e) {
+                        String errorMessage = "Invalid client : " + clientId;
+                        log.error(errorMessage, e);
+                        throw new AuthenticationFailException(errorMessage, e);
                     }
-                    if (OAuth2Util.authenticateClient(clientId, clientSecret)) {
-                        authenticationResult.setAuthenticationStatus(AuthenticationStatus.SUCCESS);
-                    }
-                } catch (IdentityOAuthAdminException e) {
-                    String errorMessage = "Error while authenticating " + clientId;
-                    log.error(errorMessage, e);
-                    throw new AuthenticationFailException(errorMessage, e);
-                } catch (InvalidOAuthClientException | IdentityOAuth2Exception e) {
-                    String errorMessage = "Invalid client : " + clientId;
-                    log.error(errorMessage, e);
-                    throw new AuthenticationFailException(errorMessage, e);
+                } else {
+                    String errorMessage = "Error occurred while trying to authenticate. The OAuth application credentials "
+                            + "are not defined correctly.";
+                    log.error(errorMessage);
+                    throw new AuthenticationFailException(errorMessage);
                 }
             } else {
-                String errorMessage = "Error occurred while trying to authenticate. The auth application credentials "
-                        + "are not defined correctly.";
+                String errorMessage = "Error occurred while trying to authenticate. The " + HttpHeaders.AUTHORIZATION +
+                        " header values are not defined correctly.";
                 log.error(errorMessage);
                 throw new AuthenticationFailException(errorMessage);
             }
         } else {
-            String errorMessage = "Error occurred while trying to authenticate. The " + HttpHeaders.AUTHORIZATION +
-                    " header values are not defined correctly.";
+            String errorMessage = "Authorization Header is null.";
             log.error(errorMessage);
             throw new AuthenticationFailException(errorMessage);
         }
