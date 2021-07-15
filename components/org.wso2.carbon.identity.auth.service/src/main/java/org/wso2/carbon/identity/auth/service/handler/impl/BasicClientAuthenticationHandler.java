@@ -108,11 +108,11 @@ public class BasicClientAuthenticationHandler extends AuthenticationHandler {
                             authenticationResult.setAuthenticationStatus(AuthenticationStatus.SUCCESS);
                         }
                     } catch (IdentityOAuthAdminException e) {
-                        String errorMessage = "Error while authenticating application with client ID : " + clientId;
+                        String errorMessage = "Error while authenticating application with client ID: " + clientId;
                         log.error(errorMessage, e);
                         throw new AuthenticationFailException(errorMessage, e);
                     } catch (InvalidOAuthClientException | IdentityOAuth2Exception e) {
-                        String errorMessage = "Invalid client : " + clientId;
+                        String errorMessage = "Invalid client: " + clientId;
                         log.error(errorMessage, e);
                         throw new AuthenticationFailException(errorMessage, e);
                     }
