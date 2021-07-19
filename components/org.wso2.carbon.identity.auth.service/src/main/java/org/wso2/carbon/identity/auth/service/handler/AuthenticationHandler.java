@@ -18,9 +18,11 @@
 
 package org.wso2.carbon.identity.auth.service.handler;
 
-import org.apache.commons.lang.StringUtils;
-import org.apache.http.HttpHeaders;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
+import org.wso2.carbon.identity.application.authentication.framework.exception.UserIdNotFoundException;
+import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
 import org.wso2.carbon.identity.application.common.model.User;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
 import org.wso2.carbon.identity.auth.service.AuthenticationResult;
@@ -28,8 +30,8 @@ import org.wso2.carbon.identity.auth.service.AuthenticationStatus;
 import org.wso2.carbon.identity.auth.service.exception.AuthClientException;
 import org.wso2.carbon.identity.auth.service.exception.AuthServerException;
 import org.wso2.carbon.identity.auth.service.exception.AuthenticationFailException;
+import org.wso2.carbon.identity.auth.service.handler.impl.BasicAuthenticationHandler;
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
-import org.wso2.carbon.identity.core.handler.AbstractIdentityMessageHandler;
 import org.wso2.carbon.identity.core.handler.AbstractIdentityMessageHandler;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 
@@ -37,9 +39,10 @@ import org.wso2.carbon.identity.core.util.IdentityUtil;
  * This is the abstract class for custom authentication handlers.
  *
  * The custom handlers should implement the doAuthenticate() method and optionally the postAuthenticate() method.
- *
  */
 public abstract class AuthenticationHandler extends AbstractIdentityMessageHandler {
+
+    private static final Log LOG = LogFactory.getLog(AuthenticationHandler.class);
 
     public int getPriority(MessageContext messageContext, int defaultValue) {
 
@@ -103,7 +106,18 @@ public abstract class AuthenticationHandler extends AbstractIdentityMessageHandl
                         .getThreadLocalCarbonContext().getTenantDomain())) {
                     PrivilegedCarbonContext.getThreadLocalCarbonContext().setUsername(IdentityUtil.addDomainToName
                             (user.getUserName(), user.getUserStoreDomain()));
-                    PrivilegedCarbonContext.getThreadLocalCarbonContext().setUserId(user.getUserId());
+                    try {
+                        if (user instanceof AuthenticatedUser) {
+                            PrivilegedCarbonContext.getThreadLocalCarbonContext()
+                                    .setUserId(((AuthenticatedUser) user).getUserId());
+                        } else {
+                            AuthenticatedUser authenticatedUser = new AuthenticatedUser(user);
+                            PrivilegedCarbonContext.getThreadLocalCarbonContext()
+                                    .setUserId(authenticatedUser.getUserId());
+                        }
+                    } catch (UserIdNotFoundException e) {
+                        LOG.error("User id not found for user: " + user.getLoggableUserId());
+                    }
                 }
             }
         }

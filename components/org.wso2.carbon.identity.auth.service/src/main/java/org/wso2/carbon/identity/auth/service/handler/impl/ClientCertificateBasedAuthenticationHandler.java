@@ -34,6 +34,7 @@ import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
 import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
 import org.wso2.carbon.identity.core.handler.InitConfig;
+import org.wso2.carbon.user.core.util.UserCoreUtil;
 import org.wso2.carbon.utils.multitenancy.MultitenantConstants;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
@@ -143,10 +144,13 @@ public class ClientCertificateBasedAuthenticationHandler extends AuthenticationH
                             username = username.substring(0, username.length() - superTenantSuffix.length());
                         }
                     }
+                    String userStoreDomain = UserCoreUtil.extractDomainFromName(username);
+                    username = UserCoreUtil.removeDomainFromName(username);
 
                     User user = new User();
                     user.setUserName(username);
                     user.setTenantDomain(tenantDomain);
+                    user.setUserStoreDomain(userStoreDomain);
 
                     authenticationContext.setUser(user);
 

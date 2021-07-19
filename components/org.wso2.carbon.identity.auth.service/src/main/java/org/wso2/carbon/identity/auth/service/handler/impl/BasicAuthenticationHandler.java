@@ -25,6 +25,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpHeaders;
 import org.slf4j.MDC;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
+import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
 import org.wso2.carbon.identity.application.common.model.User;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
 import org.wso2.carbon.identity.auth.service.AuthenticationResult;
@@ -104,7 +105,7 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
                     int tenantId = IdentityTenantUtil.getTenantIdOfUser(userName);
                     String tenantDomain = MultitenantUtils.getTenantDomain(userName);
 
-                    User user = new User();
+                    AuthenticatedUser user = new AuthenticatedUser();
                     user.setUserName(MultitenantUtils.getTenantAwareUsername(userName));
                     user.setTenantDomain(tenantDomain);
 
