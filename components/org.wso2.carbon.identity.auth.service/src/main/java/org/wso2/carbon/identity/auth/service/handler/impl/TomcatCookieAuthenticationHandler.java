@@ -29,6 +29,7 @@ import org.wso2.carbon.identity.auth.service.AuthenticationResult;
 import org.wso2.carbon.identity.auth.service.AuthenticationStatus;
 import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
+import org.wso2.carbon.user.core.util.UserCoreUtil;
 import org.wso2.carbon.utils.ServerConstants;
 import org.wso2.carbon.utils.multitenancy.MultitenantConstants;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
@@ -110,9 +111,13 @@ public class TomcatCookieAuthenticationHandler extends AuthenticationHandler {
 
     private User buildUser(String userName, String tenantDomain) {
 
+        String userStoreDomain = UserCoreUtil.extractDomainFromName(userName);
+        userName = UserCoreUtil.removeDomainFromName(userName);
+
         User user = new User();
         user.setUserName(MultitenantUtils.getTenantAwareUsername(userName));
         user.setTenantDomain(tenantDomain);
+        user.setUserStoreDomain(userStoreDomain);
         return user;
     }
 
