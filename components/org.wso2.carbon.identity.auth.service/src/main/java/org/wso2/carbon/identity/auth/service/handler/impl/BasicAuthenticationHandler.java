@@ -25,6 +25,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpHeaders;
 import org.slf4j.MDC;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
+import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
 import org.wso2.carbon.identity.application.common.model.User;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
 import org.wso2.carbon.identity.auth.service.AuthenticationResult;
@@ -36,7 +37,10 @@ import org.wso2.carbon.identity.core.bean.context.MessageContext;
 import org.wso2.carbon.identity.core.handler.InitConfig;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.user.api.UserRealm;
+import org.wso2.carbon.user.core.UserCoreConstants;
 import org.wso2.carbon.user.core.UserStoreManager;
+import org.wso2.carbon.user.core.common.AbstractUserStoreManager;
+import org.wso2.carbon.user.core.constants.UserCoreClaimConstants;
 import org.wso2.carbon.user.core.util.UserCoreUtil;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
@@ -96,12 +100,12 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
                 String userName = splitCredentials[0];
                 String password = splitCredentials[1];
 
-                UserStoreManager userStoreManager = null;
+                AbstractUserStoreManager userStoreManager;
                 try {
                     int tenantId = IdentityTenantUtil.getTenantIdOfUser(userName);
                     String tenantDomain = MultitenantUtils.getTenantDomain(userName);
 
-                    User user = new User();
+                    AuthenticatedUser user = new AuthenticatedUser();
                     user.setUserName(MultitenantUtils.getTenantAwareUsername(userName));
                     user.setTenantDomain(tenantDomain);
 
@@ -118,15 +122,20 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
                         UserRealm userRealm = AuthenticationServiceHolder.getInstance().getRealmService().
                                 getTenantUserRealm(tenantId);
                         if (userRealm != null) {
-                            userStoreManager = (UserStoreManager) userRealm.getUserStoreManager();
-                            boolean isAuthenticated = userStoreManager.authenticate(MultitenantUtils.
-                                    getTenantAwareUsername(userName), password);
-                            if (isAuthenticated) {
+                            userStoreManager = (AbstractUserStoreManager) userRealm.getUserStoreManager();
+                            org.wso2.carbon.user.core.common.AuthenticationResult authResult
+                                    = userStoreManager.authenticateWithID(UserCoreClaimConstants.USERNAME_CLAIM_URI,
+                                    MultitenantUtils.getTenantAwareUsername(userName), password,
+                                    UserCoreConstants.DEFAULT_PROFILE);
+                            if (org.wso2.carbon.user.core.common.AuthenticationResult.AuthenticationStatus.SUCCESS
+                                    == authResult.getAuthenticationStatus()
+                                    && authResult.getAuthenticatedUser().isPresent()) {
                                 authenticationResult.setAuthenticationStatus(AuthenticationStatus.SUCCESS);
                                 String domain = UserCoreUtil.getDomainFromThreadLocal();
                                 if (StringUtils.isNotBlank(domain)) {
                                     user.setUserStoreDomain(domain);
                                 }
+                                user.setUserId(authResult.getAuthenticatedUser().get().getUserID());
                                 authenticationContext.setUser(user);
                                 if (log.isDebugEnabled()) {
                                     log.debug("Basic Authentication successful for the user: " + userName);
