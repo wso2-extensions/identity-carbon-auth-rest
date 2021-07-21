@@ -23,22 +23,25 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpHeaders;
+import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
 import org.wso2.carbon.identity.auth.service.AuthenticationResult;
 import org.wso2.carbon.identity.auth.service.AuthenticationStatus;
 import org.wso2.carbon.identity.auth.service.exception.AuthenticationFailException;
 import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
-import org.wso2.carbon.identity.auth.service.util.Constants;
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
 import org.wso2.carbon.identity.core.handler.InitConfig;
+import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.oauth.IdentityOAuthAdminException;
 import org.wso2.carbon.identity.oauth.common.exception.InvalidOAuthClientException;
+import org.wso2.carbon.identity.oauth.dao.OAuthAppDO;
 import org.wso2.carbon.identity.oauth2.IdentityOAuth2Exception;
 import org.wso2.carbon.identity.oauth2.util.OAuth2Util;
 
 import java.nio.charset.Charset;
 
 import static org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil.isAuthHeaderMatch;
+import static org.wso2.carbon.identity.oauth.common.OAuthConstants.OauthAppStates.APP_STATE_ACTIVE;
 
 /**
  * BasicClientAuthenticationHandler is for authenticate the request based on Basic Authentication
@@ -58,7 +61,7 @@ public class BasicClientAuthenticationHandler extends AuthenticationHandler {
     @Override
     public String getName() {
 
-        return Constants.BASIC_CLIENT_AUTH_HANDLER;
+        return "BasicClientAuthentication";
     }
 
     @Override
@@ -104,8 +107,15 @@ public class BasicClientAuthenticationHandler extends AuthenticationHandler {
                             log.debug("Authenticating application with client ID: " + clientId
                                     + " with client secret.");
                         }
+
+                        OAuthAppDO oAuthAppDO = getOAuthApplication(clientId);
+                        String tenantDomainOfApp = OAuth2Util.getTenantDomainOfOauthApp(oAuthAppDO);
+                        validateRequestTenantDomain(tenantDomainOfApp);
+
                         if (OAuth2Util.authenticateClient(clientId, clientSecret)) {
                             authenticationResult.setAuthenticationStatus(AuthenticationStatus.SUCCESS);
+                        } else {
+                            authenticationResult.setAuthenticationStatus(AuthenticationStatus.FAILED);
                         }
                     } catch (IdentityOAuthAdminException e) {
                         String errorMessage = "Error while authenticating application with client ID: " + clientId;
@@ -134,5 +144,41 @@ public class BasicClientAuthenticationHandler extends AuthenticationHandler {
             throw new AuthenticationFailException(errorMessage);
         }
         return authenticationResult;
+    }
+
+    private OAuthAppDO getOAuthApplication(String consumerKey) throws InvalidOAuthClientException,
+            IdentityOAuth2Exception {
+
+        OAuthAppDO authAppDO = OAuth2Util.getAppInformationByClientId(consumerKey);
+        String appState = authAppDO.getState();
+        if (StringUtils.isEmpty(appState)) {
+            if (log.isDebugEnabled()) {
+                log.debug("A valid OAuth client could not be found for client_id: " + consumerKey);
+            }
+            throw new InvalidOAuthClientException("A valid OAuth client not found for client_id: " + consumerKey);
+        }
+
+        if (!APP_STATE_ACTIVE.equalsIgnoreCase(appState)) {
+            if (log.isDebugEnabled()) {
+                log.debug("App is not in active state in client ID: " + consumerKey + ". App state is:" + appState);
+            }
+            throw new InvalidOAuthClientException("Oauth application is not in active state");
+        }
+        return authAppDO;
+    }
+
+    private void validateRequestTenantDomain(String tenantDomainOfApp) throws InvalidOAuthClientException {
+
+        if (IdentityTenantUtil.isTenantQualifiedUrlsEnabled()) {
+            String tenantDomain = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain();;
+            if (!StringUtils.equals(tenantDomain, tenantDomainOfApp)) {
+                throw new InvalidOAuthClientException("A valid client with the given client_id cannot be found in " +
+                        "tenantDomain: " + tenantDomain);
+            } else {
+                if (log.isDebugEnabled()) {
+                    log.debug("Valid client found for given client_id in tenantDomain: " + tenantDomain);
+                }
+            }
+        }
     }
 }
