@@ -38,5 +38,5 @@ public class Constants {
 
     public final static String CURRENT_SESSION_IDENTIFIER = "currentSessionIdentifier";
 
-    public final static String BASIC_CLIENT_AUTH_HANDLER = "BasicClientAuthenticationHandler";
+    public final static String BASIC_CLIENT_AUTH_HANDLER = "BasicClientAuthentication";
 }
