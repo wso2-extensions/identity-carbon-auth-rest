@@ -29,6 +29,7 @@ import org.wso2.carbon.identity.auth.service.AuthenticationResult;
 import org.wso2.carbon.identity.auth.service.AuthenticationStatus;
 import org.wso2.carbon.identity.auth.service.exception.AuthenticationFailException;
 import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
+import org.wso2.carbon.identity.auth.service.util.Constants;
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
 import org.wso2.carbon.identity.core.handler.InitConfig;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
@@ -61,7 +62,7 @@ public class BasicClientAuthenticationHandler extends AuthenticationHandler {
     @Override
     public String getName() {
 
-        return "BasicClientAuthentication";
+        return Constants.BASIC_CLIENT_AUTH_HANDLER;
     }
 
     @Override
