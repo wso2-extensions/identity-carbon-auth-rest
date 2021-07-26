@@ -150,7 +150,7 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
                                 if (authenticationRequest.getRequest() != null) {
                                     String requestURI = authenticationRequest.getRequest().getRequestURI()
                                             .toLowerCase();
-                                    if (requestURI.endsWith(TOTP_ENDPOINT_URI) || requestURI.contains(FIDO_ENDPOINT_URI)
+                                    if (requestURI.contains(TOTP_ENDPOINT_URI) || requestURI.contains(FIDO_ENDPOINT_URI)
                                             || requestURI.contains(FIDO2_ENDPOINT_URI)) {
                                         IdentityUtil.threadLocalProperties.get()
                                                 .put(Constants.AUTHENTICATED_WITH_BASIC_AUTH, true);
