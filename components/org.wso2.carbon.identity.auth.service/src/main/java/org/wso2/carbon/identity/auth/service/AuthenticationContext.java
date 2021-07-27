@@ -62,12 +62,12 @@ public class AuthenticationContext extends MessageContext {
         this.user = user;
     }
 
-    public Object getProperties(String key) {
+    public Object getProperty(String key) {
 
         return properties.get(key);
     }
 
-    public void setProperties(String key, Object value) {
+    public void setProperty(String key, Object value) {
 
         this.properties.put(key, value);
     }

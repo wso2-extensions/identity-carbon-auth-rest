@@ -152,6 +152,6 @@ public class AuthorizationValve extends ValveBase {
 
     private boolean isClientEmpty(AuthenticationContext authenticationContext) {
 
-        return authenticationContext.getProperties(Constants.AUTH_CONTEXT_OAUTH_APP_PROPERTY) == null;
+        return authenticationContext.getProperty(Constants.AUTH_CONTEXT_OAUTH_APP_PROPERTY) == null;
     }
 }

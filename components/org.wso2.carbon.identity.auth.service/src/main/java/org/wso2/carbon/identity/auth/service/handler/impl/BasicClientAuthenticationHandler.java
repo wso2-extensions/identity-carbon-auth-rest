@@ -105,7 +105,7 @@ public class BasicClientAuthenticationHandler extends AuthenticationHandler {
                                     + " with client secret.");
                         }
 
-                        authenticationContext.setProperties(Constants.AUTH_CONTEXT_OAUTH_APP_PROPERTY,
+                        authenticationContext.setProperty(Constants.AUTH_CONTEXT_OAUTH_APP_PROPERTY,
                                 OAuth2Util.getAppInformationByClientId(clientId));
 
                         if (OAuth2Util.authenticateClient(clientId, clientSecret)) {
