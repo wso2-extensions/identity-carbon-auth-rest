@@ -87,7 +87,7 @@ public class BasicClientAuthenticationHandler extends AuthenticationHandler {
         String authorizationHeader = authenticationContext.getAuthenticationRequest().
                 getHeader(HttpHeaders.AUTHORIZATION);
 
-        if (authorizationHeader != null){
+        if (authorizationHeader != null) {
             String[] splitAuthorizationHeader = authorizationHeader.split(" ");
             if (splitAuthorizationHeader.length == 2) {
                 byte[] decodedAuthHeader = Base64.decodeBase64(splitAuthorizationHeader[1].getBytes());
