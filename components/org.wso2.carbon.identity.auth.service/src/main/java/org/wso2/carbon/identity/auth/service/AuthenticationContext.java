@@ -34,7 +34,7 @@ public class AuthenticationContext extends MessageContext {
     private AuthenticationResult authenticationResult = null;
     private ResourceConfig resourceConfig = null;
     private User user = null;
-    private Map<Object, Object> properties = new HashMap<>();
+    private Map<String, Object> properties = new HashMap<>();
 
     /**
      * @param authenticationRequest
