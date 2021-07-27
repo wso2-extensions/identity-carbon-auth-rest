@@ -25,6 +25,7 @@ import org.wso2.carbon.identity.auth.service.factory.AuthenticationRequestBuilde
 import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
 import org.wso2.carbon.identity.auth.service.handler.ResourceHandler;
 import org.wso2.carbon.identity.auth.service.handler.impl.BasicAuthenticationHandler;
+import org.wso2.carbon.identity.auth.service.handler.impl.BasicClientAuthenticationHandler;
 import org.wso2.carbon.identity.auth.service.handler.impl.ClientAuthenticationHandler;
 import org.wso2.carbon.identity.auth.service.handler.impl.ClientCertificateBasedAuthenticationHandler;
 import org.wso2.carbon.identity.auth.service.handler.impl.OAuth2AccessTokenHandler;
@@ -57,6 +58,7 @@ public class AuthenticationServiceComponent {
             cxt.getBundleContext().registerService(AuthenticationHandler.class, new ClientCertificateBasedAuthenticationHandler(), null);
             cxt.getBundleContext().registerService(AuthenticationHandler.class, new ClientAuthenticationHandler(), null);
             cxt.getBundleContext().registerService(AuthenticationHandler.class, new TomcatCookieAuthenticationHandler(), null);
+            cxt.getBundleContext().registerService(AuthenticationHandler.class, new BasicClientAuthenticationHandler(), null);
             cxt.getBundleContext().registerService(AuthenticationManager.class, AuthenticationManager.getInstance(), null);
             cxt.getBundleContext().registerService(AuthenticationRequestBuilderFactory.class, AuthenticationRequestBuilderFactory.getInstance(), null);
             AuthConfigurationUtil.getInstance().buildResourceAccessControlData();
