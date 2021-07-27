@@ -148,7 +148,11 @@ public class AuthConfigurationUtil {
             List<AuthenticationHandler> allAvailableAuthHandlers =
                     AuthenticationServiceHolder.getInstance().getAuthenticationHandlers();
             for (AuthenticationHandler handler : allAvailableAuthHandlers) {
-                allowedAuthHandlersList.add(handler.getName());
+                String handlerName = handler.getName();
+                if (Constants.BASIC_CLIENT_AUTH_HANDLER.equals(handlerName)) {
+                    continue;
+                }
+                allowedAuthHandlersList.add(handlerName);
             }
         } else {
             String regex = "\\s*,\\s*";

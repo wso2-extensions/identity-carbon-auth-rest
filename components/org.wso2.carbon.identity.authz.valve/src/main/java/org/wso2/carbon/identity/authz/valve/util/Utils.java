@@ -21,6 +21,9 @@ package org.wso2.carbon.identity.authz.valve.util;
 import org.apache.catalina.connector.Request;
 import org.wso2.carbon.identity.application.common.model.User;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
+import org.wso2.carbon.identity.auth.service.util.Constants;
+import org.wso2.carbon.identity.oauth.dao.OAuthAppDO;
+import org.wso2.carbon.identity.oauth2.util.OAuth2Util;
 import org.wso2.carbon.utils.multitenancy.MultitenantConstants;
 
 public class Utils {
@@ -52,7 +55,15 @@ public class Utils {
 
         String tenantDomainFromURLMapping = getTenantDomainFromURLMapping(request);
         User user = authenticationContext.getUser();
-        String userDomain = user.getTenantDomain();
-        return tenantDomainFromURLMapping.equals(userDomain);
+
+        String tenantDomain;
+        if (user != null) {
+            tenantDomain = user.getTenantDomain();
+        } else {
+            OAuthAppDO oAuthAppDO = (OAuthAppDO) authenticationContext.getProperty(
+                    Constants.AUTH_CONTEXT_OAUTH_APP_PROPERTY);
+            tenantDomain = OAuth2Util.getTenantDomainOfOauthApp(oAuthAppDO);
+        }
+        return tenantDomainFromURLMapping.equals(tenantDomain);
     }
 }
