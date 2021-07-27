@@ -23,6 +23,8 @@ import org.wso2.carbon.identity.auth.service.exception.AuthRuntimeException;
 import org.wso2.carbon.identity.auth.service.module.ResourceConfig;
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
 
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * AuthenticationContext which is pass across the authentication flow.
@@ -32,6 +34,7 @@ public class AuthenticationContext extends MessageContext {
     private AuthenticationResult authenticationResult = null;
     private ResourceConfig resourceConfig = null;
     private User user = null;
+    private Map<Object, Object> properties = new HashMap<>();
 
     /**
      * @param authenticationRequest
@@ -57,6 +60,16 @@ public class AuthenticationContext extends MessageContext {
 
     public void setUser(User user) {
         this.user = user;
+    }
+
+    public Object getProperties(String key) {
+
+        return properties.get(key);
+    }
+
+    public void setProperties(String key, Object value) {
+
+        this.properties.put(key, value);
     }
 
     public ResourceConfig getResourceConfig() {

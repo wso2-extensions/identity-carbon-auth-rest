@@ -28,6 +28,7 @@ import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
 import org.wso2.carbon.identity.auth.service.handler.HandlerManager;
 import org.wso2.carbon.identity.auth.service.module.ResourceConfig;
+import org.wso2.carbon.identity.auth.service.util.Constants;
 import org.wso2.carbon.identity.authz.service.AuthorizationContext;
 import org.wso2.carbon.identity.authz.service.AuthorizationManager;
 import org.wso2.carbon.identity.authz.service.AuthorizationResult;
@@ -58,12 +59,9 @@ public class AuthorizationValve extends ValveBase {
     public void invoke(Request request, Response response) throws IOException, ServletException {
 
         AuthenticationContext authenticationContext = (AuthenticationContext) request.getAttribute(AUTH_CONTEXT);
-
-        if (authenticationContext != null && authenticationContext.getUser() != null && StringUtils
-                .isNotEmpty(authenticationContext.getUser().getUserName())) {
+        if (authenticationContext != null &&
+                !(isUserEmpty(authenticationContext) && isClientEmpty(authenticationContext))) {
             ResourceConfig resourceConfig = authenticationContext.getResourceConfig();
-            String contextPath = request.getContextPath();
-            String httpMethod = request.getMethod();
             AuthorizationContext authorizationContext = new AuthorizationContext();
             if (resourceConfig != null) {
                 authorizationContext.setIsCrossTenantAllowed(resourceConfig.isCrossTenantAllowed());
@@ -78,34 +76,42 @@ public class AuthorizationValve extends ValveBase {
                 handleErrorResponse(authenticationContext, response, HttpServletResponse.SC_UNAUTHORIZED);
                 return;
             }
-            if (resourceConfig != null && StringUtils.isNotEmpty(resourceConfig.getPermissions())) {
-                authorizationContext.setPermissionString(resourceConfig.getPermissions());
-            }
-            if (resourceConfig != null && CollectionUtils.isNotEmpty(resourceConfig.getScopes())) {
-                authorizationContext.setRequiredScopes(resourceConfig.getScopes());
-            }
-            authorizationContext.setContext(contextPath);
-            authorizationContext.setHttpMethods(httpMethod);
-            authorizationContext.setUser(authenticationContext.getUser());
-            authorizationContext.addParameter(OAUTH2_ALLOWED_SCOPES, authenticationContext.getParameter(OAUTH2_ALLOWED_SCOPES));
-            authorizationContext.addParameter(OAUTH2_VALIDATE_SCOPE, authenticationContext.getParameter(OAUTH2_VALIDATE_SCOPE));
 
-            String tenantDomainFromURLMapping = Utils.getTenantDomainFromURLMapping(request);
-            authorizationContext.setTenantDomainFromURLMapping(tenantDomainFromURLMapping);
-            List<AuthorizationManager> authorizationManagerList = AuthorizationValveServiceHolder.getInstance()
-                    .getAuthorizationManagerList();
-            AuthorizationManager authorizationManager = HandlerManager.getInstance()
-                    .getFirstPriorityHandler(authorizationManagerList, true);
-            try {
-                AuthorizationResult authorizationResult = authorizationManager.authorize(authorizationContext);
-                if (authorizationResult.getAuthorizationStatus().equals(AuthorizationStatus.GRANT)) {
-                    getNext().invoke(request, response);
-                } else {
-                    handleErrorResponse(authenticationContext, response, HttpServletResponse.SC_FORBIDDEN);
+            if (!isUserEmpty(authenticationContext)) {
+                if (resourceConfig != null && StringUtils.isNotEmpty(resourceConfig.getPermissions())) {
+                    authorizationContext.setPermissionString(resourceConfig.getPermissions());
                 }
-            } catch (AuthzServiceServerException e) {
-                handleErrorResponse(authenticationContext, response, HttpServletResponse.SC_BAD_REQUEST);
+                if (resourceConfig != null && CollectionUtils.isNotEmpty(resourceConfig.getScopes())) {
+                    authorizationContext.setRequiredScopes(resourceConfig.getScopes());
+                }
+                String contextPath = request.getContextPath();
+                String httpMethod = request.getMethod();
+                authorizationContext.setContext(contextPath);
+                authorizationContext.setHttpMethods(httpMethod);
+                authorizationContext.setUser(authenticationContext.getUser());
+                authorizationContext.addParameter(OAUTH2_ALLOWED_SCOPES, authenticationContext.getParameter(OAUTH2_ALLOWED_SCOPES));
+                authorizationContext.addParameter(OAUTH2_VALIDATE_SCOPE, authenticationContext.getParameter(OAUTH2_VALIDATE_SCOPE));
+
+                String tenantDomainFromURLMapping = Utils.getTenantDomainFromURLMapping(request);
+                authorizationContext.setTenantDomainFromURLMapping(tenantDomainFromURLMapping);
+                List<AuthorizationManager> authorizationManagerList = AuthorizationValveServiceHolder.getInstance()
+                        .getAuthorizationManagerList();
+                AuthorizationManager authorizationManager = HandlerManager.getInstance()
+                        .getFirstPriorityHandler(authorizationManagerList, true);
+                try {
+                    AuthorizationResult authorizationResult = authorizationManager.authorize(authorizationContext);
+                    if (authorizationResult.getAuthorizationStatus().equals(AuthorizationStatus.GRANT)) {
+                        getNext().invoke(request, response);
+                    } else {
+                        handleErrorResponse(authenticationContext, response, HttpServletResponse.SC_FORBIDDEN);
+                    }
+                } catch (AuthzServiceServerException e) {
+                    handleErrorResponse(authenticationContext, response, HttpServletResponse.SC_BAD_REQUEST);
+                }
+            } else {
+                getNext().invoke(request, response);
             }
+
         } else {
             getNext().invoke(request, response);
         }
@@ -136,5 +142,16 @@ public class AuthorizationValve extends ValveBase {
 
         return (Utils.isUserBelongsToRequestedTenant(authenticationContext, request) || authorizationContext
                 .isCrossTenantAllowed());
+    }
+
+    private boolean isUserEmpty(AuthenticationContext authenticationContext) {
+
+        return (authenticationContext.getUser() == null ||
+                StringUtils.isEmpty(authenticationContext.getUser().getUserName()));
+    }
+
+    private boolean isClientEmpty(AuthenticationContext authenticationContext) {
+
+        return authenticationContext.getProperties(Constants.AUTH_CONTEXT_OAUTH_APP_PROPERTY) == null;
     }
 }
