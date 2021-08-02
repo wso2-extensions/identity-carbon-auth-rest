@@ -41,4 +41,6 @@ public class Constants {
     public final static String BASIC_CLIENT_AUTH_HANDLER = "BasicClientAuthentication";
 
     public final static String AUTH_CONTEXT_OAUTH_APP_PROPERTY = "oAuthAppDO";
+
+    public static final String AUTHENTICATED_WITH_BASIC_AUTH = "AuthenticatedWithBasicAuth";
 }
