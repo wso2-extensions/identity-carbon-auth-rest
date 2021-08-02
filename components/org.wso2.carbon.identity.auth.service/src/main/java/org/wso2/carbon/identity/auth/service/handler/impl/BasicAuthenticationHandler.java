@@ -28,14 +28,17 @@ import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
 import org.wso2.carbon.identity.application.common.model.User;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
+import org.wso2.carbon.identity.auth.service.AuthenticationRequest;
 import org.wso2.carbon.identity.auth.service.AuthenticationResult;
 import org.wso2.carbon.identity.auth.service.AuthenticationStatus;
 import org.wso2.carbon.identity.auth.service.exception.AuthenticationFailException;
 import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
 import org.wso2.carbon.identity.auth.service.internal.AuthenticationServiceHolder;
+import org.wso2.carbon.identity.auth.service.util.Constants;
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
 import org.wso2.carbon.identity.core.handler.InitConfig;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
+import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.user.api.UserRealm;
 import org.wso2.carbon.user.core.UserCoreConstants;
 import org.wso2.carbon.user.core.UserStoreManager;
@@ -57,6 +60,7 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
     private static final Log log = LogFactory.getLog(BasicAuthenticationHandler.class);
     private final String BASIC_AUTH_HEADER = "Basic";
     private final String USER_NAME = "userName";
+    private final String TOTP_ENDPOINT_URI = "api/users/v1/me/totp";
 
     @Override
     public void init(InitConfig initConfig) {
@@ -86,6 +90,7 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
 
         AuthenticationResult authenticationResult = new AuthenticationResult(AuthenticationStatus.FAILED);
         AuthenticationContext authenticationContext = (AuthenticationContext) messageContext;
+        AuthenticationRequest authenticationRequest = authenticationContext.getAuthenticationRequest();
         String authorizationHeader = authenticationContext.getAuthenticationRequest().
                 getHeader(HttpHeaders.AUTHORIZATION);
 
@@ -141,6 +146,18 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
                                     log.debug("Basic Authentication successful for the user: " + userName);
                                 }
                                 MDC.put(USER_NAME, userName);
+
+                                /*
+                                If the request is coming to TOTP endpoint, set AuthenticatedWithBasicAuth value to
+                                true in the thread local. It will be used in TOTP Service layer to forbid the
+                                requests coming with basic auth. This approach can be improved by providing a Level
+                                of Assurance (LOA) and checking that in the TOTP service layer.
+                                 */
+                                if (authenticationRequest.getRequest() != null && authenticationRequest.getRequest()
+                                        .getRequestURI().toLowerCase().contains(TOTP_ENDPOINT_URI)) {
+                                    IdentityUtil.threadLocalProperties.get()
+                                            .put(Constants.AUTHENTICATED_WITH_BASIC_AUTH, true);
+                                }
                             }
                         } else {
                             String errorMessage = "Error occurred while trying to load the user realm for the tenant: " +
