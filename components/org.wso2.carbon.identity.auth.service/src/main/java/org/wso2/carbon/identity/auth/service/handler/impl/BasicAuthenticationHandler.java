@@ -156,7 +156,7 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
                                 if (authenticationRequest.getRequest() != null && authenticationRequest.getRequest()
                                         .getRequestURI().toLowerCase().contains(TOTP_ENDPOINT_URI)) {
                                     IdentityUtil.threadLocalProperties.get()
-                                            .put(Constants.AUTHENTICATED_WITH_BASIC_AUTH, true);
+                                            .put(Constants.AUTHENTICATED_WITH_BASIC_AUTH, "true");
                                 }
                             }
                         } else {
