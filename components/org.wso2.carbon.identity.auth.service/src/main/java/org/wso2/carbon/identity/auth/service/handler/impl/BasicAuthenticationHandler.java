@@ -61,6 +61,8 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
     private final String BASIC_AUTH_HEADER = "Basic";
     private final String USER_NAME = "userName";
     private final String TOTP_ENDPOINT_URI = "api/users/v1/me/totp";
+    private final String FIDO_ENDPOINT_URI = "api/users/v1/me/webauthn";
+    private final String FIDO2_ENDPOINT_URI = "api/users/v2/me/webauthn";
 
     @Override
     public void init(InitConfig initConfig) {
@@ -148,15 +150,20 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
                                 MDC.put(USER_NAME, userName);
 
                                 /*
-                                If the request is coming to TOTP endpoint, set AuthenticatedWithBasicAuth value to
-                                true in the thread local. It will be used in TOTP Service layer to forbid the
-                                requests coming with basic auth. This approach can be improved by providing a Level
-                                of Assurance (LOA) and checking that in the TOTP service layer.
+                                If the request is coming to TOTP or FIDO2 endpoint, set AuthenticatedWithBasicAuth
+                                value to true in the thread local. It will be used in TOTP and FIDO2 Service layers
+                                to forbid the requests coming with basic auth. This approach can be improved by
+                                providing a Level of Assurance (LOA) and checking that in the TOTP and FIDO2 service
+                                layers.
                                  */
-                                if (authenticationRequest.getRequest() != null && authenticationRequest.getRequest()
-                                        .getRequestURI().toLowerCase().contains(TOTP_ENDPOINT_URI)) {
-                                    IdentityUtil.threadLocalProperties.get()
-                                            .put(Constants.AUTHENTICATED_WITH_BASIC_AUTH, "true");
+                                if (authenticationRequest.getRequest() != null) {
+                                    String requestURI = authenticationRequest.getRequest().getRequestURI()
+                                            .toLowerCase();
+                                    if (requestURI.contains(TOTP_ENDPOINT_URI) || requestURI.contains(FIDO_ENDPOINT_URI)
+                                            || requestURI.contains(FIDO2_ENDPOINT_URI)) {
+                                        IdentityUtil.threadLocalProperties.get()
+                                                .put(Constants.AUTHENTICATED_WITH_BASIC_AUTH, "true");
+                                    }
                                 }
                             }
                         } else {
