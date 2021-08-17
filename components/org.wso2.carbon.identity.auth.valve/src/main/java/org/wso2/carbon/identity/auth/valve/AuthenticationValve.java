@@ -70,6 +70,7 @@ public class AuthenticationValve extends ValveBase {
     private static final String USER_AGENT = "User-Agent";
     private static final String REMOTE_ADDRESS = "remoteAddress";
     private static final String SERVICE_PROVIDER = "serviceProvider";
+    private final String CLIENT_COMPONENT = "clientComponent";
     private static final String AUTH_USER_TENANT_DOMAIN = "authUserTenantDomain";
     private final String SERVICE_PROVIDER_TENANT_DOMAIN = "serviceProviderTenantDomain";
     private static final String X_FORWARDED_USER_AGENT = "X-Forwarded-User-Agent";
@@ -165,6 +166,8 @@ public class AuthenticationValve extends ValveBase {
             unsetThreadLocalAuthUserTenantDomain();
             // Clear thread local provisioning service provider.
             IdentityApplicationManagementUtil.resetThreadLocalProvisioningServiceProvider();
+            // Clear clientComponent in MDC.
+            unsetClientComponent();
         }
 
 
@@ -206,6 +209,11 @@ public class AuthenticationValve extends ValveBase {
     private void unsetThreadLocalAuthUserTenantDomain() {
 
         IdentityUtil.threadLocalProperties.get().remove(AUTH_USER_TENANT_DOMAIN);
+    }
+
+    private void unsetClientComponent() {
+
+        MDC.remove(CLIENT_COMPONENT);
     }
 
     private void handleErrorResponse(AuthenticationContext authenticationContext, Response response, int error,
