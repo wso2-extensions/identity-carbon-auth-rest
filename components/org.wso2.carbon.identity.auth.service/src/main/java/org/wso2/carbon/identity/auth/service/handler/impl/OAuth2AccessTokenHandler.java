@@ -64,7 +64,6 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
     private final String OAUTH_HEADER = "Bearer";
     private final String CONSUMER_KEY = "consumer-key";
     private final String SERVICE_PROVIDER = "serviceProvider";
-    private final String CLIENT_COMPONENT = "clientComponent";
     private final String SERVICE_PROVIDER_TENANT_DOMAIN = "serviceProviderTenantDomain";
     private final String SCIM_ME_ENDPOINT_URI = "scim2/me";
 
@@ -154,7 +153,6 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
                     }
 
                     MDC.put(SERVICE_PROVIDER, serviceProvider);
-                    MDC.put(CLIENT_COMPONENT, serviceProvider);
                     // Set OAuth service provider details to be consumed by the provisioning framework.
                     setProvisioningServiceProviderThreadLocal(oAuth2IntrospectionResponseDTO.getClientId(),
                             serviceProviderTenantDomain);
