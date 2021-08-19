@@ -60,8 +60,6 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
     private static final Log log = LogFactory.getLog(BasicAuthenticationHandler.class);
     private final String BASIC_AUTH_HEADER = "Basic";
     private final String USER_NAME = "userName";
-    private final String CLIENT_COMPONENT = "clientComponent";
-    private final String REST_API_CLIENT_COMPONENT = "REST API";
     private final String TOTP_ENDPOINT_URI = "api/users/v1/me/totp";
     private final String FIDO_ENDPOINT_URI = "api/users/v1/me/webauthn";
     private final String FIDO2_ENDPOINT_URI = "api/users/v2/me/webauthn";
@@ -194,7 +192,6 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
             log.error(errorMessage);
             throw new AuthenticationFailException(errorMessage);
         }
-        MDC.put(CLIENT_COMPONENT, REST_API_CLIENT_COMPONENT);
         return authenticationResult;
     }
 }

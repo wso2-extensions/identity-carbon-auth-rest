@@ -71,6 +71,7 @@ public class AuthenticationValve extends ValveBase {
     private static final String REMOTE_ADDRESS = "remoteAddress";
     private static final String SERVICE_PROVIDER = "serviceProvider";
     private final String CLIENT_COMPONENT = "clientComponent";
+    private final String REST_API_CLIENT_COMPONENT = "REST API";
     private static final String AUTH_USER_TENANT_DOMAIN = "authUserTenantDomain";
     private final String SERVICE_PROVIDER_TENANT_DOMAIN = "serviceProviderTenantDomain";
     private static final String X_FORWARDED_USER_AGENT = "X-Forwarded-User-Agent";
@@ -133,6 +134,8 @@ public class AuthenticationValve extends ValveBase {
                 setThreadLocalServiceProvider(authenticationContext);
                 // Set authenticated user tenant domain.
                 setThreadLocalAuthUserTenantDomain(authenticationContext);
+                // Set client component in to MDC.
+                setClientComponent();
                 //Set the User object as an attribute for further references.
                 request.setAttribute(AUTH_CONTEXT, authenticationContext);
                 getNext().invoke(request, response);
@@ -209,6 +212,16 @@ public class AuthenticationValve extends ValveBase {
     private void unsetThreadLocalAuthUserTenantDomain() {
 
         IdentityUtil.threadLocalProperties.get().remove(AUTH_USER_TENANT_DOMAIN);
+    }
+
+    private void setClientComponent() {
+
+        String serviceProvider = MDC.get(SERVICE_PROVIDER);
+        if (serviceProvider != null) {
+            MDC.put(CLIENT_COMPONENT, serviceProvider);
+        } else {
+            MDC.put(CLIENT_COMPONENT, REST_API_CLIENT_COMPONENT);
+        }
     }
 
     private void unsetClientComponent() {
