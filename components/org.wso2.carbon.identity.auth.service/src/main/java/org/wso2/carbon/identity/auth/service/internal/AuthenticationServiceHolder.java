@@ -21,6 +21,7 @@ package org.wso2.carbon.identity.auth.service.internal;
 import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
 import org.wso2.carbon.identity.auth.service.handler.ResourceHandler;
 import org.wso2.carbon.identity.core.handler.MessageHandlerComparator;
+import org.wso2.carbon.identity.multi.attribute.login.mgt.MultiAttributeLoginService;
 import org.wso2.carbon.user.core.service.RealmService;
 
 import java.util.ArrayList;
@@ -38,7 +39,7 @@ public class AuthenticationServiceHolder {
     private RealmService realmService = null;
     private List<AuthenticationHandler> authenticationHandlers = new ArrayList<>();
     private List<ResourceHandler> resourceHandlers = new ArrayList<>();
-
+    private MultiAttributeLoginService multiAttributeLoginService;
 
     private AuthenticationServiceHolder() {
 
@@ -68,5 +69,15 @@ public class AuthenticationServiceHolder {
 
     public List<AuthenticationHandler> getAuthenticationHandlers() {
         return authenticationHandlers;
+    }
+
+    public MultiAttributeLoginService getMultiAttributeLoginService() {
+
+        return multiAttributeLoginService;
+    }
+
+    public void setMultiAttributeLoginService(MultiAttributeLoginService multiAttributeLoginService) {
+
+        this.multiAttributeLoginService = multiAttributeLoginService;
     }
 }

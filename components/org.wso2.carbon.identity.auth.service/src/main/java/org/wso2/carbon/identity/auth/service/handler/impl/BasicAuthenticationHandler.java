@@ -39,6 +39,7 @@ import org.wso2.carbon.identity.core.bean.context.MessageContext;
 import org.wso2.carbon.identity.core.handler.InitConfig;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
+import org.wso2.carbon.identity.multi.attribute.login.mgt.ResolvedUserResult;
 import org.wso2.carbon.user.api.UserRealm;
 import org.wso2.carbon.user.core.UserCoreConstants;
 import org.wso2.carbon.user.core.UserStoreManager;
@@ -109,9 +110,25 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
                 try {
                     int tenantId = IdentityTenantUtil.getTenantIdOfUser(userName);
                     String tenantDomain = MultitenantUtils.getTenantDomain(userName);
+                    String tenantAwareUsername = MultitenantUtils.getTenantAwareUsername(userName);
+
+                    if (AuthenticationServiceHolder.getInstance().getMultiAttributeLoginService()
+                            .isEnabled(tenantDomain)) {
+                        ResolvedUserResult resolvedUser = AuthenticationServiceHolder.getInstance()
+                                .getMultiAttributeLoginService().resolveUser(tenantAwareUsername, tenantDomain);
+                        if (resolvedUser != null && ResolvedUserResult.UserResolvedStatus.SUCCESS.equals(
+                                resolvedUser.getResolvedStatus())) {
+                            tenantAwareUsername = resolvedUser.getUser().getUsername();
+                            userName = UserCoreUtil.addTenantDomainToEntry(tenantAwareUsername, tenantDomain);
+                        } else {
+                            String errorMessage = "User does not exists: " + userName;
+                            log.error(errorMessage);
+                            throw new AuthenticationFailException(errorMessage);
+                        }
+                    }
 
                     AuthenticatedUser user = new AuthenticatedUser();
-                    user.setUserName(MultitenantUtils.getTenantAwareUsername(userName));
+                    user.setUserName(tenantAwareUsername);
                     user.setTenantDomain(tenantDomain);
 
                     authenticationContext.setUser(user);

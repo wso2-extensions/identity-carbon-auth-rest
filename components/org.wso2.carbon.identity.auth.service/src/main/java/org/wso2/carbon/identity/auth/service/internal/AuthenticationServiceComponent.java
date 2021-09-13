@@ -33,6 +33,7 @@ import org.wso2.carbon.identity.auth.service.handler.impl.TomcatCookieAuthentica
 import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
 import org.wso2.carbon.identity.core.handler.HandlerComparator;
 import org.wso2.carbon.identity.core.util.IdentityCoreInitializedEvent;
+import org.wso2.carbon.identity.multi.attribute.login.mgt.MultiAttributeLoginService;
 import org.wso2.carbon.user.core.service.RealmService;
 import java.util.Collections;
 import java.util.List;
@@ -145,6 +146,22 @@ public class AuthenticationServiceComponent {
     protected void unsetIdentityCoreInitializedEventService(IdentityCoreInitializedEvent identityCoreInitializedEvent) {
     /* reference IdentityCoreInitializedEvent service to guarantee that this component will wait until identity core
          is started */
+    }
+
+    @Reference(
+            name = "MultiAttributeLoginService",
+            service = MultiAttributeLoginService.class,
+            cardinality = ReferenceCardinality.MANDATORY,
+            policy = ReferencePolicy.DYNAMIC,
+            unbind = "unsetMultiAttributeLoginService")
+    protected void setMultiAttributeLoginService(MultiAttributeLoginService multiAttributeLoginService) {
+
+        AuthenticationServiceHolder.getInstance().setMultiAttributeLoginService(multiAttributeLoginService);
+    }
+
+    protected void unsetMultiAttributeLoginService(MultiAttributeLoginService multiAttributeLoginService) {
+
+        AuthenticationServiceHolder.getInstance().setMultiAttributeLoginService(null);
     }
 }
 
