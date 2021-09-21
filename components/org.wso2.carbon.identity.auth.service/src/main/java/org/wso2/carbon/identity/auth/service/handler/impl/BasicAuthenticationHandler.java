@@ -26,7 +26,7 @@ import org.apache.http.HttpHeaders;
 import org.slf4j.MDC;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
-import org.wso2.carbon.identity.application.common.model.User;
+import org.wso2.carbon.identity.application.authentication.framework.util.FrameworkUtils;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
 import org.wso2.carbon.identity.auth.service.AuthenticationRequest;
 import org.wso2.carbon.identity.auth.service.AuthenticationResult;
@@ -39,9 +39,9 @@ import org.wso2.carbon.identity.core.bean.context.MessageContext;
 import org.wso2.carbon.identity.core.handler.InitConfig;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
+import org.wso2.carbon.identity.multi.attribute.login.mgt.ResolvedUserResult;
 import org.wso2.carbon.user.api.UserRealm;
 import org.wso2.carbon.user.core.UserCoreConstants;
-import org.wso2.carbon.user.core.UserStoreManager;
 import org.wso2.carbon.user.core.common.AbstractUserStoreManager;
 import org.wso2.carbon.user.core.constants.UserCoreClaimConstants;
 import org.wso2.carbon.user.core.util.UserCoreUtil;
@@ -61,6 +61,7 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
     private final String BASIC_AUTH_HEADER = "Basic";
     private final String USER_NAME = "userName";
     private final String TOTP_ENDPOINT_URI = "api/users/v1/me/totp";
+    public final static String EMAIL_CLAIM = "http://wso2.org/claims/emailaddress";
 
     @Override
     public void init(InitConfig initConfig) {
@@ -107,8 +108,15 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
 
                 AbstractUserStoreManager userStoreManager;
                 try {
-                    int tenantId = IdentityTenantUtil.getTenantIdOfUser(userName);
+                    // Process multi attribute login attribute.
+                    ResolvedUserResult resolvedUser = FrameworkUtils.processMultiAttributeLoginIdentification(userName);
+                    if (resolvedUser != null && ResolvedUserResult.UserResolvedStatus.SUCCESS.equals(
+                            resolvedUser.getResolvedStatus())) {
+                        userName = resolvedUser.getUser().getFullQualifiedUsername();
+                    }
+
                     String tenantDomain = MultitenantUtils.getTenantDomain(userName);
+                    int tenantId = IdentityTenantUtil.getTenantId(tenantDomain);
 
                     AuthenticatedUser user = new AuthenticatedUser();
                     user.setUserName(MultitenantUtils.getTenantAwareUsername(userName));
