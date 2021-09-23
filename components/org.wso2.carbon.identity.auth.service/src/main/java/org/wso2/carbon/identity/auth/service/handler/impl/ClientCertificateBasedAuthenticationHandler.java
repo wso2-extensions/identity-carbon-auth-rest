@@ -148,7 +148,7 @@ public class ClientCertificateBasedAuthenticationHandler extends AuthenticationH
                     username = UserCoreUtil.removeDomainFromName(username);
 
                     User user = new User();
-                    user.setUserName(username);
+                    user.setUserName(MultitenantUtils.getTenantAwareUsername(username));
                     user.setTenantDomain(tenantDomain);
                     user.setUserStoreDomain(userStoreDomain);
 
