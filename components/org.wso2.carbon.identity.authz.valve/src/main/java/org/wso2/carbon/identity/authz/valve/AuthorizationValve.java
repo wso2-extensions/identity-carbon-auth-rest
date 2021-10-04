@@ -111,7 +111,6 @@ public class AuthorizationValve extends ValveBase {
             } else {
                 getNext().invoke(request, response);
             }
-
         } else {
             getNext().invoke(request, response);
         }
