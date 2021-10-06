@@ -37,6 +37,7 @@ public class ResourceConfig implements Serializable {
     private List<String> scopes;
     // Comma separated list of allowed authentication handler names. If all handlers are engaged the value is 'all'
     private String allowedAuthHandlers;
+    private String allowedTenants;
 
     public String getContext() {
         return context;
@@ -68,6 +69,16 @@ public class ResourceConfig implements Serializable {
 
     public void setIsCrossTenantAllowed(boolean isCrossTenantAllowed) {
         this.isCrossTenantAllowed = isCrossTenantAllowed;
+    }
+
+    public String getAllowedTenants() {
+
+        return allowedTenants;
+    }
+
+    public void setAllowedTenants(String allowedTenants) {
+
+        this.allowedTenants = allowedTenants;
     }
 
     public String getPermissions() {

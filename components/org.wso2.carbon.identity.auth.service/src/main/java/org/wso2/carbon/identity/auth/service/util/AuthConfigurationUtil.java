@@ -120,9 +120,16 @@ public class AuthConfigurationUtil {
                             Boolean.FALSE.toString().equals(isSecured)) ) {
                         resourceConfig.setIsSecured(Boolean.parseBoolean(isSecured));
                     }
+                    String allowedTenants = resource.getAttributeValue(new QName(Constants.RESOURCE_ALLOWED_TENANTS));
+
                     if (StringUtils.isNotEmpty(isCrossTenantAllowed) && (Boolean.TRUE.toString().equals(isCrossTenantAllowed) ||
                             Boolean.FALSE.toString().equals(isCrossTenantAllowed))) {
                         resourceConfig.setIsCrossTenantAllowed(Boolean.parseBoolean(isCrossTenantAllowed));
+                        if (resourceConfig.isCrossTenantAllowed() && StringUtils.isNotEmpty(allowedTenants)) {
+                            resourceConfig.setAllowedTenants(allowedTenants);
+                            log.info("======");
+                            log.info("Add to resource config");
+                        }
                     }
 
                     if (StringUtils.isBlank(allowedAuthHandlers)) {
@@ -227,6 +234,24 @@ public class AuthConfigurationUtil {
                 }
             }
         }
+    }
+
+    /**
+     * Build allowedTenantDomains by splitting the allowedTenantDomains string.
+     *
+     * @param allowedTenantDomains allowedTenantDomains.
+     * @return List of allowedTenantDomains.
+     */
+    public List<String> buildAllowedTenantDomains(String allowedTenantDomains) {
+
+        if (StringUtils.isNotBlank(allowedTenantDomains)) {
+            List<String> allowedTenantDomainsList = new ArrayList<>();
+            String regex = "\\s*,\\s*";
+            String[] allowedTenantDomainsNames = allowedTenantDomains.split(regex);
+            allowedTenantDomainsList.addAll(Arrays.asList(allowedTenantDomainsNames));
+            return allowedTenantDomainsList;
+        }
+        return null;
     }
 
     public String getClientAuthenticationHash(String appName) {
