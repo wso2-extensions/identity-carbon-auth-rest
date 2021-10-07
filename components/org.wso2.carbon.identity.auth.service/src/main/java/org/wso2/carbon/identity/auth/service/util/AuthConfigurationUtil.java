@@ -120,9 +120,18 @@ public class AuthConfigurationUtil {
                             Boolean.FALSE.toString().equals(isSecured)) ) {
                         resourceConfig.setIsSecured(Boolean.parseBoolean(isSecured));
                     }
-                    if (StringUtils.isNotEmpty(isCrossTenantAllowed) && (Boolean.TRUE.toString().equals(isCrossTenantAllowed) ||
-                            Boolean.FALSE.toString().equals(isCrossTenantAllowed))) {
+                    String crossAccessAllowedTenants =
+                            resource.getAttributeValue(new QName(Constants.RESOURCE_CROSS_ACCESS_ALLOWED_TENANTS));
+
+                    if (StringUtils.isNotEmpty(isCrossTenantAllowed) &&
+                            (Boolean.TRUE.toString().equals(isCrossTenantAllowed)
+                                    || Boolean.FALSE.toString().equals(isCrossTenantAllowed))) {
                         resourceConfig.setIsCrossTenantAllowed(Boolean.parseBoolean(isCrossTenantAllowed));
+                        if (resourceConfig.isCrossTenantAllowed() &&
+                                StringUtils.isNotEmpty(crossAccessAllowedTenants)) {
+                            resourceConfig.setCrossAccessAllowedTenants(buildCrossAccessAllowedTenants
+                                    (crossAccessAllowedTenants));
+                        }
                     }
 
                     if (StringUtils.isBlank(allowedAuthHandlers)) {
@@ -227,6 +236,24 @@ public class AuthConfigurationUtil {
                 }
             }
         }
+    }
+
+    /**
+     * Build cross-tenant-access allowed domains by splitting the crossAccessAllowedTenants string.
+     *
+     * @param crossAccessAllowedTenants crossAccessAllowedTenants.
+     * @return List of crossAccessAllowedTenants.
+     */
+    private List<String> buildCrossAccessAllowedTenants(String crossAccessAllowedTenants) {
+
+        if (StringUtils.isNotBlank(crossAccessAllowedTenants)) {
+            List<String> allowedTenantDomainsList = new ArrayList<>();
+            String regex = "\\s*,\\s*";
+            String[] allowedTenantDomainsNames = crossAccessAllowedTenants.split(regex);
+            allowedTenantDomainsList.addAll(Arrays.asList(allowedTenantDomainsNames));
+            return allowedTenantDomainsList;
+        }
+        return null;
     }
 
     public String getClientAuthenticationHash(String appName) {

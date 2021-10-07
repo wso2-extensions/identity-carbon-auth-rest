@@ -28,6 +28,7 @@ import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
 import org.wso2.carbon.identity.auth.service.handler.HandlerManager;
 import org.wso2.carbon.identity.auth.service.module.ResourceConfig;
+import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
 import org.wso2.carbon.identity.auth.service.util.Constants;
 import org.wso2.carbon.identity.authz.service.AuthorizationContext;
 import org.wso2.carbon.identity.authz.service.AuthorizationManager;
@@ -65,13 +66,14 @@ public class AuthorizationValve extends ValveBase {
             AuthorizationContext authorizationContext = new AuthorizationContext();
             if (resourceConfig != null) {
                 authorizationContext.setIsCrossTenantAllowed(resourceConfig.isCrossTenantAllowed());
+                authorizationContext.setAllowedTenants(resourceConfig.getCrossAccessAllowedTenants());
             }
             if (!isRequestValidForTenant(authenticationContext, authorizationContext, request)) {
                 if (log.isDebugEnabled()) {
                     log.debug("Authorization to " + request.getRequestURI()
                             + " is denied because the authenticated user belongs to different tenant domain: "
                             + authenticationContext.getUser().getTenantDomain()
-                            + " and cross-domain access is disabled.");
+                            + " and cross-domain access for the tenant is disabled.");
                 }
                 handleErrorResponse(authenticationContext, response, HttpServletResponse.SC_UNAUTHORIZED);
                 return;
@@ -137,10 +139,11 @@ public class AuthorizationValve extends ValveBase {
      * @return true if valid request
      */
     private boolean isRequestValidForTenant(AuthenticationContext authenticationContext,
-            AuthorizationContext authorizationContext, Request request) {
+                                            AuthorizationContext authorizationContext, Request request) {
 
-        return (Utils.isUserBelongsToRequestedTenant(authenticationContext, request) || authorizationContext
-                .isCrossTenantAllowed());
+        return (Utils.isUserBelongsToRequestedTenant(authenticationContext, request) ||
+                (authorizationContext.isCrossTenantAllowed()) &&
+                        Utils.isTenantBelongsToAllowedCrossTenant(authenticationContext, authorizationContext));
     }
 
     private boolean isUserEmpty(AuthenticationContext authenticationContext) {
