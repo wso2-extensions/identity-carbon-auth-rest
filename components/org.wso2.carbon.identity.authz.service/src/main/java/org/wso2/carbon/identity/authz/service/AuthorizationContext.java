@@ -34,6 +34,7 @@ public class AuthorizationContext extends MessageContext {
     private List<String> requiredScopes;
     private boolean isCrossTenantAllowed;
     private String tenantDomainFromURLMapping;
+    private List<String> allowedTenants;
 
 
     public User getUser() {
@@ -58,6 +59,16 @@ public class AuthorizationContext extends MessageContext {
 
     public void setIsCrossTenantAllowed(boolean isCrossTenantAllowed) {
         this.isCrossTenantAllowed = isCrossTenantAllowed;
+    }
+
+    public List<String> getRequiredAllowedTenants() {
+
+        return allowedTenants;
+    }
+
+    public void setAllowedTenants(List<String> allowedTenants) {
+
+        this.allowedTenants = allowedTenants;
     }
 
     public String getContext() {
