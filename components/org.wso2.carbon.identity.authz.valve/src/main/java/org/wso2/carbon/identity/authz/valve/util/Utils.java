@@ -71,11 +71,11 @@ public class Utils {
     }
 
     /**
-     * Checks whether cross-tenant domain is allowed for the tenant.
+     * Checks whether cross-tenant-access is allowed for the given tenant.
      *
      * @param authenticationContext Context of the authentication
      * @param authorizationContext  Context of the authorization
-     * @return true if the tenant is allowed or if the config is null.
+     * @return True if the tenant is whitelisted to access the cross-domain.
      */
     public static boolean isTenantBelongsToAllowedCrossTenant(AuthenticationContext authenticationContext,
                                                               AuthorizationContext authorizationContext) {

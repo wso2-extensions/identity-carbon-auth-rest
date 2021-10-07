@@ -15,7 +15,7 @@ public class Constants {
     public final static String OAUTH2_ALLOWED_SCOPES = "oauth2-allowed-scopes";
     public final static String OAUTH2_VALIDATE_SCOPE = "oauth2-validate-scopes";
     public final static String RESOURCE_CROSS_TENANT_ATTR = "cross-tenant";
-    public final static String RESOURCE_ALLOWED_TENANTS = "allowed-tenants";
+    public final static String RESOURCE_CROSS_ACCESS_ALLOWED_TENANTS = "cross-access-allowed-tenants";
     public final static String RESOURCE_ALLOWED_AUTH_HANDLERS = "allowed-auth-handlers";
     public final static String RESOURCE_ALLOWED_AUTH_HANDLERS_ALL = "all";
 
