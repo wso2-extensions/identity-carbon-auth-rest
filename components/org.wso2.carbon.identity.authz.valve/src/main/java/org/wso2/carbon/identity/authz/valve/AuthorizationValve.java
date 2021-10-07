@@ -66,8 +66,7 @@ public class AuthorizationValve extends ValveBase {
             AuthorizationContext authorizationContext = new AuthorizationContext();
             if (resourceConfig != null) {
                 authorizationContext.setIsCrossTenantAllowed(resourceConfig.isCrossTenantAllowed());
-                authorizationContext.setAllowedTenants(AuthConfigurationUtil.getInstance()
-                        .buildAllowedTenantDomains(resourceConfig.getAllowedTenants()));
+                authorizationContext.setAllowedTenants(resourceConfig.getCrossAccessAllowedTenants());
             }
             if (!isRequestValidForTenant(authenticationContext, authorizationContext, request)) {
                 if (log.isDebugEnabled()) {

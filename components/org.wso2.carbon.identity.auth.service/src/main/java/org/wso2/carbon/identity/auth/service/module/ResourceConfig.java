@@ -17,11 +17,7 @@
  */
 package org.wso2.carbon.identity.auth.service.module;
 
-import org.apache.commons.lang.StringUtils;
-import org.wso2.carbon.identity.auth.service.util.Constants;
-
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -37,7 +33,7 @@ public class ResourceConfig implements Serializable {
     private List<String> scopes;
     // Comma separated list of allowed authentication handler names. If all handlers are engaged the value is 'all'
     private String allowedAuthHandlers;
-    private String allowedTenants;
+    private List<String> crossAccessAllowedTenants;
 
     public String getContext() {
         return context;
@@ -71,14 +67,14 @@ public class ResourceConfig implements Serializable {
         this.isCrossTenantAllowed = isCrossTenantAllowed;
     }
 
-    public String getAllowedTenants() {
+    public List<String> getCrossAccessAllowedTenants() {
 
-        return allowedTenants;
+        return crossAccessAllowedTenants;
     }
 
-    public void setAllowedTenants(String allowedTenants) {
+    public void setCrossAccessAllowedTenants(List<String> crossAccessAllowedTenants) {
 
-        this.allowedTenants = allowedTenants;
+        this.crossAccessAllowedTenants = crossAccessAllowedTenants;
     }
 
     public String getPermissions() {

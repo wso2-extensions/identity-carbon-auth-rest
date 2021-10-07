@@ -120,15 +120,17 @@ public class AuthConfigurationUtil {
                             Boolean.FALSE.toString().equals(isSecured)) ) {
                         resourceConfig.setIsSecured(Boolean.parseBoolean(isSecured));
                     }
-                    String allowedTenants = resource.getAttributeValue(new QName(Constants.RESOURCE_ALLOWED_TENANTS));
+                    String crossAccessAllowedTenants =
+                            resource.getAttributeValue(new QName(Constants.RESOURCE_CROSS_ACCESS_ALLOWED_TENANTS));
 
-                    if (StringUtils.isNotEmpty(isCrossTenantAllowed) && (Boolean.TRUE.toString().equals(isCrossTenantAllowed) ||
-                            Boolean.FALSE.toString().equals(isCrossTenantAllowed))) {
+                    if (StringUtils.isNotEmpty(isCrossTenantAllowed) &&
+                            (Boolean.TRUE.toString().equals(isCrossTenantAllowed)
+                                    || Boolean.FALSE.toString().equals(isCrossTenantAllowed))) {
                         resourceConfig.setIsCrossTenantAllowed(Boolean.parseBoolean(isCrossTenantAllowed));
-                        if (resourceConfig.isCrossTenantAllowed() && StringUtils.isNotEmpty(allowedTenants)) {
-                            resourceConfig.setAllowedTenants(allowedTenants);
-                            log.info("======");
-                            log.info("Add to resource config");
+                        if (resourceConfig.isCrossTenantAllowed() &&
+                                StringUtils.isNotEmpty(crossAccessAllowedTenants)) {
+                            resourceConfig.setCrossAccessAllowedTenants(buildCrossAccessAllowedTenants
+                                    (crossAccessAllowedTenants));
                         }
                     }
 
@@ -237,17 +239,17 @@ public class AuthConfigurationUtil {
     }
 
     /**
-     * Build allowedTenantDomains by splitting the allowedTenantDomains string.
+     * Build cross-tenant-access allowed domains by splitting the crossAccessAllowedTenants string.
      *
-     * @param allowedTenantDomains allowedTenantDomains.
-     * @return List of allowedTenantDomains.
+     * @param crossAccessAllowedTenants crossAccessAllowedTenants.
+     * @return List of crossAccessAllowedTenants.
      */
-    public List<String> buildAllowedTenantDomains(String allowedTenantDomains) {
+    private List<String> buildCrossAccessAllowedTenants(String crossAccessAllowedTenants) {
 
-        if (StringUtils.isNotBlank(allowedTenantDomains)) {
+        if (StringUtils.isNotBlank(crossAccessAllowedTenants)) {
             List<String> allowedTenantDomainsList = new ArrayList<>();
             String regex = "\\s*,\\s*";
-            String[] allowedTenantDomainsNames = allowedTenantDomains.split(regex);
+            String[] allowedTenantDomainsNames = crossAccessAllowedTenants.split(regex);
             allowedTenantDomainsList.addAll(Arrays.asList(allowedTenantDomainsNames));
             return allowedTenantDomainsList;
         }
