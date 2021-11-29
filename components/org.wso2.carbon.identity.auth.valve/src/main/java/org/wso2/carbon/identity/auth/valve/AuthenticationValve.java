@@ -25,6 +25,7 @@ import org.apache.catalina.valves.ValveBase;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.json.JSONObject;
 import org.slf4j.MDC;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.identity.application.common.util.IdentityApplicationManagementUtil;
@@ -243,7 +244,14 @@ public class AuthenticationValve extends ValveBase {
         }
         value.append('\"');
         response.setHeader(AUTH_HEADER_NAME, value.toString());
-        response.sendError(error);
+        response.setStatus(error);
+        response.setHeader("Content-Type","application/json;charset=UTF-8");
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("message", "Requires authentication");
+        jsonObject.put("documentation_url", "https://docs.wso2.com/display/IS511/apidocs/Authentication-framework-"
+                + "apis/index.html#!/operations#Authenticate#authenticatePost");
+        response.getWriter().write(jsonObject.toString(2));
+        response.finishResponse();
     }
 
     private boolean isLoggableParam(String param) {
