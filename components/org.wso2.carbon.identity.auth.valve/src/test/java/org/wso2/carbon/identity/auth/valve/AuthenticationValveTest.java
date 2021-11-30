@@ -16,13 +16,15 @@
 
 package org.wso2.carbon.identity.auth.valve;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import org.apache.catalina.Valve;
 import org.apache.catalina.connector.Request;
 import org.apache.catalina.connector.Response;
 import org.apache.commons.collections.iterators.IteratorEnumeration;
 import org.mockito.Matchers;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -54,6 +56,7 @@ import org.wso2.carbon.identity.core.util.IdentityUtil;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -92,6 +95,8 @@ public class AuthenticationValveTest extends PowerMockTestCase {
     private ResourceConfig securedResourceConfig;
     @Mock
     private Request request;
+    @Mock
+    private Request scimAPIRequest;
     @Mock
     private Response response;
     @Mock
@@ -152,6 +157,18 @@ public class AuthenticationValveTest extends PowerMockTestCase {
 
         return new Object[][]{
                 {true}, {false}
+        };
+    }
+
+    @DataProvider
+    public Object[][] getSCIM2APIResponseExceptionData() {
+
+        return new Object[][]{ //Exception, Status Code, ScimType
+                {new AuthClientException("Test exception AuthClientException."), HttpServletResponse.SC_BAD_REQUEST,
+                        "invalidSyntax"},
+                { new AuthenticationFailException("Test exception AuthServerException."),
+                        HttpServletResponse.SC_UNAUTHORIZED,
+                        "Unauthorized"},
         };
     }
 
@@ -302,6 +319,26 @@ public class AuthenticationValveTest extends PowerMockTestCase {
         setIdentityErrorThreadLocal();
         invokeAuthenticationValve();
         Assert.assertNull(IdentityUtil.getIdentityErrorMsg());
+    }
+
+    @Test(dataProvider = "getSCIM2APIResponseExceptionData")
+    public void testHandlingSCIM2APIErrorResponseForBadRequest(Exception e, int statusCode, String scimType)
+            throws Exception {
+        String scimEndpoint = "/scim2/me";
+        when(authenticationManager.getSecuredResource(new ResourceConfigKey(scimEndpoint, HTTP_METHOD_POST)))
+                .thenReturn(securedResourceConfig);
+        when(request.getRequestURI()).thenReturn(scimEndpoint);
+        when(response.getRequest()).thenReturn(request);
+        when(securedResourceConfig.isSecured()).thenReturn(true);
+        when(authenticationManager.authenticate(Matchers.any(AuthenticationContext.class))).thenThrow(e);
+        StringWriter stringWriter = new StringWriter();
+        PrintWriter printWriter = new PrintWriter(stringWriter);
+        when(response.getWriter()).thenReturn(printWriter);
+        invokeAuthenticationValve();
+        JsonElement parser = new JsonParser().parse(stringWriter.toString());
+        JsonObject jsonObject = parser.getAsJsonObject();
+        Assert.assertEquals(statusCode, jsonObject.get("status").getAsInt());
+        Assert.assertEquals(scimType, jsonObject.get("scimType").getAsString());
     }
 
     private void setIdentityErrorThreadLocal() {
