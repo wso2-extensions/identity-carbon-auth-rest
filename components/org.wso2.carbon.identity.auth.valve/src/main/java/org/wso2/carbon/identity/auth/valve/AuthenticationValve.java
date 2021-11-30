@@ -25,6 +25,7 @@ import org.apache.catalina.valves.ValveBase;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.MDC;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
@@ -244,14 +245,11 @@ public class AuthenticationValve extends ValveBase {
         }
         value.append('\"');
         response.setHeader(AUTH_HEADER_NAME, value.toString());
-        response.setStatus(error);
-        response.setHeader("Content-Type","application/json;charset=UTF-8");
-        JSONObject jsonObject = new JSONObject();
-        jsonObject.put("message", "Requires authentication");
-        jsonObject.put("documentation_url", "https://docs.wso2.com/display/IS511/apidocs/Authentication-framework-"
-                + "apis/index.html#!/operations#Authenticate#authenticatePost");
-        response.getWriter().write(jsonObject.toString(2));
-        response.finishResponse();
+        if (isRequestFromScim2Api(response)) { // handles only scim 2.0 API error responses.
+            handleScim2ApiErrorResponse(response, error);
+            return;
+        }
+        response.sendError(error);
     }
 
     private boolean isLoggableParam(String param) {
@@ -356,5 +354,32 @@ public class AuthenticationValve extends ValveBase {
             }
             return resourceFile.toString();
         }
+    }
+
+    private boolean isRequestFromScim2Api(Response response) {
+
+        if (response.getRequest() == null) {
+            return false;
+        }
+        return response.getRequest().getRequestURI().contains("/scim2");
+    }
+
+    private void handleScim2ApiErrorResponse(Response response, int error) throws IOException {
+
+        response.setStatus(error);
+        response.setHeader("Content-Type","application/json;charset=UTF-8");
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("status", error);
+        String scimType = "Unauthorized";
+        if (HttpServletResponse.SC_BAD_REQUEST == error) {
+            scimType = "invalidSyntax";
+            jsonObject.put("detail", "Request is unparsable, syntactically incorrect, or violates schema.");
+        }
+        jsonObject.put("scimType", scimType);
+        JSONArray schemasJsonArray = new JSONArray();
+        schemasJsonArray.put("urn:ietf:params:scim:api:messages:2.0:Error");
+        jsonObject.put("schemas", schemasJsonArray);
+        response.getWriter().write(jsonObject.toString(2));
+        response.finishResponse();
     }
 }
