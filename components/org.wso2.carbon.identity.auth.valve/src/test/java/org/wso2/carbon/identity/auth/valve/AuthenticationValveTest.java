@@ -96,8 +96,6 @@ public class AuthenticationValveTest extends PowerMockTestCase {
     @Mock
     private Request request;
     @Mock
-    private Request scimAPIRequest;
-    @Mock
     private Response response;
     @Mock
     private Valve valve;
@@ -109,6 +107,8 @@ public class AuthenticationValveTest extends PowerMockTestCase {
     private IdentityConfigParser mockConfigParser;
 
     private AuthenticationValve authenticationValve;
+
+    private StringWriter stringWriter;
 
     @DataProvider
     public Object[][] getExceptionTypeData() {
@@ -161,14 +161,12 @@ public class AuthenticationValveTest extends PowerMockTestCase {
     }
 
     @DataProvider
-    public Object[][] getSCIM2APIResponseExceptionData() {
+    public Object[][] getAPIResponseExceptionData() {
 
-        return new Object[][]{ //Exception, Status Code, ScimType
-                {new AuthClientException("Test exception AuthClientException."), HttpServletResponse.SC_BAD_REQUEST,
-                        "invalidSyntax"},
+        return new Object[][]{ //Exception, Status Code
+                {new AuthClientException("Test exception AuthClientException."), HttpServletResponse.SC_BAD_REQUEST},
                 { new AuthenticationFailException("Test exception AuthServerException."),
-                        HttpServletResponse.SC_UNAUTHORIZED,
-                        "Unauthorized"},
+                        HttpServletResponse.SC_UNAUTHORIZED,},
         };
     }
 
@@ -219,6 +217,9 @@ public class AuthenticationValveTest extends PowerMockTestCase {
         setCarbonHome();
         mockCarbonContextForTenant(SUPER_TENANT_ID, SUPER_TENANT_DOMAIN_NAME);
         mockRealmService(true);
+        stringWriter = new StringWriter();
+        PrintWriter printWriter = new PrintWriter(stringWriter);
+        when(response.getWriter()).thenReturn(printWriter);
     }
 
     @Test(dataProvider = "getExceptionTypeData")
@@ -229,10 +230,9 @@ public class AuthenticationValveTest extends PowerMockTestCase {
         }
         when(securedResourceConfig.isSecured()).thenReturn(true);
         when(authenticationManager.authenticate(Matchers.any(AuthenticationContext.class))).thenThrow(exception);
-        final int[] errorStatusCode = mockErrorStatusCode();
         invokeAuthenticationValve();
-        Assert.assertNotNull(errorStatusCode[0]);
-        Assert.assertEquals(errorStatusCode[0], statusCode);
+        JsonObject jsonObject = getJsonResponseBody();
+        Assert.assertEquals(jsonObject.get("code").getAsInt(), statusCode);
     }
 
     @Test(dataProvider = "getUnclearedThreadLocalData")
@@ -321,8 +321,8 @@ public class AuthenticationValveTest extends PowerMockTestCase {
         Assert.assertNull(IdentityUtil.getIdentityErrorMsg());
     }
 
-    @Test(dataProvider = "getSCIM2APIResponseExceptionData")
-    public void testHandlingSCIM2APIErrorResponseForBadRequest(Exception e, int statusCode, String scimType)
+    @Test(dataProvider = "getAPIResponseExceptionData")
+    public void testHandlingSCIM2APIErrorResponses(Exception e, int statusCode)
             throws Exception {
         String scimEndpoint = "/scim2/me";
         when(authenticationManager.getSecuredResource(new ResourceConfigKey(scimEndpoint, HTTP_METHOD_POST)))
@@ -331,14 +331,40 @@ public class AuthenticationValveTest extends PowerMockTestCase {
         when(response.getRequest()).thenReturn(request);
         when(securedResourceConfig.isSecured()).thenReturn(true);
         when(authenticationManager.authenticate(Matchers.any(AuthenticationContext.class))).thenThrow(e);
-        StringWriter stringWriter = new StringWriter();
-        PrintWriter printWriter = new PrintWriter(stringWriter);
-        when(response.getWriter()).thenReturn(printWriter);
         invokeAuthenticationValve();
-        JsonElement parser = new JsonParser().parse(stringWriter.toString());
-        JsonObject jsonObject = parser.getAsJsonObject();
+        JsonObject jsonObject = getJsonResponseBody();
         Assert.assertEquals(statusCode, jsonObject.get("status").getAsInt());
-        Assert.assertEquals(scimType, jsonObject.get("scimType").getAsString());
+    }
+
+    @Test
+    public void testHandlingDCRAPIErrorResponseForBadRequest()
+            throws Exception {
+        String scimEndpoint = "/dcr/test";
+        when(authenticationManager.getSecuredResource(new ResourceConfigKey(scimEndpoint, HTTP_METHOD_POST)))
+                .thenReturn(securedResourceConfig);
+        when(request.getRequestURI()).thenReturn(scimEndpoint);
+        when(response.getRequest()).thenReturn(request);
+        when(securedResourceConfig.isSecured()).thenReturn(true);
+        when(authenticationManager.authenticate(Matchers.any(AuthenticationContext.class))).thenThrow(new AuthClientException());
+        invokeAuthenticationValve();
+        JsonObject jsonObject = getJsonResponseBody();
+        Assert.assertEquals("invalid_client_metadata", jsonObject.get("error").getAsString());
+    }
+
+    @Test
+    public void testHandlingDCRAPIErrorResponseForUnAuthorizedError()
+            throws Exception {
+        String scimEndpoint = "/dcr/test";
+        when(authenticationManager.getSecuredResource(new ResourceConfigKey(scimEndpoint, HTTP_METHOD_POST)))
+                .thenReturn(securedResourceConfig);
+        when(request.getRequestURI()).thenReturn(scimEndpoint);
+        when(response.getRequest()).thenReturn(request);
+        when(securedResourceConfig.isSecured()).thenReturn(true);
+        when(authenticationManager.authenticate(Matchers.any(AuthenticationContext.class))).thenThrow(
+                new AuthenticationFailException());
+        invokeAuthenticationValve();
+        JsonObject jsonObject = getJsonResponseBody();
+        Assert.assertEquals(401, jsonObject.get("code").getAsInt());
     }
 
     private void setIdentityErrorThreadLocal() {
@@ -367,15 +393,8 @@ public class AuthenticationValveTest extends PowerMockTestCase {
         return attributes;
     }
 
-    private int[] mockErrorStatusCode() throws Exception {
-        final int[] errorStatusCode = new int[1];
-        doAnswer(new Answer<Object>() {
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                errorStatusCode[0] = (int) invocation.getArguments()[0];
-                return null;
-            }
-        }).when(response).sendError(Matchers.anyInt());
-        return errorStatusCode;
+    private JsonObject getJsonResponseBody() {
+        JsonElement parser = new JsonParser().parse(stringWriter.toString());
+        return parser.getAsJsonObject();
     }
 }
