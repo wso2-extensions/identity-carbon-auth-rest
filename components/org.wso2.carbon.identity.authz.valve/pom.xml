@@ -54,6 +54,10 @@
             <groupId>org.wso2.carbon.identity.auth.rest</groupId>
             <artifactId>org.wso2.carbon.identity.authz.service</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.wso2.carbon.identity.auth.rest</groupId>
+            <artifactId>org.wso2.carbon.identity.auth.valve</artifactId>
+        </dependency>
 
     </dependencies>
 
