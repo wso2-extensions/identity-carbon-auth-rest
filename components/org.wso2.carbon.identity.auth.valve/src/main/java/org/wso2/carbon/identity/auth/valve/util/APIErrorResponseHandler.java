@@ -1,3 +1,19 @@
+/*
+ * Copyright (c) 2021, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.wso2.carbon.identity.auth.valve.util;
 
 import org.apache.catalina.connector.Response;
@@ -12,6 +28,9 @@ import java.io.IOException;
 
 import org.apache.log4j.MDC;
 
+/**
+ * APIErrorResponseHandler handles the authentications and authorizations error responses.
+ */
 public class APIErrorResponseHandler {
 
     private static final Log log = LogFactory.getLog(APIErrorResponseHandler.class);
@@ -19,6 +38,10 @@ public class APIErrorResponseHandler {
     private static final String AUTH_HEADER_NAME = "WWW-Authenticate";
     private static final String CORRELATION_ID_MDC = "Correlation-ID";
 
+
+    /**
+     * Generate the error response according to the relevant API endpoint and the HTTP status.
+     */
     public static void handleErrorResponse(AuthenticationContext authenticationContext, Response response, int error,
                                             Exception e) throws IOException {
 
@@ -32,29 +55,46 @@ public class APIErrorResponseHandler {
         }
         value.append('\"');
         response.setHeader(AUTH_HEADER_NAME, value.toString());
-        if (isRequestFromScim2Api(response)) { // handles only scim 2.0 API error responses.
+        String uri = response.getRequest().getRequestURI();
+        uri = removeTenantDetailFromURI(uri);
+        if (isRequestFromScim2Api(uri)) { // handles only scim 2.0 API error responses.
             handleScim2ApiErrorResponse(response, error, e);
-        } else if (isRequestFromDCREndpoint(response)) {
+        } else if (isRequestFromDCREndpoint(uri)) {
             handleDCRApiErrorResponse(response, error, e);
         } else {
             handleErrorResponseForCommonAPIs(response, error, e);
         }
     }
 
-
-    private static boolean isRequestFromScim2Api(Response response) {
-
-        if (response.getRequest() == null) {
-            return false;
+    private static String removeTenantDetailFromURI(String uri) {
+        if (uri.startsWith("/t")) {
+            String[] uriSplit = uri.split("/");
+            StringBuilder builder = new StringBuilder();
+            if (uriSplit.length > 3) {
+                for (int i = 3; i < uriSplit.length; i++) {
+                    builder.append('/');
+                    builder.append(uriSplit[i]);
+                }
+                return builder.toString();
+            }
         }
-        return response.getRequest().getRequestURI().contains("/scim2");
+        return uri;
     }
 
-    private static boolean isRequestFromDCREndpoint(Response response) {
-        if (response.getRequest() == null) {
+
+    private static boolean isRequestFromScim2Api(String uri) {
+
+        if (uri == null) {
             return false;
         }
-        return response.getRequest().getRequestURI().contains("/dcr");
+        return uri.startsWith("/scim2");
+    }
+
+    private static boolean isRequestFromDCREndpoint(String uri) {
+        if (uri == null) {
+            return false;
+        }
+        return uri.startsWith("/api/identity/oauth2/dcr");
     }
 
     private static void handleScim2ApiErrorResponse(Response response, int error, Exception e) throws IOException {
@@ -154,7 +194,7 @@ public class APIErrorResponseHandler {
         response.finishResponse();
     }
 
-    public static boolean isCorrelationIDPresent() {
+    private static boolean isCorrelationIDPresent() {
         return MDC.get(CORRELATION_ID_MDC) != null;
     }
 }

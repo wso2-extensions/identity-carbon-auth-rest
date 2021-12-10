@@ -25,8 +25,6 @@ import org.apache.catalina.valves.ValveBase;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.json.JSONArray;
-import org.json.JSONObject;
 import org.slf4j.MDC;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.identity.application.common.util.IdentityApplicationManagementUtil;
@@ -69,7 +67,6 @@ import javax.servlet.http.HttpServletResponse;
 public class AuthenticationValve extends ValveBase {
 
     private static final String AUTH_CONTEXT = "auth-context";
-    private static final String AUTH_HEADER_NAME = "WWW-Authenticate";
     private static final String USER_AGENT = "User-Agent";
     private static final String REMOTE_ADDRESS = "remoteAddress";
     private static final String SERVICE_PROVIDER = "serviceProvider";
