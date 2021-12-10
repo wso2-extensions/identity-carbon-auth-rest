@@ -339,7 +339,7 @@ public class AuthenticationValveTest extends PowerMockTestCase {
     @Test
     public void testHandlingDCRAPIErrorResponseForBadRequest()
             throws Exception {
-        String scimEndpoint = "/dcr/test";
+        String scimEndpoint = "/api/identity/oauth2/dcr/test";
         when(authenticationManager.getSecuredResource(new ResourceConfigKey(scimEndpoint, HTTP_METHOD_POST)))
                 .thenReturn(securedResourceConfig);
         when(request.getRequestURI()).thenReturn(scimEndpoint);

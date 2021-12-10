@@ -55,13 +55,17 @@ public class APIErrorResponseHandler {
         }
         value.append('\"');
         response.setHeader(AUTH_HEADER_NAME, value.toString());
-        String uri = response.getRequest().getRequestURI();
-        uri = removeTenantDetailFromURI(uri);
-        if (isRequestFromScim2Api(uri)) { // handles only scim 2.0 API error responses.
-            handleScim2ApiErrorResponse(response, error, e);
-        } else if (isRequestFromDCREndpoint(uri)) {
-            handleDCRApiErrorResponse(response, error, e);
-        } else {
+        if (response.getRequest() != null) {
+            String uri = response.getRequest().getRequestURI();
+            uri = removeTenantDetailFromURI(uri);
+            if (isRequestFromScim2Api(uri)) { // handles only scim 2.0 API error responses.
+                handleScim2ApiErrorResponse(response, error, e);
+            } else if (isRequestFromDCREndpoint(uri)) {
+                handleDCRApiErrorResponse(response, error, e);
+            } else {
+                handleErrorResponseForCommonAPIs(response, error, e);
+            }
+        } else { // if request is null, sending a common error message
             handleErrorResponseForCommonAPIs(response, error, e);
         }
     }
