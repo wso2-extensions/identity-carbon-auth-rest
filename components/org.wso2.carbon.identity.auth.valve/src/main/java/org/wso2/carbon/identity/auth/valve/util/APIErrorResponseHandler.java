@@ -37,6 +37,11 @@ public class APIErrorResponseHandler {
 
     private static final String AUTH_HEADER_NAME = "WWW-Authenticate";
     private static final String CORRELATION_ID_MDC = "Correlation-ID";
+    private static final String BAD_REQUEST_ERROR_MSG = "Your client has issued a malformed or illegal request.";
+    private static final String UNAUTHORIZED_ERROR_MSG = "Authorization failure. Authorization information was" +
+            " invalid or missing from your request.";
+    private static final String FORBIDDEN_ERROR_MSG = "Operation is not permitted. You do not have permissions to " +
+            "make this request.";
 
 
     /**
@@ -109,12 +114,12 @@ public class APIErrorResponseHandler {
         jsonObject.put("status", error);
         String errorDescription;
         if (HttpServletResponse.SC_BAD_REQUEST == error) {
-            errorDescription =  "Request is unparsable, syntactically incorrect, or violates schema.";
+            errorDescription =  BAD_REQUEST_ERROR_MSG;
             jsonObject.put("scimType", "invalidSyntax"); //scimType only available for 400 errors in the SCIM spec.
         } else if (HttpServletResponse.SC_UNAUTHORIZED == error) {
-            errorDescription = "Authorization failure. The authorization header is invalid or missing.";
+            errorDescription = UNAUTHORIZED_ERROR_MSG;
         } else { // Forbidden Error
-            errorDescription = "Operation is not permitted based on the supplied authorization.";
+            errorDescription = FORBIDDEN_ERROR_MSG;
         }
         jsonObject.put("status", error);
         if (e != null) {
@@ -145,12 +150,12 @@ public class APIErrorResponseHandler {
             // Setting a customize error message since specification did not provide any message format for 401 errors.
             jsonObject.put("code", error);
             jsonObject.put("message", "Unauthorized");
-            errorDescription = "Authorization failure. The authorization header is invalid or missing.";
+            errorDescription = UNAUTHORIZED_ERROR_MSG;
         } else {
             // Setting a customize error message since specification did not provide any message format for 403 errors.
             jsonObject.put("code", error);
             jsonObject.put("message", "Forbidden");
-            errorDescription = "Operation is not permitted based on the supplied authorization.";
+            errorDescription = FORBIDDEN_ERROR_MSG;
         }
         if (e != null) {
             jsonObject.put("description", e.getMessage());
@@ -173,13 +178,13 @@ public class APIErrorResponseHandler {
         String errorDescription;
         if (HttpServletResponse.SC_BAD_REQUEST == error) {
             errorMsg = "Bad Request";
-            errorDescription = "Request is unparsable, syntactically incorrect, or violates schema.";
+            errorDescription = BAD_REQUEST_ERROR_MSG;
         } else if (HttpServletResponse.SC_UNAUTHORIZED == error) {
             errorMsg = "Unauthorized";
-            errorDescription = "Authorization failure. The authorization header is invalid or missing.";
+            errorDescription = UNAUTHORIZED_ERROR_MSG;
         } else { // error == 403
             errorMsg = "Forbidden";
-            errorDescription = "Operation is not permitted based on the supplied authorization.";
+            errorDescription = FORBIDDEN_ERROR_MSG;
         }
         jsonObject.put("message", errorMsg);
         if (e != null) {
