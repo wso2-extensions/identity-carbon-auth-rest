@@ -43,6 +43,7 @@ import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
 import org.wso2.carbon.identity.auth.service.util.Constants;
 import org.wso2.carbon.identity.auth.valve.internal.AuthenticationValveDataHolder;
 import org.wso2.carbon.identity.auth.valve.internal.AuthenticationValveServiceHolder;
+import org.wso2.carbon.identity.auth.valve.util.APIErrorResponseHandler;
 import org.wso2.carbon.identity.auth.valve.util.AuthHandlerManager;
 import org.wso2.carbon.identity.base.IdentityRuntimeException;
 import org.wso2.carbon.identity.core.util.IdentityConfigParser;
@@ -66,7 +67,6 @@ import javax.servlet.http.HttpServletResponse;
 public class AuthenticationValve extends ValveBase {
 
     private static final String AUTH_CONTEXT = "auth-context";
-    private static final String AUTH_HEADER_NAME = "WWW-Authenticate";
     private static final String USER_AGENT = "User-Agent";
     private static final String REMOTE_ADDRESS = "remoteAddress";
     private static final String SERVICE_PROVIDER = "serviceProvider";
@@ -109,7 +109,8 @@ public class AuthenticationValve extends ValveBase {
             }
 
             if (isUnauthorized(securedResource)) {
-                handleErrorResponse(null, response, HttpServletResponse.SC_UNAUTHORIZED, null);
+                APIErrorResponseHandler.handleErrorResponse(null, response,
+                        HttpServletResponse.SC_UNAUTHORIZED, null);
                 return;
             }
 
@@ -140,21 +141,27 @@ public class AuthenticationValve extends ValveBase {
                 request.setAttribute(AUTH_CONTEXT, authenticationContext);
                 getNext().invoke(request, response);
             } else {
-                handleErrorResponse(authenticationContext, response, HttpServletResponse.SC_UNAUTHORIZED, null);
+                APIErrorResponseHandler.handleErrorResponse(authenticationContext, response,
+                        HttpServletResponse.SC_UNAUTHORIZED, null);
             }
         } catch (AuthClientException e) {
-            handleErrorResponse(authenticationContext, response, HttpServletResponse.SC_BAD_REQUEST, e);
+            APIErrorResponseHandler.handleErrorResponse(authenticationContext, response,
+                    HttpServletResponse.SC_BAD_REQUEST, e);
         } catch (AuthServerException e) {
             log.error("Auth Server Exception occurred in Authentication valve :", e);
-            handleErrorResponse(authenticationContext, response, HttpServletResponse.SC_BAD_REQUEST, null);
+            APIErrorResponseHandler.handleErrorResponse(authenticationContext, response,
+                    HttpServletResponse.SC_BAD_REQUEST, e);
         } catch (AuthenticationFailException e) {
-            handleErrorResponse(authenticationContext, response, HttpServletResponse.SC_UNAUTHORIZED, e);
+            APIErrorResponseHandler.handleErrorResponse(authenticationContext, response,
+                    HttpServletResponse.SC_UNAUTHORIZED, e);
         } catch (AuthRuntimeException e) {
             log.error("Auth Runtime Exception occurred in Authentication valve :", e);
-            handleErrorResponse(authenticationContext, response, HttpServletResponse.SC_UNAUTHORIZED, null);
+            APIErrorResponseHandler.handleErrorResponse(authenticationContext, response,
+                    HttpServletResponse.SC_UNAUTHORIZED, e);
         } catch (IdentityRuntimeException e) {
             log.error("Identity Runtime Exception occurred in Authentication valve :", e);
-            handleErrorResponse(authenticationContext, response, HttpServletResponse.SC_UNAUTHORIZED, null);
+            APIErrorResponseHandler.handleErrorResponse(authenticationContext, response,
+                    HttpServletResponse.SC_UNAUTHORIZED, e);
         } finally {
             // Clear 'IdentityError' thread local.
             if (IdentityUtil.getIdentityErrorMsg() != null) {
@@ -227,23 +234,6 @@ public class AuthenticationValve extends ValveBase {
     private void unsetClientComponent() {
 
         MDC.remove(CLIENT_COMPONENT);
-    }
-
-    private void handleErrorResponse(AuthenticationContext authenticationContext, Response response, int error,
-                                     Exception e) throws IOException {
-
-        if (log.isDebugEnabled() && e != null) {
-            log.debug("Authentication Error ", e);
-        }
-
-        StringBuilder value = new StringBuilder(16);
-        value.append("realm user=\"");
-        if (authenticationContext != null && authenticationContext.getUser() != null) {
-            value.append(authenticationContext.getUser().getUserName());
-        }
-        value.append('\"');
-        response.setHeader(AUTH_HEADER_NAME, value.toString());
-        response.sendError(error);
     }
 
     private boolean isLoggableParam(String param) {
@@ -349,4 +339,5 @@ public class AuthenticationValve extends ValveBase {
             return resourceFile.toString();
         }
     }
+
 }
