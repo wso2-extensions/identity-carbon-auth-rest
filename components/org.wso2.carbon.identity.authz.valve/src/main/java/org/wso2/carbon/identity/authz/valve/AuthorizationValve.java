@@ -28,8 +28,8 @@ import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
 import org.wso2.carbon.identity.auth.service.handler.HandlerManager;
 import org.wso2.carbon.identity.auth.service.module.ResourceConfig;
-import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
 import org.wso2.carbon.identity.auth.service.util.Constants;
+import org.wso2.carbon.identity.auth.valve.util.APIErrorResponseHandler;
 import org.wso2.carbon.identity.authz.service.AuthorizationContext;
 import org.wso2.carbon.identity.authz.service.AuthorizationManager;
 import org.wso2.carbon.identity.authz.service.AuthorizationResult;
@@ -51,7 +51,6 @@ import static org.wso2.carbon.identity.auth.service.util.Constants.OAUTH2_VALIDA
  */
 public class AuthorizationValve extends ValveBase {
 
-    private static final String AUTH_HEADER_NAME = "WWW-Authenticate";
     private static final String AUTH_CONTEXT = "auth-context";
 
     private static final Log log = LogFactory.getLog(AuthorizationValve.class);
@@ -75,7 +74,8 @@ public class AuthorizationValve extends ValveBase {
                             + authenticationContext.getUser().getTenantDomain()
                             + " and cross-domain access for the tenant is disabled.");
                 }
-                handleErrorResponse(authenticationContext, response, HttpServletResponse.SC_UNAUTHORIZED);
+                APIErrorResponseHandler.handleErrorResponse(authenticationContext, response,
+                        HttpServletResponse.SC_UNAUTHORIZED, null);
                 return;
             }
 
@@ -105,10 +105,12 @@ public class AuthorizationValve extends ValveBase {
                     if (authorizationResult.getAuthorizationStatus().equals(AuthorizationStatus.GRANT)) {
                         getNext().invoke(request, response);
                     } else {
-                        handleErrorResponse(authenticationContext, response, HttpServletResponse.SC_FORBIDDEN);
+                        APIErrorResponseHandler.handleErrorResponse(authenticationContext, response,
+                                HttpServletResponse.SC_FORBIDDEN, null);
                     }
                 } catch (AuthzServiceServerException e) {
-                    handleErrorResponse(authenticationContext, response, HttpServletResponse.SC_BAD_REQUEST);
+                    APIErrorResponseHandler.handleErrorResponse(authenticationContext, response,
+                            HttpServletResponse.SC_BAD_REQUEST, null);
                 }
             } else {
                 getNext().invoke(request, response);
@@ -116,18 +118,6 @@ public class AuthorizationValve extends ValveBase {
         } else {
             getNext().invoke(request, response);
         }
-    }
-
-    private void handleErrorResponse(AuthenticationContext authenticationContext, Response response, int error)
-            throws IOException {
-        StringBuilder value = new StringBuilder(16);
-        value.append("realm user=\"");
-        if (authenticationContext.getUser() != null) {
-            value.append(authenticationContext.getUser().getUserName());
-        }
-        value.append('\"');
-        response.setHeader(AUTH_HEADER_NAME, value.toString());
-        response.sendError(error);
     }
 
     /**
