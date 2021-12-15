@@ -44,4 +44,7 @@ public class Constants {
     public final static String AUTH_CONTEXT_OAUTH_APP_PROPERTY = "oAuthAppDO";
 
     public static final String AUTHENTICATED_WITH_BASIC_AUTH = "AuthenticatedWithBasicAuth";
+
+    public static final String IS_FEDERATED_USER = "isFederatedUser";
+    public static final String IDP_NAME = "idpName";
 }

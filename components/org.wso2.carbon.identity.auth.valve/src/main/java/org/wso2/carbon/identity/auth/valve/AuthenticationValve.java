@@ -259,6 +259,12 @@ public class AuthenticationValve extends ValveBase {
         if (IdentityUtil.threadLocalProperties.get().get(Constants.CURRENT_SESSION_IDENTIFIER) != null) {
             IdentityUtil.threadLocalProperties.get().remove(Constants.CURRENT_SESSION_IDENTIFIER);
         }
+        if (IdentityUtil.threadLocalProperties.get().get(Constants.IS_FEDERATED_USER) != null) {
+            IdentityUtil.threadLocalProperties.get().remove(Constants.IS_FEDERATED_USER);
+        }
+        if (IdentityUtil.threadLocalProperties.get().get(Constants.IDP_NAME) != null) {
+            IdentityUtil.threadLocalProperties.get().remove(Constants.IDP_NAME);
+        }
     }
 
     private boolean validateTenantDomain(Request request, Response response, String tenantDomain)
