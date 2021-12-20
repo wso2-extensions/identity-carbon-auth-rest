@@ -24,6 +24,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpHeaders;
 import org.slf4j.MDC;
+import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
 import org.wso2.carbon.identity.application.common.model.ProvisioningServiceProviderType;
 import org.wso2.carbon.identity.application.common.model.ThreadLocalProvisioningServiceProvider;
 import org.wso2.carbon.identity.application.common.model.User;
@@ -49,6 +50,8 @@ import org.wso2.carbon.identity.oauth2.token.bindings.TokenBinding;
 import org.wso2.carbon.identity.oauth2.util.OAuth2Util;
 
 import static org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil.isAuthHeaderMatch;
+import static org.wso2.carbon.identity.auth.service.util.Constants.IDP_NAME;
+import static org.wso2.carbon.identity.auth.service.util.Constants.IS_FEDERATED_USER;
 import static org.wso2.carbon.identity.auth.service.util.Constants.OAUTH2_ALLOWED_SCOPES;
 import static org.wso2.carbon.identity.auth.service.util.Constants.OAUTH2_VALIDATE_SCOPE;
 import static org.wso2.carbon.identity.oauth2.OAuth2Constants.TokenBinderType.SSO_SESSION_BASED_TOKEN_BINDER;
@@ -120,6 +123,18 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
                 User authorizedUser = oAuth2IntrospectionResponseDTO.getAuthorizedUser();
                 if (authorizedUser != null) {
                     authenticationContext.setUser(authorizedUser);
+                    if (authorizedUser instanceof AuthenticatedUser) {
+                        IdentityUtil.threadLocalProperties.get()
+                                .put(IS_FEDERATED_USER, ((AuthenticatedUser) authorizedUser).isFederatedUser());
+                        IdentityUtil.threadLocalProperties.get()
+                                .put(IDP_NAME, ((AuthenticatedUser) authorizedUser).getFederatedIdPName());
+                    } else {
+                        AuthenticatedUser authenticatedUser = new AuthenticatedUser(authorizedUser);
+                        IdentityUtil.threadLocalProperties.get()
+                                .put(IS_FEDERATED_USER, authenticatedUser.isFederatedUser());
+                        IdentityUtil.threadLocalProperties.get()
+                                .put(IDP_NAME, authenticatedUser.getFederatedIdPName());
+                    }
                 }
 
                 authenticationContext.addParameter(CONSUMER_KEY, oAuth2IntrospectionResponseDTO.getClientId());
