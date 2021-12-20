@@ -73,6 +73,8 @@ import static org.powermock.api.mockito.PowerMockito.mockStatic;
 import static org.powermock.api.mockito.PowerMockito.when;
 import static org.wso2.carbon.base.MultitenantConstants.SUPER_TENANT_DOMAIN_NAME;
 import static org.wso2.carbon.base.MultitenantConstants.SUPER_TENANT_ID;
+import static org.wso2.carbon.identity.auth.service.util.Constants.IDP_NAME;
+import static org.wso2.carbon.identity.auth.service.util.Constants.IS_FEDERATED_USER;
 import static org.wso2.carbon.identity.auth.valve.util.CarbonUtils.mockCarbonContextForTenant;
 import static org.wso2.carbon.identity.auth.valve.util.CarbonUtils.mockIdentityTenantUtility;
 import static org.wso2.carbon.identity.auth.valve.util.CarbonUtils.mockRealmService;
@@ -87,6 +89,7 @@ public class AuthenticationValveTest extends PowerMockTestCase {
 
     private static final String AUTH_CONTEXT = "auth-context";
     private static final String USER_AGENT = "User-Agent";
+    private static final String IDP = "GOOGLE";
     private final String CONFIG_CONTEXTUAL_PARAM = "LoggableContextualParams.contextual_param";
     private final String CONFIG_LOG_PARAM_USER_AGENT = "user_agent";
     private final String CONFIG_LOG_PARAM_REMOTE_ADDRESS = "remote_address";
@@ -317,8 +320,11 @@ public class AuthenticationValveTest extends PowerMockTestCase {
     public void testInvokeForUnclearedThreadLocal() throws Exception {
 
         setIdentityErrorThreadLocal();
+        setIdentityThreadLocalForFederatedUsers();
         invokeAuthenticationValve();
         Assert.assertNull(IdentityUtil.getIdentityErrorMsg());
+        Assert.assertNull(IdentityUtil.threadLocalProperties.get().get(IS_FEDERATED_USER));
+        Assert.assertNull(IdentityUtil.threadLocalProperties.get().get(IDP_NAME));
     }
 
     @Test(dataProvider = "getAPIResponseExceptionData")
@@ -396,5 +402,11 @@ public class AuthenticationValveTest extends PowerMockTestCase {
     private JsonObject getJsonResponseBody() {
         JsonElement parser = new JsonParser().parse(stringWriter.toString());
         return parser.getAsJsonObject();
+    }
+
+    private void setIdentityThreadLocalForFederatedUsers() {
+
+        IdentityUtil.threadLocalProperties.get().put(IS_FEDERATED_USER, true);
+        IdentityUtil.threadLocalProperties.get().put(IDP_NAME, IDP);
     }
 }
