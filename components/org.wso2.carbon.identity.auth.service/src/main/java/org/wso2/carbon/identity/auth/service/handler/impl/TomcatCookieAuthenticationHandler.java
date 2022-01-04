@@ -34,6 +34,8 @@ import org.wso2.carbon.utils.ServerConstants;
 import org.wso2.carbon.utils.multitenancy.MultitenantConstants;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
+import javax.servlet.http.Cookie;
+
 import static org.apache.commons.lang.StringUtils.isNotBlank;
 import static org.wso2.carbon.identity.auth.service.util.Constants.COOKIE_AUTH_HEADER;
 import static org.wso2.carbon.identity.auth.service.util.Constants.JSESSIONID;
@@ -64,9 +66,12 @@ public class TomcatCookieAuthenticationHandler extends AuthenticationHandler {
         if (messageContext instanceof AuthenticationContext) {
             AuthenticationContext authenticationContext = (AuthenticationContext) messageContext;
             if (authenticationContext.getAuthenticationRequest() != null) {
-                String cookie = authenticationContext.getAuthenticationRequest().
-                        getHeader(COOKIE_AUTH_HEADER);
-                return StringUtils.isNotEmpty(cookie) && cookie.startsWith(JSESSIONID);
+                Cookie[] cookies = authenticationContext.getAuthenticationRequest().getCookies();
+                for (Cookie cookie : cookies) {
+                    if (cookie.getName().equals(JSESSIONID)) {
+                        return true;
+                    }
+                }
             }
         }
         return false;
