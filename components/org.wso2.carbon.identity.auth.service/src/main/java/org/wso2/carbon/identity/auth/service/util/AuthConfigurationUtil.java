@@ -132,7 +132,10 @@ public class AuthConfigurationUtil {
                     resourceConfig.setAllowedAuthHandlers(allowedAuthHandlers);
                     resourceConfig.setPermissions(permissionBuilder.toString());
                     resourceConfig.setScopes(scopes);
-                    resourceConfigMap.put(new ResourceConfigKey(context, httpMethod), resourceConfig);
+                    ResourceConfigKey resourceConfigKey = new ResourceConfigKey(context, httpMethod);
+                    if (!resourceConfigMap.containsKey(resourceConfigKey)) {
+                        resourceConfigMap.put(resourceConfigKey, resourceConfig);
+                    }
                 }
             }
         }
