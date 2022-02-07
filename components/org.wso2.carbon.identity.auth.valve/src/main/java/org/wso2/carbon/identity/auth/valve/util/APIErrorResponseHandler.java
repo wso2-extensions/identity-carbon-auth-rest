@@ -26,7 +26,7 @@ import org.wso2.carbon.identity.auth.service.AuthenticationContext;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
-import org.apache.log4j.MDC;
+import org.apache.logging.log4j.ThreadContext;
 
 /**
  * APIErrorResponseHandler handles the authentications and authorizations error responses.
@@ -163,7 +163,7 @@ public class APIErrorResponseHandler {
             jsonObject.put("description", errorDescription);
         }
         if (isCorrelationIDPresent()) {
-            jsonObject.put("traceId", MDC.get(CORRELATION_ID_MDC));
+            jsonObject.put("traceId", ThreadContext.get(CORRELATION_ID_MDC));
         }
         setResponseBody(response, jsonObject);
     }
@@ -193,7 +193,7 @@ public class APIErrorResponseHandler {
             jsonObject.put("description", errorDescription);
         }
         if (isCorrelationIDPresent()) {
-            jsonObject.put("traceId", MDC.get(CORRELATION_ID_MDC));
+            jsonObject.put("traceId", ThreadContext.get(CORRELATION_ID_MDC));
         }
         setResponseBody(response, jsonObject);
     }
@@ -204,6 +204,6 @@ public class APIErrorResponseHandler {
     }
 
     private static boolean isCorrelationIDPresent() {
-        return MDC.get(CORRELATION_ID_MDC) != null;
+        return ThreadContext.get(CORRELATION_ID_MDC) != null;
     }
 }
