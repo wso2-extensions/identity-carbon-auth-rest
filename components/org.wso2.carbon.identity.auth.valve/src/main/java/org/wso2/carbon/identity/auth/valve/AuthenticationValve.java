@@ -61,6 +61,8 @@ import java.util.List;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
 
+import static org.wso2.carbon.identity.auth.service.util.Constants.AUTHENTICATED_WITH_BASIC_AUTH;
+
 /**
  * AuthenticationValve can be used to intercept any request.
  */
@@ -178,6 +180,8 @@ public class AuthenticationValve extends ValveBase {
             IdentityApplicationManagementUtil.resetThreadLocalProvisioningServiceProvider();
             // Clear clientComponent in MDC.
             unsetClientComponent();
+            // Clear thread local authenticated with basic auth flag.
+            unsetAuthenticatedWithBasicAuth();
         }
 
 
@@ -343,6 +347,16 @@ public class AuthenticationValve extends ValveBase {
                 resourceFile.append(value);
             }
             return resourceFile.toString();
+        }
+    }
+
+    /**
+     * Remove AUTHENTICATED_WITH_BASIC_AUTH flag, which is set in BasicAuthenticationHandler
+     */
+    private void unsetAuthenticatedWithBasicAuth() {
+
+        if (IdentityUtil.threadLocalProperties.get() != null) {
+            IdentityUtil.threadLocalProperties.get().remove(AUTHENTICATED_WITH_BASIC_AUTH);
         }
     }
 
