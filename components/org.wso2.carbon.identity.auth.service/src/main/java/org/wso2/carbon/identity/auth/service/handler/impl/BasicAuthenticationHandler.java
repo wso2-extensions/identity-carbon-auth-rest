@@ -183,13 +183,11 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
             } else {
                 String errorMessage = "Error occurred while trying to authenticate. The auth user credentials " +
                         "are not defined correctly.";
-                log.error(errorMessage);
                 throw new AuthenticationFailException(errorMessage);
             }
         } else {
             String errorMessage = "Error occurred while trying to authenticate. The " + HttpHeaders.AUTHORIZATION +
                     " header values are not defined correctly.";
-            log.error(errorMessage);
             throw new AuthenticationFailException(errorMessage);
         }
         return authenticationResult;
