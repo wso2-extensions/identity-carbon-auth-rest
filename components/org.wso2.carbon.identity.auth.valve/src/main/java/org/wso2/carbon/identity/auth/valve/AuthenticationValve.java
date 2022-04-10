@@ -178,8 +178,6 @@ public class AuthenticationValve extends ValveBase {
             unsetThreadLocalAuthUserTenantDomain();
             // Clear thread local provisioning service provider.
             IdentityApplicationManagementUtil.resetThreadLocalProvisioningServiceProvider();
-            // Clear clientComponent in MDC.
-            unsetClientComponent();
             // Clear Thread Locals from MDC.
             unsetMDCThreadLocals();
             // Clear thread local authenticated with basic auth flag.
@@ -235,11 +233,6 @@ public class AuthenticationValve extends ValveBase {
         } else {
             MDC.put(CLIENT_COMPONENT, REST_API_CLIENT_COMPONENT);
         }
-    }
-
-    private void unsetClientComponent() {
-
-        MDC.remove(CLIENT_COMPONENT);
     }
 
     private void unsetMDCThreadLocals(){
