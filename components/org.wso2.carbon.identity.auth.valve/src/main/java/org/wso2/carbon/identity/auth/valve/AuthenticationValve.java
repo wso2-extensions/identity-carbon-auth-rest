@@ -97,18 +97,7 @@ public class AuthenticationValve extends ValveBase {
             ResourceConfig securedResource = authenticationManager.getSecuredResource(new ResourceConfigKey(request
                     .getRequestURI(), request.getMethod()));
 
-            String userAgent = request.getHeader(USER_AGENT);
-            String forwardedUserAgent = request.getHeader(X_FORWARDED_USER_AGENT);
-            if (StringUtils.isNotEmpty(forwardedUserAgent)) {
-                userAgent = forwardedUserAgent;
-            }
-            String remoteAddr = request.getRemoteAddr();
-            if (StringUtils.isNotEmpty(userAgent) && isLoggableParam(CONFIG_LOG_PARAM_USER_AGENT)) {
-                MDC.put(USER_AGENT, request.getHeader(USER_AGENT));
-            }
-            if (StringUtils.isNotEmpty(remoteAddr) && isLoggableParam(CONFIG_LOG_PARAM_REMOTE_ADDRESS)) {
-                MDC.put(REMOTE_ADDRESS, remoteAddr);
-            }
+            setRemoteAddressAndUserAgentToMDC(request);
 
             if (isUnauthorized(securedResource)) {
                 APIErrorResponseHandler.handleErrorResponse(null, response,
@@ -185,6 +174,22 @@ public class AuthenticationValve extends ValveBase {
         }
 
 
+    }
+
+    private void setRemoteAddressAndUserAgentToMDC(Request request){
+
+        String userAgent = request.getHeader(USER_AGENT);
+        String forwardedUserAgent = request.getHeader(X_FORWARDED_USER_AGENT);
+        if (StringUtils.isNotEmpty(forwardedUserAgent)) {
+            userAgent = forwardedUserAgent;
+        }
+        String remoteAddr = request.getRemoteAddr();
+        if (StringUtils.isNotEmpty(userAgent) && isLoggableParam(CONFIG_LOG_PARAM_USER_AGENT)) {
+            MDC.put(USER_AGENT, request.getHeader(USER_AGENT));
+        }
+        if (StringUtils.isNotEmpty(remoteAddr) && isLoggableParam(CONFIG_LOG_PARAM_REMOTE_ADDRESS)) {
+            MDC.put(REMOTE_ADDRESS, remoteAddr);
+        }
     }
 
     private boolean isUnauthorized(ResourceConfig securedResource) {

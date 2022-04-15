@@ -19,6 +19,7 @@ package org.wso2.carbon.identity.auth.valve;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.sun.jna.platform.win32.Winsvc;
 import org.apache.catalina.Valve;
 import org.apache.catalina.connector.Request;
 import org.apache.catalina.connector.Response;
@@ -89,6 +90,9 @@ public class AuthenticationValveTest extends PowerMockTestCase {
 
     private static final String AUTH_CONTEXT = "auth-context";
     private static final String USER_AGENT = "User-Agent";
+    private static final String REMOTE_ADDRESS = "remoteAddress";
+    private static final String SERVICE_PROVIDER = "serviceProvider";
+    private final String CLIENT_COMPONENT = "clientComponent";
     private static final String IDP = "GOOGLE";
     private final String CONFIG_CONTEXTUAL_PARAM = "LoggableContextualParams.contextual_param";
     private final String CONFIG_LOG_PARAM_USER_AGENT = "user_agent";
@@ -295,7 +299,25 @@ public class AuthenticationValveTest extends PowerMockTestCase {
         when(authenticationManager.authenticate(Matchers.any(AuthenticationContext.class))).thenReturn
                 (authenticationResult);
         invokeAuthenticationValve();
-        Assert.assertEquals(MDC.get(USER_AGENT), USER_AGENT);
+       // Assert.assertEquals(MDC.get(USER_AGENT), USER_AGENT);
+    }
+
+    @Test(dataProvider = "getUnclearedThreadLocalData")
+    public void testInvokeForClearedMDCParams(boolean hasThreadLocal) throws Exception {
+
+        when(request.getHeader(USER_AGENT)).thenReturn(USER_AGENT);
+        if (hasThreadLocal) {
+            setIdentityErrorThreadLocal();
+        }
+        when(securedResourceConfig.isSecured()).thenReturn(true);
+        AuthenticationResult authenticationResult = new AuthenticationResult(AuthenticationStatus.SUCCESS);
+        when(authenticationManager.authenticate(Matchers.any(AuthenticationContext.class))).thenReturn
+                (authenticationResult);
+        invokeAuthenticationValve();
+        Assert.assertNull(MDC.get(USER_AGENT));
+        Assert.assertNull(MDC.get(REMOTE_ADDRESS));
+        Assert.assertNull(MDC.get(SERVICE_PROVIDER));
+        Assert.assertNull(MDC.get(CLIENT_COMPONENT));
     }
 
     @Test(dataProvider = "getRequestContentTypeAndCustomErrorPagesForInvalidTenantResponse")
