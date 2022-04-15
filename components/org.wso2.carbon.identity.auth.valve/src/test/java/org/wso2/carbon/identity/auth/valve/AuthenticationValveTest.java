@@ -19,7 +19,6 @@ package org.wso2.carbon.identity.auth.valve;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.sun.jna.platform.win32.Winsvc;
 import org.apache.catalina.Valve;
 import org.apache.catalina.connector.Request;
 import org.apache.catalina.connector.Response;
@@ -288,24 +287,10 @@ public class AuthenticationValveTest extends PowerMockTestCase {
     }
 
     @Test(dataProvider = "getUnclearedThreadLocalData")
-    public void testInvokeForContextualParam(boolean hasThreadLocal) throws Exception {
-
-        when(request.getHeader(USER_AGENT)).thenReturn(USER_AGENT);
-        if (hasThreadLocal) {
-            setIdentityErrorThreadLocal();
-        }
-        when(securedResourceConfig.isSecured()).thenReturn(true);
-        AuthenticationResult authenticationResult = new AuthenticationResult(AuthenticationStatus.SUCCESS);
-        when(authenticationManager.authenticate(Matchers.any(AuthenticationContext.class))).thenReturn
-                (authenticationResult);
-        invokeAuthenticationValve();
-       // Assert.assertEquals(MDC.get(USER_AGENT), USER_AGENT);
-    }
-
-    @Test(dataProvider = "getUnclearedThreadLocalData")
     public void testInvokeForClearedMDCParams(boolean hasThreadLocal) throws Exception {
 
         when(request.getHeader(USER_AGENT)).thenReturn(USER_AGENT);
+        when(request.getRemoteAddr()).thenReturn(REMOTE_ADDRESS);
         if (hasThreadLocal) {
             setIdentityErrorThreadLocal();
         }
@@ -316,8 +301,6 @@ public class AuthenticationValveTest extends PowerMockTestCase {
         invokeAuthenticationValve();
         Assert.assertNull(MDC.get(USER_AGENT));
         Assert.assertNull(MDC.get(REMOTE_ADDRESS));
-        Assert.assertNull(MDC.get(SERVICE_PROVIDER));
-        Assert.assertNull(MDC.get(CLIENT_COMPONENT));
     }
 
     @Test(dataProvider = "getRequestContentTypeAndCustomErrorPagesForInvalidTenantResponse")
