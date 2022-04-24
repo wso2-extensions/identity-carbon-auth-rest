@@ -91,7 +91,7 @@ public class AuthenticationValveTest extends PowerMockTestCase {
     private static final String USER_AGENT = "User-Agent";
     private static final String REMOTE_ADDRESS = "remoteAddress";
     private static final String SERVICE_PROVIDER = "serviceProvider";
-    private final String CLIENT_COMPONENT = "clientComponent";
+    private static final String CLIENT_COMPONENT = "clientComponent";
     private static final String IDP = "GOOGLE";
     private final String CONFIG_CONTEXTUAL_PARAM = "LoggableContextualParams.contextual_param";
     private final String CONFIG_LOG_PARAM_USER_AGENT = "user_agent";

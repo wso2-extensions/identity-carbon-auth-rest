@@ -174,7 +174,7 @@ public class TenantContextRewriteValve extends ValveBase {
         }
     }
 
-    private void unsetMDCThreadLocals(){
+    private void unsetMDCThreadLocals() {
 
         MDC.remove(TENANT_DOMAIN);
         MDC.remove(TENANT_ID);
