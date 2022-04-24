@@ -176,7 +176,7 @@ public class AuthenticationValve extends ValveBase {
 
     }
 
-    private void setRemoteAddressAndUserAgentToMDC(Request request){
+    private void setRemoteAddressAndUserAgentToMDC(Request request) {
 
         String userAgent = request.getHeader(USER_AGENT);
         String forwardedUserAgent = request.getHeader(X_FORWARDED_USER_AGENT);
@@ -240,7 +240,7 @@ public class AuthenticationValve extends ValveBase {
         }
     }
 
-    private void unsetMDCThreadLocals(){
+    private void unsetMDCThreadLocals() {
 
         MDC.remove(CLIENT_COMPONENT);
         MDC.remove(USER_AGENT);
