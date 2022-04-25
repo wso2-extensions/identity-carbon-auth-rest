@@ -185,7 +185,7 @@ public class AuthenticationValve extends ValveBase {
         }
         String remoteAddr = request.getRemoteAddr();
         if (StringUtils.isNotEmpty(userAgent) && isLoggableParam(CONFIG_LOG_PARAM_USER_AGENT)) {
-            MDC.put(USER_AGENT, request.getHeader(USER_AGENT));
+            MDC.put(USER_AGENT, userAgent);
         }
         if (StringUtils.isNotEmpty(remoteAddr) && isLoggableParam(CONFIG_LOG_PARAM_REMOTE_ADDRESS)) {
             MDC.put(REMOTE_ADDRESS, remoteAddr);
