@@ -23,7 +23,6 @@ import org.apache.catalina.LifecycleException;
 import org.apache.catalina.connector.Request;
 import org.apache.catalina.connector.Response;
 import org.apache.catalina.valves.ValveBase;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -39,14 +38,8 @@ import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.user.core.tenant.TenantManager;
-import org.wso2.carbon.utils.CarbonUtils;
 
-import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -62,6 +55,7 @@ public class TenantContextRewriteValve extends ValveBase {
 
     private static final String TENANT_DOMAIN = "tenantDomain";
     private static final String TENANT_ID = "tenantId";
+    private static final String ORG_MAPPED_TENANT_DOMAIN = "xyz.com";
     private static List<RewriteContext> contextsToRewrite;
     private static List<String> contextListToOverwriteDispatch;
     private static List<String> ignorePathListForOverwriteDispatch;
@@ -89,15 +83,23 @@ public class TenantContextRewriteValve extends ValveBase {
         String contextToForward = null;
         boolean isContextRewrite = false;
         boolean isWebApp = false;
+        boolean isOrgUrl = false;
 
         //Get the rewrite contexts and check whether request URI contains any of rewrite contains.
         for (RewriteContext context : contextsToRewrite) {
             Pattern patternTenant = context.getTenantContextPattern();
             Pattern patternSuperTenant = context.getBaseContextPattern();
+            Pattern orgPattern = Pattern.compile("^/t/([^/]+)/o/([^/]+)" + context.getContext());
             if (patternTenant.matcher(requestURI).find() || patternTenant.matcher(requestURI + "/").find()) {
                 isContextRewrite = true;
                 isWebApp = context.isWebApp();
                 contextToForward = context.getContext();
+                break;
+            } else if (orgPattern.matcher(requestURI).find() || orgPattern.matcher(requestURI + "/").find()) {
+                isContextRewrite = true;
+                isWebApp = context.isWebApp();
+                contextToForward = context.getContext();
+                isOrgUrl = true;
                 break;
             } else if (isTenantQualifiedUrlsEnabled && (patternSuperTenant.matcher(requestURI).find() ||
                     patternSuperTenant.matcher(requestURI + "/").find())) {
@@ -134,7 +136,7 @@ public class TenantContextRewriteValve extends ValveBase {
             } else {
                 IdentityUtil.threadLocalProperties.get().put(TENANT_NAME_FROM_CONTEXT, tenantDomain);
 
-                if (isWebApp) {
+/*                if (isWebApp) {
                     String dispatchLocation = "/" + requestURI.replace("/t/" + tenantDomain + contextToForward, "");
                     if (contextListToOverwriteDispatch.contains(contextToForward) && !isIgnorePath(dispatchLocation)) {
                         dispatchLocation = "/";
@@ -143,6 +145,31 @@ public class TenantContextRewriteValve extends ValveBase {
                     request.getContext().setCrossContext(true);
                     request.getServletContext().getContext(contextToForward)
                             .getRequestDispatcher(dispatchLocation).forward(request, response);
+                }*/
+                if (isWebApp) {
+                    if (isOrgUrl) {
+                        String orgDomain = getOrgDomainFromURLMapping(requestURI);
+                        String dispatchLocation = "/" + requestURI.replace("/t/" + tenantDomain + "/o/" + orgDomain +
+                                contextToForward, "");
+                        try {
+                            PrivilegedCarbonContext.startTenantFlow();
+                            PrivilegedCarbonContext.getThreadLocalCarbonContext().setTenantDomain(ORG_MAPPED_TENANT_DOMAIN, true);
+                            IdentityUtil.threadLocalProperties.get().put(TENANT_NAME_FROM_CONTEXT, ORG_MAPPED_TENANT_DOMAIN);
+                            request.getContext().setCrossContext(true);
+                            request.getServletContext().getContext(contextToForward)
+                                    .getRequestDispatcher(dispatchLocation).forward(request, response);
+                        } finally {
+                            PrivilegedCarbonContext.endTenantFlow();
+                        }
+                    } else {
+                        String dispatchLocation = "/" + requestURI.replace("/t/" + tenantDomain + contextToForward, "");
+                        if (contextListToOverwriteDispatch.contains(contextToForward) && !isIgnorePath(dispatchLocation)) {
+                            dispatchLocation = "/";
+                        }
+                        request.getContext().setCrossContext(true);
+                        request.getServletContext().getContext(contextToForward)
+                                .getRequestDispatcher(dispatchLocation).forward(request, response);
+                    }
                 } else {
                     String carbonWebContext = ServerConfiguration.getInstance().getFirstProperty("WebContextRoot");
                     if (requestURI.contains(carbonWebContext)) {
@@ -173,6 +200,16 @@ public class TenantContextRewriteValve extends ValveBase {
             MDC.remove(TENANT_DOMAIN);
             MDC.remove(TENANT_ID);
         }
+    }
+
+    private String getOrgDomainFromURLMapping(String requestURI) {
+
+        String temp = requestURI.substring(requestURI.indexOf("/o/") + 3);
+        int index = temp.indexOf('/');
+        if (index != -1) {
+            return temp.substring(0, index);
+        }
+        return temp;
     }
 
     private boolean isTenantQualifiedUrlsEnabled() {

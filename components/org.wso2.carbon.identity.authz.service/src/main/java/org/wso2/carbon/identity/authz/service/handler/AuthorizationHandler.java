@@ -23,6 +23,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.CarbonConstants;
+import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.identity.application.common.model.User;
 import org.wso2.carbon.identity.authz.service.AuthorizationContext;
 import org.wso2.carbon.identity.authz.service.AuthorizationResult;
@@ -107,13 +108,18 @@ public class AuthorizationHandler extends AbstractIdentityHandler {
             authorizationResult.setAuthorizationStatus(AuthorizationStatus.GRANT);
             return;
         }
-
-        AuthorizationManager authorizationManager = tenantUserRealm.getAuthorizationManager();
-        boolean isUserAuthorized =
-                authorizationManager.isUserAuthorized(UserCoreUtil.addDomainToName(user.getUserName(),
-                        user.getUserStoreDomain()), permissionString, CarbonConstants.UI_PERMISSION_ACTION);
-        if (isUserAuthorized) {
-            authorizationResult.setAuthorizationStatus(AuthorizationStatus.GRANT);
+        try {
+            PrivilegedCarbonContext.startTenantFlow();
+            PrivilegedCarbonContext.getThreadLocalCarbonContext().setTenantDomain("xyz.com", true);
+            AuthorizationManager authorizationManager = tenantUserRealm.getAuthorizationManager();
+            boolean isUserAuthorized = authorizationManager.isUserAuthorized(UserCoreUtil.addDomainToName(
+                    user.getUserName(), user.getUserStoreDomain()), permissionString,
+                    CarbonConstants.UI_PERMISSION_ACTION);
+            if (isUserAuthorized) {
+                authorizationResult.setAuthorizationStatus(AuthorizationStatus.GRANT);
+            }
+        } finally {
+            PrivilegedCarbonContext.endTenantFlow();
         }
     }
 

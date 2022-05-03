@@ -47,6 +47,29 @@ public class Utils {
         return domain;
     }
 
+    public static String getTenantDomainFromURLMapping2(Request request) {
+
+        String requestURI = request.getRequestURI();
+        String domain = MultitenantConstants.SUPER_TENANT_DOMAIN_NAME;
+
+        if (requestURI.contains("/o/")) {
+            String temp = requestURI.substring(requestURI.indexOf("/o/") + 3);
+            int index = temp.indexOf('/');
+            if (index != -1) {
+                return temp.substring(0, index);
+            }
+            return temp;
+        } else if (requestURI.contains("/t/")) {
+            String temp = requestURI.substring(requestURI.indexOf("/t/") + 3);
+            int index = temp.indexOf('/');
+            if (index != -1) {
+                temp = temp.substring(0, index);
+                domain = temp;
+            }
+        }
+        return domain;
+    }
+
     /**
      * Checks whether the tenantDomain from URL mapping and the tenantDomain get from the user name are same.
      *
@@ -56,7 +79,7 @@ public class Utils {
      */
     public static boolean isUserBelongsToRequestedTenant(AuthenticationContext authenticationContext, Request request) {
 
-        String tenantDomainFromURLMapping = getTenantDomainFromURLMapping(request);
+        String tenantDomainFromURLMapping = getTenantDomainFromURLMapping2(request);
         User user = authenticationContext.getUser();
 
         String tenantDomain;
