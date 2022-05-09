@@ -97,18 +97,7 @@ public class AuthenticationValve extends ValveBase {
             ResourceConfig securedResource = authenticationManager.getSecuredResource(new ResourceConfigKey(request
                     .getRequestURI(), request.getMethod()));
 
-            String userAgent = request.getHeader(USER_AGENT);
-            String forwardedUserAgent = request.getHeader(X_FORWARDED_USER_AGENT);
-            if (StringUtils.isNotEmpty(forwardedUserAgent)) {
-                userAgent = forwardedUserAgent;
-            }
-            String remoteAddr = request.getRemoteAddr();
-            if (StringUtils.isNotEmpty(userAgent) && isLoggableParam(CONFIG_LOG_PARAM_USER_AGENT)) {
-                MDC.put(USER_AGENT, request.getHeader(USER_AGENT));
-            }
-            if (StringUtils.isNotEmpty(remoteAddr) && isLoggableParam(CONFIG_LOG_PARAM_REMOTE_ADDRESS)) {
-                MDC.put(REMOTE_ADDRESS, remoteAddr);
-            }
+            setRemoteAddressAndUserAgentToMDC(request);
 
             if (isUnauthorized(securedResource)) {
                 APIErrorResponseHandler.handleErrorResponse(null, response,
@@ -178,13 +167,29 @@ public class AuthenticationValve extends ValveBase {
             unsetThreadLocalAuthUserTenantDomain();
             // Clear thread local provisioning service provider.
             IdentityApplicationManagementUtil.resetThreadLocalProvisioningServiceProvider();
-            // Clear clientComponent in MDC.
-            unsetClientComponent();
+            // Clear Thread Locals from MDC.
+            unsetMDCThreadLocals();
             // Clear thread local authenticated with basic auth flag.
             unsetAuthenticatedWithBasicAuth();
         }
 
 
+    }
+
+    private void setRemoteAddressAndUserAgentToMDC(Request request) {
+
+        String userAgent = request.getHeader(USER_AGENT);
+        String forwardedUserAgent = request.getHeader(X_FORWARDED_USER_AGENT);
+        if (StringUtils.isNotEmpty(forwardedUserAgent)) {
+            userAgent = forwardedUserAgent;
+        }
+        String remoteAddr = request.getRemoteAddr();
+        if (StringUtils.isNotEmpty(userAgent) && isLoggableParam(CONFIG_LOG_PARAM_USER_AGENT)) {
+            MDC.put(USER_AGENT, userAgent);
+        }
+        if (StringUtils.isNotEmpty(remoteAddr) && isLoggableParam(CONFIG_LOG_PARAM_REMOTE_ADDRESS)) {
+            MDC.put(REMOTE_ADDRESS, remoteAddr);
+        }
     }
 
     private boolean isUnauthorized(ResourceConfig securedResource) {
@@ -235,9 +240,12 @@ public class AuthenticationValve extends ValveBase {
         }
     }
 
-    private void unsetClientComponent() {
+    private void unsetMDCThreadLocals() {
 
         MDC.remove(CLIENT_COMPONENT);
+        MDC.remove(USER_AGENT);
+        MDC.remove(REMOTE_ADDRESS);
+        MDC.remove(SERVICE_PROVIDER);
     }
 
     private boolean isLoggableParam(String param) {
