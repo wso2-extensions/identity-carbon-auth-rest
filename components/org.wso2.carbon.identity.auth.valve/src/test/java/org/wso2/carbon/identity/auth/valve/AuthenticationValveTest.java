@@ -89,6 +89,9 @@ public class AuthenticationValveTest extends PowerMockTestCase {
 
     private static final String AUTH_CONTEXT = "auth-context";
     private static final String USER_AGENT = "User-Agent";
+    private static final String REMOTE_ADDRESS = "remoteAddress";
+    private static final String SERVICE_PROVIDER = "serviceProvider";
+    private static final String CLIENT_COMPONENT = "clientComponent";
     private static final String IDP = "GOOGLE";
     private final String CONFIG_CONTEXTUAL_PARAM = "LoggableContextualParams.contextual_param";
     private final String CONFIG_LOG_PARAM_USER_AGENT = "user_agent";
@@ -284,9 +287,10 @@ public class AuthenticationValveTest extends PowerMockTestCase {
     }
 
     @Test(dataProvider = "getUnclearedThreadLocalData")
-    public void testInvokeForContextualParam(boolean hasThreadLocal) throws Exception {
+    public void testInvokeForClearedMDCParams(boolean hasThreadLocal) throws Exception {
 
         when(request.getHeader(USER_AGENT)).thenReturn(USER_AGENT);
+        when(request.getRemoteAddr()).thenReturn(REMOTE_ADDRESS);
         if (hasThreadLocal) {
             setIdentityErrorThreadLocal();
         }
@@ -295,7 +299,8 @@ public class AuthenticationValveTest extends PowerMockTestCase {
         when(authenticationManager.authenticate(Matchers.any(AuthenticationContext.class))).thenReturn
                 (authenticationResult);
         invokeAuthenticationValve();
-        Assert.assertEquals(MDC.get(USER_AGENT), USER_AGENT);
+        Assert.assertNull(MDC.get(USER_AGENT));
+        Assert.assertNull(MDC.get(REMOTE_ADDRESS));
     }
 
     @Test(dataProvider = "getRequestContentTypeAndCustomErrorPagesForInvalidTenantResponse")

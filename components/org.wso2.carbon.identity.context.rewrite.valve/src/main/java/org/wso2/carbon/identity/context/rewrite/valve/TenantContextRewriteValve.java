@@ -170,9 +170,14 @@ public class TenantContextRewriteValve extends ValveBase {
             }
         } finally {
             IdentityUtil.threadLocalProperties.get().remove(TENANT_NAME_FROM_CONTEXT);
-            MDC.remove(TENANT_DOMAIN);
-            MDC.remove(TENANT_ID);
+            unsetMDCThreadLocals();
         }
+    }
+
+    private void unsetMDCThreadLocals() {
+
+        MDC.remove(TENANT_DOMAIN);
+        MDC.remove(TENANT_ID);
     }
 
     private boolean isTenantQualifiedUrlsEnabled() {
