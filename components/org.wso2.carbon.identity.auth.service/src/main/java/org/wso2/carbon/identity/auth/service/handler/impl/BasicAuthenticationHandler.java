@@ -63,6 +63,8 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
     private final String TOTP_ENDPOINT_URI = "api/users/v1/me/totp";
     private final String FIDO_ENDPOINT_URI = "api/users/v1/me/webauthn";
     private final String FIDO2_ENDPOINT_URI = "api/users/v2/me/webauthn";
+    private final String BACKUP_CODE_ENDPOINT_URI = "api/users/v1/me/backup-code";
+    private final String MFA_ENDPOINT_URI = "api/users/v1/me/mfa";
 
     @Override
     public void init(InitConfig initConfig) {
@@ -159,8 +161,11 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
                                 if (authenticationRequest.getRequest() != null) {
                                     String requestURI = authenticationRequest.getRequest().getRequestURI()
                                             .toLowerCase();
-                                    if (requestURI.contains(TOTP_ENDPOINT_URI) || requestURI.contains(FIDO_ENDPOINT_URI)
-                                            || requestURI.contains(FIDO2_ENDPOINT_URI)) {
+                                    if (requestURI.contains(TOTP_ENDPOINT_URI) ||
+                                            requestURI.contains(FIDO_ENDPOINT_URI) ||
+                                            requestURI.contains(FIDO2_ENDPOINT_URI) ||
+                                            requestURI.contains(BACKUP_CODE_ENDPOINT_URI) ||
+                                            requestURI.contains(MFA_ENDPOINT_URI)) {
                                         IdentityUtil.threadLocalProperties.get()
                                                 .put(Constants.AUTHENTICATED_WITH_BASIC_AUTH, "true");
                                     }
