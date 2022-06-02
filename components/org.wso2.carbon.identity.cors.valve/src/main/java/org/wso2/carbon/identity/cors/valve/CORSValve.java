@@ -95,6 +95,7 @@ public class CORSValve extends ValveBase {
             printMessage(e, response);
         } catch (CORSManagementServiceException e) {
             log.error("CORS management service error when intercepting an HTTP request.", e);
+            response.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
         }
     }
 
