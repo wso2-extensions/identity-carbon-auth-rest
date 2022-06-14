@@ -43,6 +43,14 @@ public class Utils {
                 temp = temp.substring(0, index);
                 domain = temp;
             }
+        } else if (requestURI.contains("/o/")) {
+            // TODO: decide whether to use ->
+            //  return PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain();
+            //  or the below approach.
+            Object tenantDomain = request.getAttribute("tenantDomainFromRequestPath");
+            if (tenantDomain != null) {
+                return tenantDomain.toString();
+            }
         }
         return domain;
     }
