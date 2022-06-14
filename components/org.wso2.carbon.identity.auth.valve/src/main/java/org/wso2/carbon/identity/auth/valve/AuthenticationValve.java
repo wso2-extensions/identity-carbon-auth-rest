@@ -286,10 +286,18 @@ public class AuthenticationValve extends ValveBase {
     private boolean validateTenantDomain(Request request, Response response, String tenantDomain)
             throws IOException, ServletException {
 
+        // todo: need to decide whether to support org mgt requests with a structural org domain.
+        //  currently it is blocked.
         try {
             TenantManager tenantManager = AuthenticationValveServiceHolder.getInstance().getRealmService()
                     .getTenantManager();
-            if (tenantDomain != null && !tenantManager.isTenantActive(IdentityTenantUtil.getTenantId(tenantDomain))) {
+            if (tenantDomain == null) {
+                String errorMsg = "Can't invoke a request to this path.";
+                handleInvalidTenantDomainErrorResponse(request, response, HttpServletResponse.SC_NOT_FOUND, errorMsg,
+                        null);
+                return false;
+            }
+            else if (!tenantManager.isTenantActive(IdentityTenantUtil.getTenantId(tenantDomain))) {
                 String errorMsg = tenantDomain + " is an invalid tenant domain";
                 handleInvalidTenantDomainErrorResponse(request, response, HttpServletResponse.SC_NOT_FOUND, errorMsg,
                         tenantDomain);

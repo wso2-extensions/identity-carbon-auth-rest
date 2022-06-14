@@ -67,6 +67,8 @@ public class AuthorizationValve extends ValveBase {
                 authorizationContext.setIsCrossTenantAllowed(resourceConfig.isCrossTenantAllowed());
                 authorizationContext.setAllowedTenants(resourceConfig.getCrossAccessAllowedTenants());
             }
+            // TODO: Authorization for requests containing '/o/' path param should be handled via the new role management
+            //  feature of organization management feature.
             if (!isRequestValidForTenant(authenticationContext, authorizationContext, request)) {
                 if (log.isDebugEnabled()) {
                     log.debug("Authorization to " + request.getRequestURI()
