@@ -286,8 +286,6 @@ public class AuthenticationValve extends ValveBase {
     private boolean validateTenantDomain(Request request, Response response, String tenantDomain)
             throws IOException, ServletException {
 
-        // todo: need to decide whether to support org mgt requests with a structural org domain.
-        //  currently it is blocked.
         try {
             TenantManager tenantManager = AuthenticationValveServiceHolder.getInstance().getRealmService()
                     .getTenantManager();
