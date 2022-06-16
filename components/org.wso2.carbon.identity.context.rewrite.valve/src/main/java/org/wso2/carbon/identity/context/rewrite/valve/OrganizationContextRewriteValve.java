@@ -48,6 +48,9 @@ import javax.xml.namespace.QName;
 
 import static org.wso2.carbon.identity.core.util.IdentityCoreConstants.TENANT_NAME_FROM_CONTEXT;
 
+/**
+ * Rewrite organization specific routing supported paths.
+ */
 public class OrganizationContextRewriteValve extends ValveBase {
 
     private static final String TENANT_DOMAIN = "tenantDomain";
@@ -67,7 +70,9 @@ public class OrganizationContextRewriteValve extends ValveBase {
 
         String requestURI = request.getRequestURI();
         String contextToForward = null;
-        boolean isOrgUrl = false;
+        boolean orgRoutingPathSupported = false;
+        boolean orgRoutingSubPathSupported = false;
+        boolean subPathsConfigured = false;
 
         if (StringUtils.startsWith(requestURI, ORGANIZATION_PATH_PARAM)) {
 
@@ -75,26 +80,35 @@ public class OrganizationContextRewriteValve extends ValveBase {
                 String basePath = entry.getKey();
                 Pattern orgPattern = Pattern.compile("^" + ORGANIZATION_PATH_PARAM + "([^/]+)" + basePath);
                 if (orgPattern.matcher(requestURI).find() || orgPattern.matcher(requestURI + "/").find()) {
-                    isOrgUrl = true;
+                    subPathsConfigured = false;
+                    orgRoutingPathSupported = true;
                     contextToForward = basePath;
                     List<String> subPaths = entry.getValue();
                     if (CollectionUtils.isNotEmpty(subPaths)) {
-                        boolean subPathSupported = false;
+                        subPathsConfigured = true;
                         for (String subPath : subPaths) {
                             if (StringUtils.contains(requestURI, subPath)) {
-                                subPathSupported = true;
+                                orgRoutingSubPathSupported = true;
                                 break;
                             }
                         }
-                        if (!subPathSupported) {
-                            handleErrorResponse(response, HttpServletResponse.SC_NOT_FOUND);
-                            return;
-                        }
                     }
-                    break;
+                    if (orgRoutingSubPathSupported || !subPathsConfigured) {
+                        break;
+                    }
                 }
             }
-            if (!isOrgUrl) {
+            if (!orgRoutingPathSupported) {
+                handleErrorResponse(response, HttpServletResponse.SC_NOT_FOUND);
+                return;
+            }
+
+            /*
+            There is a possibility for the request URI to match with multiple configured base path patterns.
+            Hence, we need to ensure that an error response is displayed only if the request URI doesn't match any of
+            the base paths and any sub paths that might be defined under them.
+             */
+            if (subPathsConfigured && !orgRoutingSubPathSupported) {
                 handleErrorResponse(response, HttpServletResponse.SC_NOT_FOUND);
                 return;
             }
@@ -143,23 +157,25 @@ public class OrganizationContextRewriteValve extends ValveBase {
                     while (contexts.hasNext()) {
                         OMElement context = (OMElement) contexts.next();
                         OMElement basePath = context.getFirstChildWithName(
-                                new QName(IdentityCoreConstants.IDENTITY_DEFAULT_NAMESPACE, "Path"));
+                                new QName(IdentityCoreConstants.IDENTITY_DEFAULT_NAMESPACE, "BasePath"));
                         if (basePath != null) {
-                            OMElement contextToForward = context.getFirstChildWithName(
-                                    new QName(IdentityCoreConstants.IDENTITY_DEFAULT_NAMESPACE, "ContextToForward"));
-                            if (contextToForward != null) {
-                                Iterator subPaths = contextToForward.getChildrenWithName(
+                            OMElement subPaths = context.getFirstChildWithName(
+                                    new QName(IdentityCoreConstants.IDENTITY_DEFAULT_NAMESPACE, "SubPaths"));
+                            List<String> subPathList = null;
+                            if (subPaths != null) {
+                                Iterator paths = subPaths.getChildrenWithName(
                                         new QName(IdentityCoreConstants.IDENTITY_DEFAULT_NAMESPACE, "Path"));
-                                if (subPaths != null) {
-                                    List<String> subPathList = new ArrayList<>();
-                                    while (subPaths.hasNext()) {
-                                        OMElement subPath = (OMElement) subPaths.next();
+                                if (paths != null) {
+                                    subPathList = new ArrayList<>();
+                                    while (paths.hasNext()) {
+                                        OMElement subPath = (OMElement) paths.next();
                                         subPathList.add(subPath.getText());
                                     }
-                                    rewriteContexts.put(basePath.getText(), subPathList);
                                 }
-                            } else {
-                                rewriteContexts.put(basePath.getText(), null);
+                            }
+                            // Honor the config order.
+                            if (!rewriteContexts.containsKey(basePath.getText())) {
+                                rewriteContexts.put(basePath.getText(), subPathList);
                             }
                         }
                     }
@@ -185,7 +201,7 @@ public class OrganizationContextRewriteValve extends ValveBase {
     public static String getOrgDomainFromURL(String requestURI) {
 
         String domain = MultitenantConstants.SUPER_TENANT_DOMAIN_NAME;
-        String temp = requestURI.substring(requestURI.indexOf("/o/") + 3);
+        String temp = requestURI.substring(requestURI.indexOf(ORGANIZATION_PATH_PARAM) + 3);
         int index = temp.indexOf('/');
         if (index != -1) {
             temp = temp.substring(0, index);
