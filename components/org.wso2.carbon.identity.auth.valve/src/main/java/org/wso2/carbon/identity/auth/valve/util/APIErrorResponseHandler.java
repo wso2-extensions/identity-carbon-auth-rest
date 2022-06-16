@@ -17,6 +17,7 @@
 package org.wso2.carbon.identity.auth.valve.util;
 
 import org.apache.catalina.connector.Response;
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.json.JSONArray;
@@ -42,7 +43,6 @@ public class APIErrorResponseHandler {
             " invalid or missing from your request.";
     private static final String FORBIDDEN_ERROR_MSG = "Operation is not permitted. You do not have permissions to " +
             "make this request.";
-
 
     /**
      * Generate the error response according to the relevant API endpoint and the HTTP status.
@@ -90,20 +90,14 @@ public class APIErrorResponseHandler {
         return uri;
     }
 
-
     private static boolean isRequestFromScim2Api(String uri) {
 
-        if (uri == null) {
-            return false;
-        }
-        return uri.startsWith("/scim2");
+        return StringUtils.isNotBlank(uri) && uri.startsWith("/scim2");
     }
 
     private static boolean isRequestFromDCREndpoint(String uri) {
-        if (uri == null) {
-            return false;
-        }
-        return uri.startsWith("/api/identity/oauth2/dcr");
+
+        return StringUtils.isNotBlank(uri) && uri.startsWith("/api/identity/oauth2/dcr");
     }
 
     private static void handleScim2ApiErrorResponse(Response response, int error, Exception e) throws IOException {
@@ -199,11 +193,13 @@ public class APIErrorResponseHandler {
     }
 
     private static void setResponseBody(Response response, JSONObject jsonObject) throws IOException {
+
         response.getWriter().write(jsonObject.toString(2));
         response.finishResponse();
     }
 
     private static boolean isCorrelationIDPresent() {
+
         return MDC.get(CORRELATION_ID_MDC) != null;
     }
 }
