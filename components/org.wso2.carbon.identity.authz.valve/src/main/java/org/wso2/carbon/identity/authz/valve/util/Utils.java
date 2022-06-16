@@ -19,6 +19,7 @@
 package org.wso2.carbon.identity.authz.valve.util;
 
 import org.apache.catalina.connector.Request;
+import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.identity.application.common.model.User;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
 import org.wso2.carbon.identity.auth.service.util.Constants;
@@ -44,13 +45,7 @@ public class Utils {
                 domain = temp;
             }
         } else if (requestURI.contains("/o/")) {
-            // TODO: decide whether to use ->
-            //  return PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain();
-            //  or the below approach.
-            Object tenantDomain = request.getAttribute("tenantDomainFromRequestPath");
-            if (tenantDomain != null) {
-                return tenantDomain.toString();
-            }
+            domain = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain();
         }
         return domain;
     }

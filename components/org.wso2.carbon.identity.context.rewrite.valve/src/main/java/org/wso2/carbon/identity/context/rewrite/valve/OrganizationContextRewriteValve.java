@@ -75,7 +75,6 @@ public class OrganizationContextRewriteValve extends ValveBase {
         boolean subPathsConfigured = false;
 
         if (StringUtils.startsWith(requestURI, ORGANIZATION_PATH_PARAM)) {
-
             for (Map.Entry<String, List<String>> entry : orgContextsToRewrite.entrySet()) {
                 String basePath = entry.getKey();
                 Pattern orgPattern = Pattern.compile("^" + ORGANIZATION_PATH_PARAM + "([^/]+)" + basePath);
