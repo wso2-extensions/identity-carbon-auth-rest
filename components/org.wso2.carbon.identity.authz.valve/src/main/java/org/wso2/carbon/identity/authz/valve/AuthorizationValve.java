@@ -37,6 +37,7 @@ import org.wso2.carbon.identity.authz.service.AuthorizationStatus;
 import org.wso2.carbon.identity.authz.service.exception.AuthzServiceServerException;
 import org.wso2.carbon.identity.authz.valve.internal.AuthorizationValveServiceHolder;
 import org.wso2.carbon.identity.authz.valve.util.Utils;
+import org.wso2.carbon.identity.organization.management.authz.service.OrganizationManagementAuthorizationContext;
 
 import java.io.IOException;
 import java.util.List;
@@ -67,6 +68,18 @@ public class AuthorizationValve extends ValveBase {
                 authorizationContext.setIsCrossTenantAllowed(resourceConfig.isCrossTenantAllowed());
                 authorizationContext.setAllowedTenants(resourceConfig.getCrossAccessAllowedTenants());
             }
+
+            AuthorizationResult authorizationResult =
+                    authorizeInOrganizationLevel(request, response, authenticationContext, resourceConfig, authorizationContext);
+            /*
+            If the user has organization level access, authorize and proceed.
+            Else evaluate authorization through old authz model.
+             */
+            if (AuthorizationStatus.GRANT.equals(authorizationResult.getAuthorizationStatus())) {
+                getNext().invoke(request, response);
+                return;
+            }
+            // If user didn't authorized via org level authz model, fallback to old authz model.
             if (!isRequestValidForTenant(authenticationContext, authorizationContext, request)) {
                 if (log.isDebugEnabled()) {
                     log.debug("Authorization to " + request.getRequestURI()
@@ -101,7 +114,7 @@ public class AuthorizationValve extends ValveBase {
                 AuthorizationManager authorizationManager = HandlerManager.getInstance()
                         .getFirstPriorityHandler(authorizationManagerList, true);
                 try {
-                    AuthorizationResult authorizationResult = authorizationManager.authorize(authorizationContext);
+                    authorizationResult = authorizationManager.authorize(authorizationContext);
                     if (authorizationResult.getAuthorizationStatus().equals(AuthorizationStatus.GRANT)) {
                         getNext().invoke(request, response);
                     } else {
@@ -118,6 +131,52 @@ public class AuthorizationValve extends ValveBase {
         } else {
             getNext().invoke(request, response);
         }
+    }
+
+    private AuthorizationResult authorizeInOrganizationLevel(Request request, Response response,
+                                              AuthenticationContext authenticationContext,
+                                              ResourceConfig resourceConfig, AuthorizationContext authorizationContext)
+            throws IOException {
+
+        AuthorizationResult authorizationResult = new AuthorizationResult(AuthorizationStatus.DENY);
+
+        if (!isUserEmpty(authenticationContext)) {
+            String httpMethod = request.getMethod();
+            String tenantDomainFromURLMapping = Utils.getTenantDomainFromURLMapping(request);
+
+            OrganizationManagementAuthorizationContext orgMgtAuthorizationContext =
+                    new OrganizationManagementAuthorizationContext();
+
+            if (resourceConfig != null) {
+                if(StringUtils.isNotEmpty(resourceConfig.getPermissions())) {
+                    orgMgtAuthorizationContext.setPermissionString(resourceConfig.getPermissions());
+                }
+                if (CollectionUtils.isNotEmpty(resourceConfig.getScopes())) {
+                    orgMgtAuthorizationContext.setRequiredScopes(resourceConfig.getScopes());
+                }
+                orgMgtAuthorizationContext.setContext(resourceConfig.getContext());
+                orgMgtAuthorizationContext.setRequestUri(request.getRequestURI());
+            }
+            orgMgtAuthorizationContext.setHttpMethods(httpMethod);
+            orgMgtAuthorizationContext.setUser(authenticationContext.getUser());
+            orgMgtAuthorizationContext.setTenantDomainFromURLMapping(tenantDomainFromURLMapping);
+            orgMgtAuthorizationContext.addParameter(OAUTH2_ALLOWED_SCOPES,
+                    authenticationContext.getParameter(OAUTH2_ALLOWED_SCOPES));
+            orgMgtAuthorizationContext.addParameter(OAUTH2_VALIDATE_SCOPE,
+                    authenticationContext.getParameter(OAUTH2_VALIDATE_SCOPE));
+
+            List<AuthorizationManager> authorizationManagerList = AuthorizationValveServiceHolder.getInstance()
+                    .getAuthorizationManagerList();
+            AuthorizationManager authorizationManager = HandlerManager.getInstance()
+                    .getFirstPriorityHandler(authorizationManagerList, true);
+            try {
+                authorizationResult = authorizationManager.authorize(orgMgtAuthorizationContext);
+            } catch (AuthzServiceServerException e) {
+                APIErrorResponseHandler.handleErrorResponse(authenticationContext, response,
+                        HttpServletResponse.SC_BAD_REQUEST, null);
+            }
+        }
+        return authorizationResult;
     }
 
     /**
