@@ -348,7 +348,7 @@
         <osgi.util.tracker.imp.pkg.version.range>[1.5.1, 2.0.0)</osgi.util.tracker.imp.pkg.version.range>
 
         <!-- Carbon Kernel version -->
-        <carbon.kernel.version>4.6.3-m4</carbon.kernel.version>
+        <carbon.kernel.version>4.7.0-beta5</carbon.kernel.version>
         <carbon.kernel.feature.version>4.6.0</carbon.kernel.feature.version>
         <carbon.kernel.imp.pkg.version.range>[4.5.0, 5.0.0)</carbon.kernel.imp.pkg.version.range>
 
@@ -391,7 +391,7 @@
         <!-- Pax Logging Version -->
         <pax.logging.api.version>1.10.1</pax.logging.api.version>
 
-        <tomcat.version>9.0.31.wso2v1</tomcat.version>
+        <tomcat.version>9.0.53.wso2v1</tomcat.version>
 
         <!-- Database Version -->
         <h2database.version>2.1.210</h2database.version>
