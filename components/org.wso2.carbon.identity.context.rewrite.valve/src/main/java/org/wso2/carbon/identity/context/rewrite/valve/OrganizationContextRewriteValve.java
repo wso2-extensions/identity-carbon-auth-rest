@@ -18,7 +18,6 @@
 
 package org.wso2.carbon.identity.context.rewrite.valve;
 
-import com.google.gson.JsonObject;
 import org.apache.axiom.om.OMElement;
 import org.apache.catalina.LifecycleException;
 import org.apache.catalina.connector.Request;
@@ -32,7 +31,6 @@ import org.wso2.carbon.identity.core.util.IdentityConfigParser;
 import org.wso2.carbon.identity.core.util.IdentityCoreConstants;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
-import org.wso2.carbon.utils.multitenancy.MultitenantConstants;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -46,6 +44,11 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
 import javax.xml.namespace.QName;
 
+import static org.wso2.carbon.identity.context.rewrite.constant.RewriteConstants.ORGANIZATION_PATH_PARAM;
+import static org.wso2.carbon.identity.context.rewrite.constant.RewriteConstants.TENANT_DOMAIN;
+import static org.wso2.carbon.identity.context.rewrite.constant.RewriteConstants.TENANT_ID;
+import static org.wso2.carbon.identity.context.rewrite.util.Utils.getOrganizationDomainFromURL;
+import static org.wso2.carbon.identity.context.rewrite.util.Utils.handleErrorResponse;
 import static org.wso2.carbon.identity.core.util.IdentityCoreConstants.TENANT_NAME_FROM_CONTEXT;
 
 /**
@@ -53,9 +56,6 @@ import static org.wso2.carbon.identity.core.util.IdentityCoreConstants.TENANT_NA
  */
 public class OrganizationContextRewriteValve extends ValveBase {
 
-    private static final String TENANT_DOMAIN = "tenantDomain";
-    private static final String TENANT_ID = "tenantId";
-    private static final String ORGANIZATION_PATH_PARAM = "/o/";
     private static Map<String, List<String>> orgContextsToRewrite;
 
     @Override
@@ -97,18 +97,15 @@ public class OrganizationContextRewriteValve extends ValveBase {
                     }
                 }
             }
-            if (!orgRoutingPathSupported) {
-                handleErrorResponse(response, HttpServletResponse.SC_NOT_FOUND);
-                return;
-            }
 
             /*
             There is a possibility for the request URI to match with multiple configured base path patterns.
             Hence, we need to ensure that an error response is displayed only if the request URI doesn't match any of
             the base paths and any sub paths that might be defined under them.
              */
-            if (subPathsConfigured && !orgRoutingSubPathSupported) {
-                handleErrorResponse(response, HttpServletResponse.SC_NOT_FOUND);
+            if (!orgRoutingPathSupported || (subPathsConfigured && !orgRoutingSubPathSupported)) {
+                handleErrorResponse(HttpServletResponse.SC_NOT_FOUND, "Organization specific routing failed.",
+                        "Unsupported organization specific routing endpoint.", response);
                 return;
             }
         } else {
@@ -123,7 +120,7 @@ public class OrganizationContextRewriteValve extends ValveBase {
 
             IdentityUtil.threadLocalProperties.get().put(TENANT_NAME_FROM_CONTEXT, tenantDomain);
 
-            String orgDomain = getOrgDomainFromURL(requestURI);
+            String orgDomain = getOrganizationDomainFromURL(requestURI);
 
             String dispatchLocation = "/" +
                     requestURI.replace(ORGANIZATION_PATH_PARAM + orgDomain + contextToForward, StringUtils.EMPTY);
@@ -182,30 +179,5 @@ public class OrganizationContextRewriteValve extends ValveBase {
             }
         }
         return rewriteContexts;
-    }
-
-    private void handleErrorResponse(Response response, int error) throws IOException {
-
-        response.setContentType("application/json");
-        response.setStatus(error);
-        response.setCharacterEncoding("UTF-8");
-        JsonObject errorResponse = new JsonObject();
-        String errorMsg = "Unsupported organization specific routing endpoint";
-        errorResponse.addProperty("code", error);
-        errorResponse.addProperty("message", errorMsg);
-        errorResponse.addProperty("description", errorMsg);
-        response.getWriter().print(errorResponse);
-    }
-
-    public static String getOrgDomainFromURL(String requestURI) {
-
-        String domain = MultitenantConstants.SUPER_TENANT_DOMAIN_NAME;
-        String temp = requestURI.substring(requestURI.indexOf(ORGANIZATION_PATH_PARAM) + 3);
-        int index = temp.indexOf('/');
-        if (index != -1) {
-            temp = temp.substring(0, index);
-            domain = temp;
-        }
-        return domain;
     }
 }

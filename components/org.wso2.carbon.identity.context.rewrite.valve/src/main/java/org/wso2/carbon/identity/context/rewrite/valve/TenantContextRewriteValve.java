@@ -55,13 +55,13 @@ import java.util.regex.Pattern;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
 
+import static org.wso2.carbon.identity.context.rewrite.constant.RewriteConstants.TENANT_DOMAIN;
+import static org.wso2.carbon.identity.context.rewrite.constant.RewriteConstants.TENANT_ID;
 import static org.wso2.carbon.identity.core.util.IdentityCoreConstants.ENABLE_TENANT_QUALIFIED_URLS;
 import static org.wso2.carbon.identity.core.util.IdentityCoreConstants.TENANT_NAME_FROM_CONTEXT;
 
 public class TenantContextRewriteValve extends ValveBase {
 
-    private static final String TENANT_DOMAIN = "tenantDomain";
-    private static final String TENANT_ID = "tenantId";
     private static List<RewriteContext> contextsToRewrite;
     private static List<String> contextListToOverwriteDispatch;
     private static List<String> ignorePathListForOverwriteDispatch;
