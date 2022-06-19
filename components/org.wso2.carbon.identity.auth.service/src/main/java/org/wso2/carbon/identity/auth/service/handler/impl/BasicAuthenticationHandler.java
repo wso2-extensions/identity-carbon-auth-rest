@@ -66,6 +66,7 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
     private final String FIDO2_ENDPOINT_URI = "api/users/v2/me/webauthn";
     private final String BACKUP_CODE_ENDPOINT_URI = "api/users/v1/me/backup-code";
     private final String MFA_ENDPOINT_URI = "api/users/v1/me/mfa";
+    private final String ORGANIZATION_PATH_PARAM = "/o/";
 
     @Override
     public void init(InitConfig initConfig) {
@@ -111,13 +112,24 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
                 String password = splitCredentials[1];
 
                 AbstractUserStoreManager userStoreManager;
+                int tenantId;
+                String tenantDomain;
+                boolean organizationRequest = false;
                 try {
-                    int tenantId = IdentityTenantUtil.getTenantIdOfUser(userName);
-                    String tenantDomain = MultitenantUtils.getTenantDomain(userName);
-
+                    String requestUri = authenticationRequest.getRequestUri();
                     AuthenticatedUser user = new AuthenticatedUser();
-                    user.setUserName(MultitenantUtils.getTenantAwareUsername(userName));
-                    user.setTenantDomain(tenantDomain);
+                    if (StringUtils.startsWith(requestUri, ORGANIZATION_PATH_PARAM)) {
+                        organizationRequest = true;
+                        tenantId = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantId();
+                        tenantDomain = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain();
+                        user.setUserName(userName);
+                        user.setTenantDomain(tenantDomain);
+                    } else {
+                        tenantId = IdentityTenantUtil.getTenantIdOfUser(userName);
+                        tenantDomain = MultitenantUtils.getTenantDomain(userName);
+                        user.setUserName(MultitenantUtils.getTenantAwareUsername(userName));
+                        user.setTenantDomain(tenantDomain);
+                    }
 
                     authenticationContext.setUser(user);
 
@@ -135,8 +147,8 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
                             userStoreManager = (AbstractUserStoreManager) userRealm.getUserStoreManager();
                             org.wso2.carbon.user.core.common.AuthenticationResult authResult
                                     = userStoreManager.authenticateWithID(UserCoreClaimConstants.USERNAME_CLAIM_URI,
-                                    MultitenantUtils.getTenantAwareUsername(userName), password,
-                                    UserCoreConstants.DEFAULT_PROFILE);
+                                    organizationRequest ? userName : MultitenantUtils.getTenantAwareUsername(userName),
+                                    password, UserCoreConstants.DEFAULT_PROFILE);
                             if (org.wso2.carbon.user.core.common.AuthenticationResult.AuthenticationStatus.SUCCESS
                                     == authResult.getAuthenticationStatus()
                                     && authResult.getAuthenticatedUser().isPresent()) {

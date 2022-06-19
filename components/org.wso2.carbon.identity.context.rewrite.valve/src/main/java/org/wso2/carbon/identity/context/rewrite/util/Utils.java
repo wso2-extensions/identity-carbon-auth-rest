@@ -18,8 +18,19 @@
 
 package org.wso2.carbon.identity.context.rewrite.util;
 
+import com.google.gson.JsonObject;
 import org.apache.catalina.connector.Request;
+import org.apache.catalina.connector.Response;
 import org.wso2.carbon.utils.multitenancy.MultitenantConstants;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+
+import static org.wso2.carbon.identity.context.rewrite.constant.RewriteConstants.CONTENT_TYPE_APPLICATION_JSON;
+import static org.wso2.carbon.identity.context.rewrite.constant.RewriteConstants.ERROR_CODE;
+import static org.wso2.carbon.identity.context.rewrite.constant.RewriteConstants.ERROR_DESCRIPTION;
+import static org.wso2.carbon.identity.context.rewrite.constant.RewriteConstants.ERROR_MESSAGE;
+import static org.wso2.carbon.identity.context.rewrite.constant.RewriteConstants.ORGANIZATION_PATH_PARAM;
 
 public class Utils {
 
@@ -36,6 +47,31 @@ public class Utils {
             }
         }
         return domain;
+    }
+
+    public static String getOrganizationDomainFromURL(String requestURI) {
+
+        String domain = MultitenantConstants.SUPER_TENANT_DOMAIN_NAME;
+        String domainInRequestPath = requestURI.substring(requestURI.indexOf(ORGANIZATION_PATH_PARAM) + 3);
+        int index = domainInRequestPath.indexOf('/');
+        if (index != -1) {
+            domainInRequestPath = domainInRequestPath.substring(0, index);
+            domain = domainInRequestPath;
+        }
+        return domain;
+    }
+
+    public static void handleErrorResponse(int errorCode, String errorMessage, String errorDescription,
+                                           Response response) throws IOException {
+
+        response.setContentType(CONTENT_TYPE_APPLICATION_JSON);
+        response.setStatus(errorCode);
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+        JsonObject errorResponse = new JsonObject();
+        errorResponse.addProperty(ERROR_CODE, errorCode);
+        errorResponse.addProperty(ERROR_MESSAGE, errorMessage);
+        errorResponse.addProperty(ERROR_DESCRIPTION, errorDescription);
+        response.getWriter().print(errorResponse);
     }
 
 }
