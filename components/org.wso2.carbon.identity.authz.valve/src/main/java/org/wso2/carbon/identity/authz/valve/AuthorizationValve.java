@@ -75,8 +75,7 @@ public class AuthorizationValve extends ValveBase {
                         authorizeInOrganizationLevel(request, response, authenticationContext, resourceConfig,
                                 authorizationContext);
                 /*
-                If the user has organization level access, authorize and proceed.
-                Else evaluate authorization through old authz model.
+                If the user authorized from organization level permissions, grant access and execute next valve.
                  */
                 if (AuthorizationStatus.GRANT.equals(authorizationResult.getAuthorizationStatus())) {
                     getNext().invoke(request, response);
