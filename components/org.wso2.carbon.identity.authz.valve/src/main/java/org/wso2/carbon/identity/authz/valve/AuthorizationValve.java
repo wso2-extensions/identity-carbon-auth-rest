@@ -69,15 +69,19 @@ public class AuthorizationValve extends ValveBase {
                 authorizationContext.setAllowedTenants(resourceConfig.getCrossAccessAllowedTenants());
             }
 
-            AuthorizationResult authorizationResult =
-                    authorizeInOrganizationLevel(request, response, authenticationContext, resourceConfig, authorizationContext);
-            /*
-            If the user has organization level access, authorize and proceed.
-            Else evaluate authorization through old authz model.
-             */
-            if (AuthorizationStatus.GRANT.equals(authorizationResult.getAuthorizationStatus())) {
-                getNext().invoke(request, response);
-                return;
+            String requestURI = request.getRequestURI();
+            if (requestURI.startsWith("/o/")) {
+                AuthorizationResult authorizationResult =
+                        authorizeInOrganizationLevel(request, response, authenticationContext, resourceConfig,
+                                authorizationContext);
+                /*
+                If the user has organization level access, authorize and proceed.
+                Else evaluate authorization through old authz model.
+                 */
+                if (AuthorizationStatus.GRANT.equals(authorizationResult.getAuthorizationStatus())) {
+                    getNext().invoke(request, response);
+                    return;
+                }
             }
             // If user didn't authorized via org level authz model, fallback to old authz model.
             if (!isRequestValidForTenant(authenticationContext, authorizationContext, request)) {
@@ -114,7 +118,7 @@ public class AuthorizationValve extends ValveBase {
                 AuthorizationManager authorizationManager = HandlerManager.getInstance()
                         .getFirstPriorityHandler(authorizationManagerList, true);
                 try {
-                    authorizationResult = authorizationManager.authorize(authorizationContext);
+                    AuthorizationResult authorizationResult = authorizationManager.authorize(authorizationContext);
                     if (authorizationResult.getAuthorizationStatus().equals(AuthorizationStatus.GRANT)) {
                         getNext().invoke(request, response);
                     } else {
@@ -155,7 +159,6 @@ public class AuthorizationValve extends ValveBase {
                     orgMgtAuthorizationContext.setRequiredScopes(resourceConfig.getScopes());
                 }
                 orgMgtAuthorizationContext.setContext(resourceConfig.getContext());
-                orgMgtAuthorizationContext.setRequestUri(request.getRequestURI());
             }
             orgMgtAuthorizationContext.setHttpMethods(httpMethod);
             orgMgtAuthorizationContext.setUser(authenticationContext.getUser());
