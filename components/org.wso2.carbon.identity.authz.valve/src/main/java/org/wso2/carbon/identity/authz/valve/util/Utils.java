@@ -44,7 +44,7 @@ public class Utils {
                 temp = temp.substring(0, index);
                 domain = temp;
             }
-        } else if (requestURI.contains("/o/")) {
+        } else if (requestURI.startsWith("/o/")) {
             domain = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain();
         }
         return domain;
