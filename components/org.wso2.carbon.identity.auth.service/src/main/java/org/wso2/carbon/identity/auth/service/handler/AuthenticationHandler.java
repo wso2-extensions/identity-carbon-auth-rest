@@ -106,18 +106,19 @@ public abstract class AuthenticationHandler extends AbstractIdentityMessageHandl
                         .getThreadLocalCarbonContext().getTenantDomain())) {
                     PrivilegedCarbonContext.getThreadLocalCarbonContext().setUsername(IdentityUtil.addDomainToName
                             (user.getUserName(), user.getUserStoreDomain()));
-                    try {
-                        if (user instanceof AuthenticatedUser) {
-                            PrivilegedCarbonContext.getThreadLocalCarbonContext()
-                                    .setUserId(((AuthenticatedUser) user).getUserId());
-                        } else {
-                            AuthenticatedUser authenticatedUser = new AuthenticatedUser(user);
-                            PrivilegedCarbonContext.getThreadLocalCarbonContext()
-                                    .setUserId(authenticatedUser.getUserId());
-                        }
-                    } catch (UserIdNotFoundException e) {
-                        LOG.error("User id not found for user: " + user.getLoggableUserId());
+                }
+                // Set the user id to the Carbon context if the user authentication is succeeded.
+                try {
+                    if (user instanceof AuthenticatedUser) {
+                        PrivilegedCarbonContext.getThreadLocalCarbonContext()
+                                .setUserId(((AuthenticatedUser) user).getUserId());
+                    } else {
+                        AuthenticatedUser authenticatedUser = new AuthenticatedUser(user);
+                        PrivilegedCarbonContext.getThreadLocalCarbonContext()
+                                .setUserId(authenticatedUser.getUserId());
                     }
+                } catch (UserIdNotFoundException e) {
+                    LOG.error("User id not found for user: " + user.getLoggableUserId());
                 }
             }
         }

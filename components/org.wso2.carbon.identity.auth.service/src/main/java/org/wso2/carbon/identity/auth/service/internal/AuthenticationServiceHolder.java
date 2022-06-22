@@ -21,6 +21,7 @@ package org.wso2.carbon.identity.auth.service.internal;
 import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
 import org.wso2.carbon.identity.auth.service.handler.ResourceHandler;
 import org.wso2.carbon.identity.core.handler.MessageHandlerComparator;
+import org.wso2.carbon.identity.organization.management.service.OrganizationManager;
 import org.wso2.carbon.user.core.service.RealmService;
 
 import java.util.ArrayList;
@@ -36,6 +37,7 @@ public class AuthenticationServiceHolder {
     private static AuthenticationServiceHolder authenticationServiceHolder = new AuthenticationServiceHolder();
 
     private RealmService realmService = null;
+    private OrganizationManager organizationManager = null;
     private List<AuthenticationHandler> authenticationHandlers = new ArrayList<>();
     private List<ResourceHandler> resourceHandlers = new ArrayList<>();
 
@@ -55,6 +57,16 @@ public class AuthenticationServiceHolder {
 
     public void setRealmService(RealmService realmService) {
         this.realmService = realmService;
+    }
+
+    public OrganizationManager getOrganizationManager() {
+
+        return organizationManager;
+    }
+
+    public void setOrganizationManager(OrganizationManager organizationManager) {
+
+        this.organizationManager = organizationManager;
     }
 
     public void addAuthenticationHandler(AuthenticationHandler authenticationHandler) {

@@ -40,12 +40,16 @@ import org.wso2.carbon.identity.core.bean.context.MessageContext;
 import org.wso2.carbon.identity.core.handler.InitConfig;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
+import org.wso2.carbon.identity.organization.management.service.OrganizationManager;
+import org.wso2.carbon.identity.organization.management.service.constant.OrganizationManagementConstants;
+import org.wso2.carbon.identity.organization.management.service.exception.OrganizationManagementException;
 import org.wso2.carbon.user.api.UserRealm;
 import org.wso2.carbon.user.core.UserCoreConstants;
 import org.wso2.carbon.user.core.UserStoreManager;
 import org.wso2.carbon.user.core.common.AbstractUserStoreManager;
 import org.wso2.carbon.user.core.constants.UserCoreClaimConstants;
 import org.wso2.carbon.user.core.util.UserCoreUtil;
+import org.wso2.carbon.utils.multitenancy.MultitenantConstants;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
 import java.nio.charset.Charset;
@@ -120,9 +124,19 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
                     AuthenticatedUser user = new AuthenticatedUser();
                     if (StringUtils.startsWith(requestUri, ORGANIZATION_PATH_PARAM)) {
                         organizationRequest = true;
-                        tenantId = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantId();
-                        tenantDomain = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain();
-                        user.setUserName(userName);
+                        String userOrgID = getOrganizationIdFromUsername(userName);
+                        OrganizationManager organizationManager =
+                                AuthenticationServiceHolder.getInstance().getOrganizationManager();
+                        String rootOrgID = organizationManager.getOrganizationIdByName(
+                                OrganizationManagementConstants.ROOT);
+                        if (StringUtils.equals(rootOrgID, userOrgID)) {
+                            // super tenant domain will be returned.
+                            tenantDomain = MultitenantConstants.SUPER_TENANT_DOMAIN_NAME;
+                        } else {
+                            tenantDomain = organizationManager.resolveTenantDomain(userOrgID);
+                        }
+                        tenantId = IdentityTenantUtil.getTenantId(tenantDomain);
+                        user.setUserName(getOrganizationAwareUsername(userName));
                         user.setTenantDomain(tenantDomain);
                     } else {
                         tenantId = IdentityTenantUtil.getTenantIdOfUser(userName);
@@ -193,7 +207,7 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
                     } finally {
                         PrivilegedCarbonContext.endTenantFlow();
                     }
-                } catch (org.wso2.carbon.user.api.UserStoreException e) {
+                } catch (org.wso2.carbon.user.api.UserStoreException | OrganizationManagementException e) {
                     String errorMessage = "Error occurred while trying to authenticate. " + e.getMessage();
                     log.error(errorMessage);
                     throw new AuthenticationFailServerException(errorMessage);
@@ -209,5 +223,37 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
             throw new AuthenticationFailException(errorMessage);
         }
         return authenticationResult;
+    }
+
+    private static String getOrganizationIdFromUsername(String username) throws OrganizationManagementException {
+
+        OrganizationManager organizationManager =
+                AuthenticationServiceHolder.getInstance().getOrganizationManager();
+        String userOrgId = organizationManager.getOrganizationIdByName(OrganizationManagementConstants.ROOT);
+        if (username.contains("@") && !MultitenantUtils.isEmailUserName()) {
+            userOrgId = username.substring(username.lastIndexOf(64) + 1);
+        } else if (MultitenantUtils.isEmailUserName() && username.indexOf("@") != username.lastIndexOf("@")) {
+            userOrgId = username.substring(username.lastIndexOf(64) + 1);
+        }
+        return userOrgId.toLowerCase();
+    }
+
+    private static String getOrganizationAwareUsername(String username) throws OrganizationManagementException {
+
+        OrganizationManager organizationManager =
+                AuthenticationServiceHolder.getInstance().getOrganizationManager();
+        String rootOrgID = organizationManager.getOrganizationIdByName(OrganizationManagementConstants.ROOT);
+        if (username.contains("@") && !MultitenantUtils.isEmailUserName()) {
+            username = username.substring(0, username.lastIndexOf(64));
+        } else if (MultitenantUtils.isEmailUserName()) {
+            if (username.indexOf("@") == username.lastIndexOf("@")) {
+                if (rootOrgID.equalsIgnoreCase(username.substring(username.lastIndexOf(64) + 1))) {
+                    username = username.substring(0, username.lastIndexOf(64));
+                }
+            } else {
+                username = username.substring(0, username.lastIndexOf(64));
+            }
+        }
+        return username;
     }
 }

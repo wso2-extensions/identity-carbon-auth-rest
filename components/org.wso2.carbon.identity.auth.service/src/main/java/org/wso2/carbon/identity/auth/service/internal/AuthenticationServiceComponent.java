@@ -33,6 +33,7 @@ import org.wso2.carbon.identity.auth.service.handler.impl.TomcatCookieAuthentica
 import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
 import org.wso2.carbon.identity.core.handler.HandlerComparator;
 import org.wso2.carbon.identity.core.util.IdentityCoreInitializedEvent;
+import org.wso2.carbon.identity.organization.management.service.OrganizationManager;
 import org.wso2.carbon.user.core.service.RealmService;
 import java.util.Collections;
 import java.util.List;
@@ -145,6 +146,29 @@ public class AuthenticationServiceComponent {
     protected void unsetIdentityCoreInitializedEventService(IdentityCoreInitializedEvent identityCoreInitializedEvent) {
     /* reference IdentityCoreInitializedEvent service to guarantee that this component will wait until identity core
          is started */
+    }
+
+    @Reference(
+            name = "organization.service",
+            service = OrganizationManager.class,
+            cardinality = ReferenceCardinality.MANDATORY,
+            policy = ReferencePolicy.DYNAMIC,
+            unbind = "unsetOrganizationManager"
+    )
+    protected void setOrganizationManager(OrganizationManager organizationManager) {
+
+        if (log.isDebugEnabled()) {
+            log.debug("Setting the organization management service.");
+        }
+        AuthenticationServiceHolder.getInstance().setOrganizationManager(organizationManager);
+    }
+
+    protected void unsetOrganizationManager(OrganizationManager organizationManager) {
+
+        if (log.isDebugEnabled()) {
+            log.debug("Unset organization management service.");
+        }
+        AuthenticationServiceHolder.getInstance().setOrganizationManager(null);
     }
 }
 
