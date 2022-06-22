@@ -151,7 +151,7 @@ public class AuthorizationValve extends ValveBase {
                     new OrganizationManagementAuthorizationContext();
 
             if (resourceConfig != null) {
-                if(StringUtils.isNotEmpty(resourceConfig.getPermissions())) {
+                if (StringUtils.isNotEmpty(resourceConfig.getPermissions())) {
                     orgMgtAuthorizationContext.setPermissionString(resourceConfig.getPermissions());
                 }
                 if (CollectionUtils.isNotEmpty(resourceConfig.getScopes())) {
