@@ -168,6 +168,11 @@
                 <version>${org.wso2.carbon.identity.organization.management.version}</version>
             </dependency>
             <dependency>
+                <groupId>org.wso2.carbon.identity.organization.management</groupId>
+                <artifactId>org.wso2.carbon.identity.organization.management.service</artifactId>
+                <version>${org.wso2.carbon.identity.organization.management.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>org.testng</groupId>
                 <artifactId>testng</artifactId>
                 <version>${testng.version}</version>
@@ -347,7 +352,7 @@
         <org.wso2.carbon.identity.oauth.import.version.range>[6.2.18, 7.0.0)
         </org.wso2.carbon.identity.oauth.import.version.range>
 
-        <org.wso2.carbon.identity.organization.management.version>1.0.13
+        <org.wso2.carbon.identity.organization.management.version>1.0.15
         </org.wso2.carbon.identity.organization.management.version>
         <org.wso2.carbon.identity.organization.management.version.range>[1.0.0, 2.0.0)
         </org.wso2.carbon.identity.organization.management.version.range>
