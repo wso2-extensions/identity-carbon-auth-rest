@@ -175,7 +175,7 @@ public class AuthorizationValve extends ValveBase {
                 authorizationResult = authorizationManager.authorize(orgMgtAuthorizationContext);
             } catch (AuthzServiceServerException e) {
                 APIErrorResponseHandler.handleErrorResponse(authenticationContext, response,
-                        HttpServletResponse.SC_BAD_REQUEST, null);
+                        HttpServletResponse.SC_INTERNAL_SERVER_ERROR, null);
             }
         }
         return authorizationResult;
