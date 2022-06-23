@@ -161,7 +161,8 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
                             userStoreManager = (AbstractUserStoreManager) userRealm.getUserStoreManager();
                             org.wso2.carbon.user.core.common.AuthenticationResult authResult
                                     = userStoreManager.authenticateWithID(UserCoreClaimConstants.USERNAME_CLAIM_URI,
-                                    organizationRequest ? userName : MultitenantUtils.getTenantAwareUsername(userName),
+                                    organizationRequest ? getOrganizationAwareUsername(userName) :
+                                            MultitenantUtils.getTenantAwareUsername(userName),
                                     password, UserCoreConstants.DEFAULT_PROFILE);
                             if (org.wso2.carbon.user.core.common.AuthenticationResult.AuthenticationStatus.SUCCESS
                                     == authResult.getAuthenticationStatus()
