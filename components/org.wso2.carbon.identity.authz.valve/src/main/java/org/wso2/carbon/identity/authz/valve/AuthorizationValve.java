@@ -70,7 +70,8 @@ public class AuthorizationValve extends ValveBase {
             }
 
             String requestURI = request.getRequestURI();
-            if (requestURI.startsWith("/o/")) {
+            String organizationPathParam = "/o/";
+            if (requestURI.startsWith(organizationPathParam)) {
                 AuthorizationResult authorizationResult =
                         authorizeInOrganizationLevel(request, response, authenticationContext, resourceConfig,
                                 authorizationContext);
@@ -88,7 +89,7 @@ public class AuthorizationValve extends ValveBase {
                 Forbidden the /o/<org-id> path requests if the org level authz failed and
                 resource is not cross tenant allowed or authenticated user doesn't belong to the accessed resource's org.
                  */
-                if (requestURI.startsWith("/o/")) {
+                if (requestURI.startsWith(organizationPathParam)) {
                     APIErrorResponseHandler.handleErrorResponse(authenticationContext, response,
                             HttpServletResponse.SC_FORBIDDEN, null);
                     return;
