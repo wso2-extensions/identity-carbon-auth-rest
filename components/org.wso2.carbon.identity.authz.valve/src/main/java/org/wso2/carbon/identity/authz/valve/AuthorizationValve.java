@@ -53,6 +53,7 @@ import static org.wso2.carbon.identity.auth.service.util.Constants.OAUTH2_VALIDA
 public class AuthorizationValve extends ValveBase {
 
     private static final String AUTH_CONTEXT = "auth-context";
+    private static final String ORGANIZATION_PATH_PARAM = "/o/";
 
     private static final Log log = LogFactory.getLog(AuthorizationValve.class);
 
@@ -70,7 +71,7 @@ public class AuthorizationValve extends ValveBase {
             }
 
             String requestURI = request.getRequestURI();
-            if (requestURI.startsWith("/o/")) {
+            if (requestURI.startsWith(ORGANIZATION_PATH_PARAM)) {
                 AuthorizationResult authorizationResult =
                         authorizeInOrganizationLevel(request, response, authenticationContext, resourceConfig,
                                 authorizationContext);
@@ -84,6 +85,15 @@ public class AuthorizationValve extends ValveBase {
             }
             // If user didn't authorized via org level authz model, fallback to old authz model.
             if (!isRequestValidForTenant(authenticationContext, authorizationContext, request)) {
+                /*
+                Forbidden the /o/<org-id> path requests if the org level authz failed and
+                resource is not cross tenant allowed or authenticated user doesn't belong to the accessed resource's org.
+                 */
+                if (requestURI.startsWith(ORGANIZATION_PATH_PARAM)) {
+                    APIErrorResponseHandler.handleErrorResponse(authenticationContext, response,
+                            HttpServletResponse.SC_FORBIDDEN, null);
+                    return;
+                }
                 if (log.isDebugEnabled()) {
                     log.debug("Authorization to " + request.getRequestURI()
                             + " is denied because the authenticated user belongs to different tenant domain: "
