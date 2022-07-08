@@ -95,9 +95,10 @@ public class ContextRewriteValveServiceComponent {
             File file = new File(pageNotFoundHtmlResponse.toString());
             errorPage = FileUtils.readFileToString(file, StandardCharsets.UTF_8);
         } catch (IOException e) {
-            log.warn(
-                    "File page_not_found.html not found. The default content will be used " +
-                            "as the error page content.");
+            if (log.isDebugEnabled()) {
+                log.debug("File page_not_found.html not found. The default content will be used " +
+                        "as the error page content.");
+            }
         }
         ContextRewriteValveServiceComponentHolder.getInstance().setPageNotFoundErrorPage(errorPage);
     }
