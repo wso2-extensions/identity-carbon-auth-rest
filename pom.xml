@@ -352,7 +352,7 @@
         <org.wso2.carbon.identity.oauth.import.version.range>[6.2.18, 7.0.0)
         </org.wso2.carbon.identity.oauth.import.version.range>
 
-        <org.wso2.carbon.identity.organization.management.version>1.0.15
+        <org.wso2.carbon.identity.organization.management.version>1.0.30
         </org.wso2.carbon.identity.organization.management.version>
         <org.wso2.carbon.identity.organization.management.version.range>[1.0.0, 2.0.0)
         </org.wso2.carbon.identity.organization.management.version.range>
