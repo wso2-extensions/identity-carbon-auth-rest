@@ -114,7 +114,6 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
                 int tenantId;
                 String tenantDomain;
                 boolean organizationRequest = false;
-                boolean organizationAwareUsernameRequired = false;
                 try {
                     String requestUri = authenticationRequest.getRequestUri();
                     AuthenticatedUser user = new AuthenticatedUser();
@@ -131,7 +130,6 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
                                 tenantDomain = tenantDomainFromUsername;
                             }
                             user.setUserName(getOrganizationAwareUsername(userName));
-                            organizationAwareUsernameRequired = true;
                         } else {
                             user.setUserName(userName);
                         }
@@ -159,8 +157,7 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
                             userStoreManager = (AbstractUserStoreManager) userRealm.getUserStoreManager();
                             org.wso2.carbon.user.core.common.AuthenticationResult authResult
                                     = userStoreManager.authenticateWithID(UserCoreClaimConstants.USERNAME_CLAIM_URI,
-                                    organizationRequest ? (organizationAwareUsernameRequired ?
-                                            getOrganizationAwareUsername(userName) : userName) :
+                                    organizationRequest ? user.getUserName() :
                                             MultitenantUtils.getTenantAwareUsername(userName),
                                     password, UserCoreConstants.DEFAULT_PROFILE);
                             if (org.wso2.carbon.user.core.common.AuthenticationResult.AuthenticationStatus.SUCCESS
@@ -225,6 +222,13 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
         return authenticationResult;
     }
 
+    /**
+     * Extracts the organization id appended to the username.
+     *
+     * @param username The username present in the request.
+     * @return The organization id extracted from the username. If an organization id is not appended to the username,
+     * a null value will be returned.
+     */
     private static String getOrganizationIdFromUsername(String username) {
 
         String userOrgId = null;
