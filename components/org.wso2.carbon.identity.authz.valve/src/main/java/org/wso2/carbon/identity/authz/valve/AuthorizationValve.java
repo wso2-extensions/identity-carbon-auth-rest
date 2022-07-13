@@ -25,6 +25,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
 import org.wso2.carbon.identity.auth.service.handler.HandlerManager;
 import org.wso2.carbon.identity.auth.service.module.ResourceConfig;
@@ -38,6 +39,7 @@ import org.wso2.carbon.identity.authz.service.exception.AuthzServiceServerExcept
 import org.wso2.carbon.identity.authz.valve.internal.AuthorizationValveServiceHolder;
 import org.wso2.carbon.identity.authz.valve.util.Utils;
 import org.wso2.carbon.identity.organization.management.authz.service.OrganizationManagementAuthorizationContext;
+import org.wso2.carbon.utils.multitenancy.MultitenantConstants;
 
 import java.io.IOException;
 import java.util.List;
@@ -71,7 +73,9 @@ public class AuthorizationValve extends ValveBase {
             }
 
             String requestURI = request.getRequestURI();
-            if (requestURI.startsWith(ORGANIZATION_PATH_PARAM)) {
+            String tenantDomain = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain();
+            if (!StringUtils.equals(MultitenantConstants.SUPER_TENANT_DOMAIN_NAME, tenantDomain) &&
+                    requestURI.startsWith(ORGANIZATION_PATH_PARAM)) {
                 AuthorizationResult authorizationResult =
                         authorizeInOrganizationLevel(request, response, authenticationContext, resourceConfig,
                                 authorizationContext);
