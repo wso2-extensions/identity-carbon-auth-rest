@@ -139,15 +139,6 @@ public class TenantContextRewriteValve extends ValveBase {
             if (tenantDomain != null &&
                     !tenantManager.isTenantActive(IdentityTenantUtil.getTenantId(tenantDomain))) {
                 handleInvalidTenantDomainErrorResponse(response, HttpServletResponse.SC_NOT_FOUND, tenantDomain);
-            } else if (IdentityTenantUtil.isTenantQualifiedUrlsEnabled() && MultitenantConstants
-                    .SUPER_TENANT_DOMAIN_NAME.equals(tenantDomain)) {
-                if (log.isDebugEnabled()) {
-                    log.debug("Tenant qualified URL feature is enabled. Hence restricting the access to super tenant" +
-                            " domain via /t/carbon.super context. Super tenant should be invoked without the tenant " +
-                            "in context path using the server base path.");
-                }
-                handleRestrictedTenantDomainErrorResponse(request, response);
-
             } else {
                 IdentityUtil.threadLocalProperties.get().put(TENANT_NAME_FROM_CONTEXT, tenantDomain);
 
