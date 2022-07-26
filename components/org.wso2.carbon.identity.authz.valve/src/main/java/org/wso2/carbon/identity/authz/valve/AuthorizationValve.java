@@ -168,8 +168,7 @@ public class AuthorizationValve extends ValveBase {
 
     private AuthorizationResult authorizeInOrganizationLevel(Request request, Response response,
                                                              AuthenticationContext authenticationContext,
-                                                             ResourceConfig resourceConfig)
-            throws IOException {
+                                                             ResourceConfig resourceConfig) throws IOException {
 
         AuthorizationResult authorizationResult = new AuthorizationResult(AuthorizationStatus.DENY);
 
