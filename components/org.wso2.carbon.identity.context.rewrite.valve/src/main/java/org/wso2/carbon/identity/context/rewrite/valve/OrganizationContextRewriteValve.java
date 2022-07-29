@@ -27,6 +27,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.MDC;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
+import org.wso2.carbon.identity.context.rewrite.internal.ContextRewriteValveServiceComponentHolder;
 import org.wso2.carbon.identity.core.util.IdentityConfigParser;
 import org.wso2.carbon.identity.core.util.IdentityCoreConstants;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
@@ -62,7 +63,9 @@ public class OrganizationContextRewriteValve extends ValveBase {
     protected synchronized void startInternal() throws LifecycleException {
 
         super.startInternal();
-        orgContextsToRewrite = getOrgContextsToRewrite();
+        if (ContextRewriteValveServiceComponentHolder.getInstance().isOrganizationManagementEnabled()) {
+            orgContextsToRewrite = getOrgContextsToRewrite();
+        }
     }
 
     @Override
@@ -74,7 +77,8 @@ public class OrganizationContextRewriteValve extends ValveBase {
         boolean orgRoutingSubPathSupported = false;
         boolean subPathsConfigured = false;
 
-        if (StringUtils.startsWith(requestURI, ORGANIZATION_PATH_PARAM)) {
+        if (ContextRewriteValveServiceComponentHolder.getInstance().isOrganizationManagementEnabled() &&
+                StringUtils.startsWith(requestURI, ORGANIZATION_PATH_PARAM)) {
             for (Map.Entry<String, List<String>> entry : orgContextsToRewrite.entrySet()) {
                 String basePath = entry.getKey();
                 Pattern orgPattern = Pattern.compile("^" + ORGANIZATION_PATH_PARAM + "([^/]+)" + basePath);
