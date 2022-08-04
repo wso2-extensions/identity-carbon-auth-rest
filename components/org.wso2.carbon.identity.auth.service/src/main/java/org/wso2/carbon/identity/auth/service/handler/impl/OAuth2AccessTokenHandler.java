@@ -50,6 +50,8 @@ import org.wso2.carbon.identity.oauth2.model.AccessTokenDO;
 import org.wso2.carbon.identity.oauth2.token.bindings.TokenBinding;
 import org.wso2.carbon.identity.oauth2.util.OAuth2Util;
 
+import java.util.Optional;
+
 import static org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil.isAuthHeaderMatch;
 import static org.wso2.carbon.identity.auth.service.util.Constants.IDP_NAME;
 import static org.wso2.carbon.identity.auth.service.util.Constants.IS_FEDERATED_USER;
@@ -113,10 +115,9 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
                 }
 
                 // If the request is coming to me endpoint, store the token id to the thread local.
-                if (authenticationRequest.getRequest() != null
-                        && authenticationRequest.getRequest().getRequestURI() != null
-                        && authenticationRequest.getRequest().getRequestURI()
-                        .toLowerCase().endsWith(SCIM_ME_ENDPOINT_URI) && accessToken != null) {
+                if (Optional.ofNullable(authenticationRequest.getRequest()).map(Request::getRequestURI)
+                        .filter(u -> u.toLowerCase().endsWith(SCIM_ME_ENDPOINT_URI)).isPresent()
+                        && accessToken != null) {
                     setCurrentTokenIdThreadLocal(getTokenIdFromAccessToken(accessToken));
                 }
 
