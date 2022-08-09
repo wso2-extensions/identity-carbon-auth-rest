@@ -63,14 +63,8 @@
             <artifactId>org.wso2.carbon.identity.oauth</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.wso2.carbon.identity.organization.management</groupId>
+            <groupId>org.wso2.carbon.identity.organization.management.core</groupId>
             <artifactId>org.wso2.carbon.identity.organization.management.service</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.wso2.carbon.identity.auth.rest</groupId>
-                    <artifactId>org.wso2.carbon.identity.authz.service</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.testng</groupId>
@@ -197,7 +191,9 @@
                             version="${carbon.identity.package.import.version.range}"
                             org.wso2.carbon.identity.core.*; version="${carbon.identity.package.import.version.range}",
                             org.wso2.carbon.identity.oauth2.*;
-                            version="${org.wso2.carbon.identity.oauth.import.version.range}"
+                            version="${org.wso2.carbon.identity.oauth.import.version.range}",
+                            org.wso2.carbon.identity.organization.management.service; version="${org.wso2.carbon.identity.organization.management.core.version.range}",
+                            org.wso2.carbon.identity.organization.management.service.exception; version="${org.wso2.carbon.identity.organization.management.core.version.range}"
                         </Import-Package>
                         <Export-Package>
                             !org.wso2.carbon.identity.auth.service.internal,
