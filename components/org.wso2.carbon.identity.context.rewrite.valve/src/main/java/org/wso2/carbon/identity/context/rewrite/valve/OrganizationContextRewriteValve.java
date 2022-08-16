@@ -63,9 +63,7 @@ public class OrganizationContextRewriteValve extends ValveBase {
     protected synchronized void startInternal() throws LifecycleException {
 
         super.startInternal();
-        if (ContextRewriteValveServiceComponentHolder.getInstance().isOrganizationManagementEnabled()) {
-            orgContextsToRewrite = getOrgContextsToRewrite();
-        }
+        orgContextsToRewrite = getOrgContextsToRewrite();
     }
 
     @Override
