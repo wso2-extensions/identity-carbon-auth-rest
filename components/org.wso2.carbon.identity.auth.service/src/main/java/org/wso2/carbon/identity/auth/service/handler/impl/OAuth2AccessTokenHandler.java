@@ -25,6 +25,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpHeaders;
 import org.slf4j.MDC;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
+import org.wso2.carbon.identity.application.authentication.framework.util.FrameworkConstants;
 import org.wso2.carbon.identity.application.common.model.ProvisioningServiceProviderType;
 import org.wso2.carbon.identity.application.common.model.ThreadLocalProvisioningServiceProvider;
 import org.wso2.carbon.identity.application.common.model.User;
@@ -48,6 +49,8 @@ import org.wso2.carbon.identity.oauth2.dto.OAuth2TokenValidationRequestDTO;
 import org.wso2.carbon.identity.oauth2.model.AccessTokenDO;
 import org.wso2.carbon.identity.oauth2.token.bindings.TokenBinding;
 import org.wso2.carbon.identity.oauth2.util.OAuth2Util;
+
+import java.util.Optional;
 
 import static org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil.isAuthHeaderMatch;
 import static org.wso2.carbon.identity.auth.service.util.Constants.IDP_NAME;
@@ -109,6 +112,13 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
 
                 if (!oAuth2IntrospectionResponseDTO.isActive()) {
                     return authenticationResult;
+                }
+
+                // If the request is coming to me endpoint, store the token id to the thread local.
+                if (Optional.ofNullable(authenticationRequest.getRequest()).map(Request::getRequestURI)
+                        .filter(u -> u.toLowerCase().endsWith(SCIM_ME_ENDPOINT_URI)).isPresent()
+                        && accessToken != null) {
+                    setCurrentTokenIdThreadLocal(getTokenIdFromAccessToken(accessToken));
                 }
 
                 TokenBinding tokenBinding = new TokenBinding(oAuth2IntrospectionResponseDTO.getBindingType(),
@@ -288,15 +298,51 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
     }
 
     /**
+     * Get the token id for a given access token.
+     *
+     * @param accessToken The access token value.
+     * @return The id of the token as a string.
+     */
+    private String getTokenIdFromAccessToken(String accessToken) {
+
+        String tokenId = null;
+        try {
+            AccessTokenDO accessTokenDO = OAuth2Util.findAccessToken(accessToken, false);
+            if (accessTokenDO != null) {
+                tokenId = accessTokenDO.getTokenId();
+            }
+        } catch (IdentityOAuth2Exception e) {
+            log.error("Error occurred while getting the access token id from the token", e);
+        }
+        return tokenId;
+    }
+
+    /**
      * Set token binding value which corresponds to the current session id to a thread local to be used down the flow.
      * @param tokenBindingValue     Token Binding value.
      */
     private void setCurrentSessionIdThreadLocal(String tokenBindingValue) {
 
         if (StringUtils.isNotBlank(tokenBindingValue)) {
-            IdentityUtil.threadLocalProperties.get().put(Constants.CURRENT_SESSION_IDENTIFIER, tokenBindingValue);
+            IdentityUtil.threadLocalProperties.get().put(FrameworkConstants.CURRENT_SESSION_IDENTIFIER,
+                    tokenBindingValue);
             if (log.isDebugEnabled()) {
                 log.debug("Current session identifier: " + tokenBindingValue + " is added to thread local.");
+            }
+        }
+    }
+
+    /**
+     * Set the current access token id to a thread local to be used down the flow.
+     *
+     * @param accessTokenId The id of the token.
+     */
+    private void setCurrentTokenIdThreadLocal(String accessTokenId) {
+
+        if (StringUtils.isNotBlank(accessTokenId)) {
+            IdentityUtil.threadLocalProperties.get().put(FrameworkConstants.CURRENT_TOKEN_IDENTIFIER, accessTokenId);
+            if (log.isDebugEnabled()) {
+                log.debug("Current token identifier is added to thread local. Token id: " + accessTokenId);
             }
         }
     }
