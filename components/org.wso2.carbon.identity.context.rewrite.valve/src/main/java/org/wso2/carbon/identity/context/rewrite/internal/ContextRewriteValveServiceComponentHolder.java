@@ -20,6 +20,7 @@ package org.wso2.carbon.identity.context.rewrite.internal;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.wso2.carbon.identity.organization.management.service.OrganizationManagementInitialize;
 import org.wso2.carbon.user.core.service.RealmService;
 
 public class ContextRewriteValveServiceComponentHolder {
@@ -28,6 +29,7 @@ public class ContextRewriteValveServiceComponentHolder {
     private RealmService realmService;
     private String pageNotFoundErrorPage;
     private static final Log log = LogFactory.getLog(ContextRewriteValveServiceComponentHolder.class);
+    private boolean isOrganizationManagementEnable;
 
     private ContextRewriteValveServiceComponentHolder() {
 
@@ -67,4 +69,26 @@ public class ContextRewriteValveServiceComponentHolder {
         this.pageNotFoundErrorPage = pageNotFoundErrorPage;
     }
 
+    /**
+     * Get is organization management enabled.
+     *
+     * @return True if organization management is enabled.
+     */
+    public boolean isOrganizationManagementEnabled() {
+
+        return isOrganizationManagementEnable;
+    }
+
+    /**
+     * Set organization management enable/disable state.
+     *
+     * @param organizationManagementInitializeService OrganizationManagementInitializeInstance.
+     */
+    public void setOrganizationManagementEnable(
+            OrganizationManagementInitialize organizationManagementInitializeService) {
+
+        if (organizationManagementInitializeService != null) {
+            isOrganizationManagementEnable = organizationManagementInitializeService.isOrganizationManagementEnabled();
+        }
+    }
 }

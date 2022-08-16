@@ -27,6 +27,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.slf4j.MDC;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
+import org.wso2.carbon.identity.application.authentication.framework.util.FrameworkConstants;
 import org.wso2.carbon.identity.application.common.util.IdentityApplicationManagementUtil;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
 import org.wso2.carbon.identity.auth.service.AuthenticationManager;
@@ -169,6 +170,8 @@ public class AuthenticationValve extends ValveBase {
             unsetCurrentSessionIdThreadLocal();
             // Clear thread local authenticated user tenant domain.
             unsetThreadLocalAuthUserTenantDomain();
+            // Clear thread local current access token id.
+            unsetCurrentTokenIdThreadLocal();
             // Clear thread local provisioning service provider.
             IdentityApplicationManagementUtil.resetThreadLocalProvisioningServiceProvider();
             // Clear Thread Locals from MDC.
@@ -280,6 +283,20 @@ public class AuthenticationValve extends ValveBase {
         }
         if (IdentityUtil.threadLocalProperties.get().get(Constants.IDP_NAME) != null) {
             IdentityUtil.threadLocalProperties.get().remove(Constants.IDP_NAME);
+        }
+    }
+
+    /**
+     * Remove current access token id from thread local, which is set in OAuth2AccessTokenHandler.
+     */
+    private void unsetCurrentTokenIdThreadLocal() {
+
+        if (IdentityUtil.threadLocalProperties.get().get(FrameworkConstants.CURRENT_TOKEN_IDENTIFIER) != null) {
+            if (log.isDebugEnabled()) {
+                log.debug("Removing the current token identifier from thread local. Token id: "
+                        + IdentityUtil.threadLocalProperties.get().get(FrameworkConstants.CURRENT_TOKEN_IDENTIFIER));
+            }
+            IdentityUtil.threadLocalProperties.get().remove(FrameworkConstants.CURRENT_TOKEN_IDENTIFIER);
         }
     }
 

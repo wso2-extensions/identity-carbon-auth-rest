@@ -18,6 +18,7 @@
 
 package org.wso2.carbon.identity.auth.service.handler;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
@@ -31,9 +32,13 @@ import org.wso2.carbon.identity.auth.service.exception.AuthClientException;
 import org.wso2.carbon.identity.auth.service.exception.AuthServerException;
 import org.wso2.carbon.identity.auth.service.exception.AuthenticationFailException;
 import org.wso2.carbon.identity.auth.service.handler.impl.BasicAuthenticationHandler;
+import org.wso2.carbon.identity.auth.service.internal.AuthenticationServiceHolder;
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
 import org.wso2.carbon.identity.core.handler.AbstractIdentityMessageHandler;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
+import org.wso2.carbon.identity.organization.management.service.exception.OrganizationManagementException;
+
+import java.util.Optional;
 
 /**
  * This is the abstract class for custom authentication handlers.
@@ -118,6 +123,23 @@ public abstract class AuthenticationHandler extends AbstractIdentityMessageHandl
                                 .setUserId(authenticatedUser.getUserId());
                     }
                 } catch (UserIdNotFoundException e) {
+                    // Resolve authenticated resident user for organization specific calls.
+                    String organizationId = PrivilegedCarbonContext.getThreadLocalCarbonContext().getOrganizationId();
+                    if (StringUtils.isNotBlank(organizationId)) {
+                        try {
+                            Optional<org.wso2.carbon.user.core.common.User> resolvedUser = AuthenticationServiceHolder
+                                    .getInstance().getOrganizationUserResidentResolverService()
+                                    .resolveUserFromResidentOrganization(user.getUserName(), null, organizationId);
+                            if (resolvedUser.isPresent()) {
+                                PrivilegedCarbonContext.getThreadLocalCarbonContext().setUserId(resolvedUser.get()
+                                        .getUserID());
+                                return;
+                            }
+                        } catch (OrganizationManagementException ex) {
+                            LOG.error("Server encountered an error while resolving authenticated resident user " +
+                                    "for organization specific calls.", ex);
+                        }
+                    }
                     LOG.error("User id not found for user: " + user.getLoggableUserId());
                 }
             }
