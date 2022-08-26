@@ -124,8 +124,13 @@ public class OrganizationContextRewriteValve extends ValveBase {
 
             String orgDomain = getOrganizationDomainFromURL(requestURI);
 
-            String dispatchLocation = "/" +
-                    requestURI.replace(ORGANIZATION_PATH_PARAM + orgDomain + contextToForward, StringUtils.EMPTY);
+            String dispatchLocation;
+            if (StringUtils.contains(requestURI, ORGANIZATION_PATH_PARAM + orgDomain + contextToForward)) {
+                dispatchLocation = "/" + requestURI.replace(ORGANIZATION_PATH_PARAM + orgDomain +
+                        contextToForward, StringUtils.EMPTY);
+            } else {
+                dispatchLocation = requestURI.replace(ORGANIZATION_PATH_PARAM + orgDomain, StringUtils.EMPTY);
+            }
             request.getContext().setCrossContext(true);
             request.getServletContext().getContext(contextToForward)
                     .getRequestDispatcher(dispatchLocation).forward(request, response);
