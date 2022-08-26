@@ -1,7 +1,7 @@
 /*
- * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 LLC. (http://www.wso2.org) All Rights Reserved.
  *
- * WSO2 Inc. licenses this file to you under the Apache License,
+ * WSO2 LLC. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License.
  * You may obtain a copy of the License at
@@ -76,9 +76,25 @@ public class AuthorizationValve extends ValveBase {
             String tenantDomain = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain();
             if (!StringUtils.equals(MultitenantConstants.SUPER_TENANT_DOMAIN_NAME, tenantDomain) &&
                     requestURI.startsWith(ORGANIZATION_PATH_PARAM)) {
+                /*
+                If the request is authenticated using an oauth2 access token and scope validation is required,
+                the token obtained tenant domain should be equal to the accessed resource's tenant domain.
+                 */
+                Object scopeValidationEnabled = authenticationContext.getParameter(OAUTH2_VALIDATE_SCOPE);
+                if (scopeValidationEnabled != null && Boolean.parseBoolean(scopeValidationEnabled.toString())) {
+                    if (!Utils.isUserBelongsToRequestedTenant(authenticationContext, request)) {
+                        if (log.isDebugEnabled()) {
+                            log.debug("Authorization to " + request.getRequestURI() +
+                                    " is denied because the used access token issued from a different tenant domain: " +
+                                    authenticationContext.getUser().getTenantDomain());
+                        }
+                        APIErrorResponseHandler.handleErrorResponse(authenticationContext, response,
+                                HttpServletResponse.SC_UNAUTHORIZED, null);
+                        return;
+                    }
+                }
                 AuthorizationResult authorizationResult =
-                        authorizeInOrganizationLevel(request, response, authenticationContext, resourceConfig,
-                                authorizationContext);
+                        authorizeInOrganizationLevel(request, response, authenticationContext, resourceConfig);
                 /*
                 If the user authorized from organization level permissions, grant access and execute next valve.
                  */
@@ -151,9 +167,8 @@ public class AuthorizationValve extends ValveBase {
     }
 
     private AuthorizationResult authorizeInOrganizationLevel(Request request, Response response,
-                                              AuthenticationContext authenticationContext,
-                                              ResourceConfig resourceConfig, AuthorizationContext authorizationContext)
-            throws IOException {
+                                                             AuthenticationContext authenticationContext,
+                                                             ResourceConfig resourceConfig) throws IOException {
 
         AuthorizationResult authorizationResult = new AuthorizationResult(AuthorizationStatus.DENY);
 
