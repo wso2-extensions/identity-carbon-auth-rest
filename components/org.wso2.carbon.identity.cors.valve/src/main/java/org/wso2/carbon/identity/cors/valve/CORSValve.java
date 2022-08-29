@@ -28,7 +28,6 @@ import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.identity.cors.mgt.core.exception.CORSManagementServiceException;
 import org.wso2.carbon.identity.cors.mgt.core.model.CORSConfiguration;
 import org.wso2.carbon.identity.cors.service.CORSManager;
-import org.wso2.carbon.identity.cors.valve.constant.ErrorMessages;
 import org.wso2.carbon.identity.cors.valve.exception.CORSException;
 import org.wso2.carbon.identity.cors.valve.internal.CORSValveServiceHolder;
 import org.wso2.carbon.identity.cors.valve.internal.handler.CORSRequestHandler;
@@ -73,23 +72,16 @@ public class CORSValve extends ValveBase {
                 RequestTagger.tag(request, corsRequestType);
             }
 
-            CORSConfiguration config = CORSValveServiceHolder.getInstance().getCorsManager()
-                    .getCORSConfiguration(tenantDomain);
-
-            if (corsRequestType == CORSRequestType.ACTUAL) {
-                // ACTUAL request - Simple / actual CORS request.
-                corsRequestHandler.handleActualRequest(request, response);
+            if (corsRequestType == CORSRequestType.SIMPLE || corsRequestType == CORSRequestType.ACTUAL) {
+                // Simple and Actual requests are handled in a same way.
+                corsRequestHandler.handleSimpleRequest(request, response);
                 getNext().invoke(request, response);
             } else if (corsRequestType == CORSRequestType.PREFLIGHT) {
-                // PREFLIGHT request - Handle but don't pass further down the chain.
+                // Preflight requests.
                 corsRequestHandler.handlePreflightRequest(request, response);
-            } else if (config.isAllowGenericHttpRequests()) {
-                // OTHER request - Not a CORS request, but allow it through.
-                corsRequestHandler.handleOtherRequest(request, response);
-                getNext().invoke(request, response);
             } else {
-                // Generic HTTP requests denied.
-                printMessage(new CORSException(ErrorMessages.ERROR_CODE_GENERIC_HTTP_NOT_ALLOWED), response);
+                // Not CORS requests.
+                getNext().invoke(request, response);
             }
         } catch (CORSException e) {
             printMessage(e, response);

@@ -34,7 +34,6 @@ import org.wso2.carbon.identity.cors.valve.internal.util.HeaderUtils;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.net.URISyntaxException;
 
 /**
  * Request handler for the CORS valve.
@@ -59,36 +58,20 @@ public class CORSRequestHandler {
      * @throws CORSException
      * @throws CORSManagementServiceException
      */
-    public void handleActualRequest(HttpServletRequest request, HttpServletResponse response)
+    public void handleSimpleRequest(HttpServletRequest request, HttpServletResponse response)
             throws CORSException, CORSManagementServiceException {
 
         String tenantDomain = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain();
         CORSConfiguration config = getCORSManager().getCORSConfiguration(tenantDomain);
 
-        // Check origin against allow list.
+        addStandardHeaders(request, response, config);
+    }
+
+    private void addStandardHeaders(HttpServletRequest request, HttpServletResponse response, CORSConfiguration config)
+            throws CORSManagementServiceException {
+
+        String tenantDomain = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain();
         Origin requestOrigin = new Origin(request.getHeader(Header.ORIGIN));
-        if (!isAllowedOrigin(tenantDomain, requestOrigin)) {
-            throw new CORSException(ErrorMessages.ERROR_CODE_ORIGIN_DENIED);
-        }
-
-        if (!isSupportedMethod(config, request.getMethod().toUpperCase())) {
-            throw new CORSException(ErrorMessages.ERROR_CODE_UNSUPPORTED_METHOD);
-        }
-
-        addStandardHeaders(request, response, config);
-    }
-
-    public void handleOtherRequest(HttpServletRequest request, HttpServletResponse response)
-            throws CORSException, CORSManagementServiceException {
-
-        String tenantDomain = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain();
-        CORSConfiguration config = getCORSManager().getCORSConfiguration(tenantDomain);
-        addStandardHeaders(request, response, config);
-    }
-
-    private void addStandardHeaders(HttpServletRequest request, HttpServletResponse response, CORSConfiguration config) {
-
-        String requestOrigin = request.getHeader(Header.ORIGIN);
 
         // If only specific origins are allowed, the response will vary by origin
         if (!config.isAllowAnyOrigin()) {
@@ -102,7 +85,12 @@ public class CORSRequestHandler {
         } else {
             // Add a single Access-Control-Allow-Origin header, with the value
             // of the Origin header as value.
-            response.addHeader(Header.ACCESS_CONTROL_ALLOW_ORIGIN, requestOrigin);
+            if (isAllowedOrigin(tenantDomain, requestOrigin)) {
+                response.addHeader(Header.ACCESS_CONTROL_ALLOW_ORIGIN, requestOrigin.toString());
+            } else {
+                response.addHeader(Header.ACCESS_CONTROL_ALLOW_ORIGIN, "null");
+                return;
+            }
         }
 
         // If the resource supports credentials, add a single
@@ -152,7 +140,6 @@ public class CORSRequestHandler {
         // Parse the requested author (custom) headers
         final String rawRequestHeadersString = request.getHeader(Header.ACCESS_CONTROL_REQUEST_HEADERS);
         final String[] requestHeaderValues = HeaderUtils.parseMultipleHeaderValues(rawRequestHeadersString);
-
         final String[] requestHeaders = new String[requestHeaderValues.length];
 
         for (int i = 0; i < requestHeaders.length; i++) {

@@ -22,7 +22,7 @@
 package org.wso2.carbon.identity.cors.valve.internal.util;
 
 import org.wso2.carbon.identity.cors.valve.constant.Header;
-import org.wso2.carbon.identity.cors.valve.constant.RequestMethod;
+
 import org.wso2.carbon.identity.cors.valve.model.CORSRequestType;
 
 import javax.servlet.http.HttpServletRequest;
@@ -30,6 +30,11 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+
+import static org.wso2.carbon.identity.cors.valve.constant.RequestMethod.GET;
+import static org.wso2.carbon.identity.cors.valve.constant.RequestMethod.HEAD;
+import static org.wso2.carbon.identity.cors.valve.constant.RequestMethod.OPTIONS;
+import static org.wso2.carbon.identity.cors.valve.constant.RequestMethod.POST;
 
 /**
  * A utility class for CORS operations.
@@ -59,15 +64,15 @@ public class CORSUtils {
         String method = request.getMethod();
         String mediaType = HeaderUtils.getMediaType(request.getContentType());
         if (request.getHeader(Header.ORIGIN) == null ||
-                (request.getHeader(Header.HOST) != null && request.getHeader(Header.ORIGIN).equals(serverOrigin)) ||
-                ("POST".equals(method) && SIMPLE_HTTP_REQUEST_CONTENT_TYPE_VALUES.contains(mediaType))) {
+                (request.getHeader(Header.HOST) != null && request.getHeader(Header.ORIGIN).equals(serverOrigin))) {
             // Condition I   - A request without the Origin header is never a CORS nor Preflight request.
             // Condition II  - Requests that have Origin header but submitted for the same domain.
-            // Condition III - A request with a simple HTTP Post Request content type value.
-            return CORSRequestType.OTHER;
+            return CORSRequestType.NON_CORS;
+        } else if (GET.equals(method) || HEAD.equals(method) ||
+                (POST.equals(method) && SIMPLE_HTTP_REQUEST_CONTENT_TYPE_VALUES.contains(mediaType))) {
+            return CORSRequestType.SIMPLE;
         } else if (request.getHeader(Header.ACCESS_CONTROL_REQUEST_METHOD) != null &&
-                request.getMethod() != null &&
-                request.getMethod().equalsIgnoreCase(RequestMethod.OPTIONS)) {
+                OPTIONS.equals(method)) {
             return CORSRequestType.PREFLIGHT;
         } else {
             return CORSRequestType.ACTUAL;

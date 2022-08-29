@@ -64,7 +64,7 @@ public final class RequestTagger {
                 request.setAttribute("cors.requestType", "preflight");
                 request.setAttribute("cors.requestHeaders", request.getHeader(Header.ACCESS_CONTROL_REQUEST_HEADERS));
                 break;
-            case OTHER:
+            case NON_CORS:
                 request.setAttribute("cors.isCorsRequest", false);
         }
     }
