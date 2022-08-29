@@ -27,5 +27,6 @@ package org.wso2.carbon.identity.cors.valve.model;
 public enum CORSRequestType {
     ACTUAL,
     PREFLIGHT,
-    OTHER
+    SIMPLE,
+    NON_CORS
 }
