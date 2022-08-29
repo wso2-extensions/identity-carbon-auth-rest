@@ -21,12 +21,13 @@ package org.wso2.carbon.identity.context.rewrite.bean;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Bean for organization qualified context rewrites.
+ */
 public class OrganizationRewriteContext {
 
     private boolean isWebApp;
-
     private String context;
-
     private List<String> subContexts = new ArrayList<>();
 
     public OrganizationRewriteContext(boolean isWebApp, String context) {
