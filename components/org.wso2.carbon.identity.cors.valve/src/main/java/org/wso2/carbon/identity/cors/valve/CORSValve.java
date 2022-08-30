@@ -73,7 +73,7 @@ public class CORSValve extends ValveBase {
 
             if (corsRequestType == CORSRequestType.SIMPLE || corsRequestType == CORSRequestType.ACTUAL) {
                 // Simple and Actual requests are handled in a same way.
-                corsRequestHandler.handleSimpleRequest(request, response);
+                corsRequestHandler.handleActualRequest(request, response);
                 getNext().invoke(request, response);
             } else if (corsRequestType == CORSRequestType.PREFLIGHT) {
                 // Preflight requests - Handle but don't pass further down the chain.

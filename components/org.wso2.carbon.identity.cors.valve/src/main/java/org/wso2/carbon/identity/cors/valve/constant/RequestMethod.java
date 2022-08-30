@@ -23,24 +23,12 @@ package org.wso2.carbon.identity.cors.valve.constant;
  */
 public class RequestMethod {
 
-    /**
-     * "GET" method.
-     */
     public static final String GET = "GET";
 
-    /**
-     * "HEAD" method.
-     */
     public static final String HEAD = "HEAD";
 
-    /**
-     * "POST" method.
-     */
     public static final String POST = "POST";
 
-    /**
-     * "OPTIONS" method.
-     */
     public static final String OPTIONS = "OPTIONS";
 
     /**
