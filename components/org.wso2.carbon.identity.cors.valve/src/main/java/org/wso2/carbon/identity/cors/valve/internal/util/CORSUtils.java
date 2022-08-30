@@ -64,7 +64,7 @@ public class CORSUtils {
                 (request.getHeader(Header.HOST) != null && request.getHeader(Header.ORIGIN).equals(serverOrigin))) {
             // Condition I   - A request without the Origin header is never a CORS nor Preflight request.
             // Condition II  - Requests that have Origin header but submitted for the same domain.
-            return CORSRequestType.NON_CORS;
+            return CORSRequestType.NOT_CORS;
         } else if (GET.equals(method) || HEAD.equals(method) ||
                 (POST.equals(method) && SIMPLE_HTTP_REQUEST_CONTENT_TYPE_VALUES.contains(mediaType))) {
             return CORSRequestType.SIMPLE;

@@ -55,12 +55,11 @@ public class CORSRequestHandler {
      * @throws CORSException
      * @throws CORSManagementServiceException
      */
-    public void handleSimpleRequest(HttpServletRequest request, HttpServletResponse response)
+    public void handleActualRequest(HttpServletRequest request, HttpServletResponse response)
             throws CORSException, CORSManagementServiceException {
 
         String tenantDomain = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain();
         CORSConfiguration config = getCORSManager().getCORSConfiguration(tenantDomain);
-
         addStandardHeaders(request, response, config);
     }
 

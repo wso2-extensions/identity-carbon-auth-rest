@@ -25,5 +25,5 @@ public enum CORSRequestType {
     ACTUAL,
     PREFLIGHT,
     SIMPLE,
-    NON_CORS
+    NOT_CORS
 }
