@@ -89,7 +89,8 @@
                             version="${carbon.identity.package.import.version.range}"
                             org.wso2.carbon.identity.core.*; version="${carbon.identity.package.import.version.range}",
                             org.wso2.carbon.identity.authz.service.*;version="${org.wso2.carbon.identity.authz.service.version.range}",
-                            org.apache.catalina.*;version="1.7.0"
+                            org.apache.catalina.*;version="1.7.0",
+                            org.wso2.carbon.identity.organization.management.authz.service; version="${org.wso2.carbon.identity.organization.management.version.range}"
                         </Import-Package>
                         <Export-Package>!org.wso2.carbon.identity.authz.valve.internal,
                             org.wso2.carbon.identity.authz.valve.*;
