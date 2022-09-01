@@ -35,8 +35,14 @@
             <artifactId>org.wso2.carbon.identity.core</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.wso2.carbon.identity.organization.management.core</groupId>
+            <groupId>org.wso2.carbon.identity.organization.management</groupId>
             <artifactId>org.wso2.carbon.identity.organization.management.service</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.wso2.carbon.identity.auth.rest</groupId>
+                    <artifactId>org.wso2.carbon.identity.authz.service</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
     </dependencies>
 
@@ -52,8 +58,7 @@
                         <Bundle-Name>${project.artifactId}</Bundle-Name>
                         <Import-Package>
                             org.wso2.carbon.identity.core.*; version="${carbon.identity.package.import.version.range}",
-                            org.slf4j; version="${org.slf4j.imp.pkg.version.range}",
-                            org.wso2.carbon.identity.organization.management.service; version="${org.wso2.carbon.identity.organization.management.core.version.range}"
+                            org.slf4j; version="${org.slf4j.imp.pkg.version.range}"
                         </Import-Package>
                         <Export-Package>
                             org.wso2.carbon.identity.context.rewrite.valve.*;
