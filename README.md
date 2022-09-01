@@ -8,7 +8,7 @@ Custom Header Filter to add customer headers for applications using the resource
    
    https://is.docs.wso2.com/en/latest/develop/using-the-configuration-management-rest-apis/
   
-2. Build the project using Java 11 or Java 17 and copy `org.wso2.carbon.identity.custom.header.filter-${project.version}.jar` to the
+2. Build the project and copy `org.wso2.carbon.identity.custom.header.filter-${project.version}.jar` to the
    `<IS_HOME>/repository/components/dropins` directory.
 
 3. Open `deployment.toml` and enable the CustomHeaderFilter by adding following lines

@@ -27,7 +27,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.wso2.carbon.identity.auth.rest</groupId>
     <artifactId>identity-carbon-auth-rest</artifactId>
-    <version>1.7.0-SNAPSHOT</version>
+    <version>1.6.4-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>WSO2 Carbon - Auth/Authz Modules</name>
     <description>
@@ -185,7 +185,7 @@
             </dependency>
             <dependency>
                 <groupId>org.powermock</groupId>
-                <artifactId>powermock-api-mockito2</artifactId>
+                <artifactId>powermock-api-mockito</artifactId>
                 <version>${powermock.version}</version>
                 <scope>test</scope>
             </dependency>
@@ -345,8 +345,8 @@
         <org.wso2.carbon.identity.cors.valve.version>${project.version}</org.wso2.carbon.identity.cors.valve.version>
 
         <!--Carbon identity version-->
-        <identity.framework.version>5.23.14</identity.framework.version>
-        <carbon.identity.package.import.version.range>[5.17.8, 7.0.0)</carbon.identity.package.import.version.range>
+        <identity.framework.version>5.21.63</identity.framework.version>
+        <carbon.identity.package.import.version.range>[5.17.8, 6.0.0)</carbon.identity.package.import.version.range>
 
         <org.wso2.carbon.identity.oauth.version>6.4.149</org.wso2.carbon.identity.oauth.version>
         <org.wso2.carbon.identity.oauth.import.version.range>[6.2.18, 7.0.0)
@@ -363,8 +363,8 @@
         <osgi.util.tracker.imp.pkg.version.range>[1.5.1, 2.0.0)</osgi.util.tracker.imp.pkg.version.range>
 
         <!-- Carbon Kernel version -->
-        <carbon.kernel.version>4.7.1</carbon.kernel.version>
-        <carbon.kernel.feature.version>4.7.1</carbon.kernel.feature.version>
+        <carbon.kernel.version>4.7.0</carbon.kernel.version>
+        <carbon.kernel.feature.version>4.7.0</carbon.kernel.feature.version>
         <carbon.kernel.imp.pkg.version.range>[4.5.0, 5.0.0)</carbon.kernel.imp.pkg.version.range>
 
         <!--Carbon Component version-->
@@ -397,11 +397,11 @@
 
         <!-- Unit test versions -->
         <testng.version>6.9.10</testng.version>
-        <jacoco.version>0.8.5</jacoco.version>
+        <jacoco.version>0.7.9</jacoco.version>
         <maven.surefire.plugin.version>2.18.1</maven.surefire.plugin.version>
-        <slf4j.api.version>1.7.12</slf4j.api.version>
+        <slf4j.api.version>1.5.5</slf4j.api.version>
         <org.slf4j.imp.pkg.version.range>[1.5.5,2.0.0)</org.slf4j.imp.pkg.version.range>
-        <powermock.version>2.0.2</powermock.version>
+        <powermock.version>1.7.4</powermock.version>
 
         <!-- Pax Logging Version -->
         <pax.logging.api.version>1.10.1</pax.logging.api.version>

@@ -20,7 +20,7 @@
         <groupId>org.wso2.carbon.identity.auth.rest</groupId>
         <artifactId>identity-carbon-auth-rest</artifactId>
         <relativePath>../../pom.xml</relativePath>
-        <version>1.7.0-SNAPSHOT</version>
+        <version>1.6.4-SNAPSHOT</version>
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
@@ -57,7 +57,7 @@
         </dependency>
         <dependency>
             <groupId>org.powermock</groupId>
-            <artifactId>powermock-api-mockito2</artifactId>
+            <artifactId>powermock-api-mockito</artifactId>
         </dependency>
         <dependency>
             <groupId>com.h2database</groupId>
