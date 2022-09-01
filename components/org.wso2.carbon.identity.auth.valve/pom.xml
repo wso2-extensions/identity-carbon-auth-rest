@@ -20,7 +20,7 @@
         <groupId>org.wso2.carbon.identity.auth.rest</groupId>
         <artifactId>identity-carbon-auth-rest</artifactId>
         <relativePath>../../pom.xml</relativePath>
-        <version>1.7.0-SNAPSHOT</version>
+        <version>1.6.4-SNAPSHOT</version>
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
@@ -94,16 +94,19 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
+            <version>${slf4j.api.version}</version>
         </dependency>
 
         <dependency>
             <groupId>org.powermock</groupId>
             <artifactId>powermock-module-testng</artifactId>
+            <version>${powermock.version}</version>
         </dependency>
 
         <dependency>
             <groupId>org.powermock</groupId>
-            <artifactId>powermock-api-mockito2</artifactId>
+            <artifactId>powermock-api-mockito</artifactId>
+            <version>${powermock.version}</version>
             <scope>test</scope>
         </dependency>
 
@@ -129,11 +132,6 @@
                     <suiteXmlFiles>
                         <suiteXmlFile>src/test/resources/testng.xml</suiteXmlFile>
                     </suiteXmlFiles>
-                    <argLine>
-                        --add-opens=java.base/java.util=ALL-UNNAMED
-                        --add-opens=java.base/java.lang=ALL-UNNAMED
-                        --add-opens=java.base/java.io=ALL-UNNAMED
-                    </argLine>
                 </configuration>
             </plugin>
             <plugin>
