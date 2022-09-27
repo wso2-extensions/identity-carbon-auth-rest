@@ -85,9 +85,9 @@ public class OrganizationContextRewriteValve extends ValveBase {
                     isWebApp = organizationRewriteContext.isWebApp();
                     contextToForward = organizationRewriteContext.getContext();
 
-                    if (CollectionUtils.isNotEmpty(organizationRewriteContext.getSubContexts())) {
+                    if (CollectionUtils.isNotEmpty(organizationRewriteContext.getSubPaths())) {
                         subPathsConfigured = true;
-                        for (String subPath : organizationRewriteContext.getSubContexts()) {
+                        for (String subPath : organizationRewriteContext.getSubPaths()) {
                             if (StringUtils.contains(requestURI, subPath)) {
                                 orgRoutingSubPathSupported = true;
                                 break;
@@ -187,12 +187,12 @@ public class OrganizationContextRewriteValve extends ValveBase {
 
         if (subPathContexts != null) {
             if (subPathContexts instanceof ArrayList) {
-                for (String subContext : (ArrayList<String>) subPathContexts) {
+                for (String subPath : (ArrayList<String>) subPathContexts) {
                     Optional<OrganizationRewriteContext> maybeOrgRewriteContext = organizationRewriteContexts.stream()
-                            .filter(rewriteContext -> subContext.startsWith(rewriteContext.getContext()))
+                            .filter(rewriteContext -> subPath.startsWith(rewriteContext.getContext()))
                             .findFirst();
                     maybeOrgRewriteContext.ifPresent(
-                            organizationRewriteContext -> organizationRewriteContext.addSubContext(subContext));
+                            organizationRewriteContext -> organizationRewriteContext.addSubPath(subPath));
                 }
             }
         }

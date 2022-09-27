@@ -28,7 +28,7 @@ public class OrganizationRewriteContext {
 
     private boolean isWebApp;
     private String context;
-    private List<String> subContexts = new ArrayList<>();
+    private List<String> subPaths = new ArrayList<>();
 
     public OrganizationRewriteContext(boolean isWebApp, String context) {
 
@@ -41,9 +41,9 @@ public class OrganizationRewriteContext {
         return context;
     }
 
-    public List<String> getSubContexts() {
+    public List<String> getSubPaths() {
 
-        return subContexts;
+        return subPaths;
     }
 
     public boolean isWebApp() {
@@ -51,8 +51,8 @@ public class OrganizationRewriteContext {
         return isWebApp;
     }
 
-    public void addSubContext(String subContext) {
+    public void addSubPath(String subPath) {
 
-        this.subContexts.add(subContext);
+        this.subPaths.add(subPath);
     }
 }
