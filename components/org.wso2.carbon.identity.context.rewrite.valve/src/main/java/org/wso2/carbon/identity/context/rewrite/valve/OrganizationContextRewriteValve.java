@@ -176,7 +176,7 @@ public class OrganizationContextRewriteValve extends ValveBase {
                     organizationRewriteContexts.add(new OrganizationRewriteContext(isWebApp, context));
                 }
             } else {
-                organizationRewriteContexts.add(new OrganizationRewriteContext(true,
+                organizationRewriteContexts.add(new OrganizationRewriteContext(isWebApp,
                         basePathContexts.toString()));
             }
         }
