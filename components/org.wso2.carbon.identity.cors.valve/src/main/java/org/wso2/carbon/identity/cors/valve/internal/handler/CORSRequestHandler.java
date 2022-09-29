@@ -1,22 +1,19 @@
-/*
- * Copyright (c) 2020, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+/**
+ * Copyright (c) 2020, WSO2 LLC. (https://www.wso2.com) All Rights Reserved.
  *
- * WSO2 Inc. licenses this file to you under the Apache License,
+ * WSO2 LLC. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
+ * KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations
  * under the License.
- *
- * NOTE: The code/logic in this class is copied from https://bitbucket.org/thetransactioncompany/cors-filter.
- * All credits goes to the original authors of the project https://bitbucket.org/thetransactioncompany/cors-filter.
  */
 
 package org.wso2.carbon.identity.cors.valve.internal.handler;
@@ -34,7 +31,6 @@ import org.wso2.carbon.identity.cors.valve.internal.util.HeaderUtils;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.net.URISyntaxException;
 
 /**
  * Request handler for the CORS valve.
@@ -64,31 +60,14 @@ public class CORSRequestHandler {
 
         String tenantDomain = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain();
         CORSConfiguration config = getCORSManager().getCORSConfiguration(tenantDomain);
-
-        // Check origin against allow list.
-        Origin requestOrigin = new Origin(request.getHeader(Header.ORIGIN));
-        if (!isAllowedOrigin(tenantDomain, requestOrigin)) {
-            throw new CORSException(ErrorMessages.ERROR_CODE_ORIGIN_DENIED);
-        }
-
-        if (!isSupportedMethod(config, request.getMethod().toUpperCase())) {
-            throw new CORSException(ErrorMessages.ERROR_CODE_UNSUPPORTED_METHOD);
-        }
-
         addStandardHeaders(request, response, config);
     }
 
-    public void handleOtherRequest(HttpServletRequest request, HttpServletResponse response)
-            throws CORSException, CORSManagementServiceException {
+    private void addStandardHeaders(HttpServletRequest request, HttpServletResponse response, CORSConfiguration config)
+            throws CORSManagementServiceException {
 
         String tenantDomain = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain();
-        CORSConfiguration config = getCORSManager().getCORSConfiguration(tenantDomain);
-        addStandardHeaders(request, response, config);
-    }
-
-    private void addStandardHeaders(HttpServletRequest request, HttpServletResponse response, CORSConfiguration config) {
-
-        String requestOrigin = request.getHeader(Header.ORIGIN);
+        Origin requestOrigin = new Origin(request.getHeader(Header.ORIGIN));
 
         // If only specific origins are allowed, the response will vary by origin
         if (!config.isAllowAnyOrigin()) {
@@ -102,7 +81,9 @@ public class CORSRequestHandler {
         } else {
             // Add a single Access-Control-Allow-Origin header, with the value
             // of the Origin header as value.
-            response.addHeader(Header.ACCESS_CONTROL_ALLOW_ORIGIN, requestOrigin);
+            if (isAllowedOrigin(tenantDomain, requestOrigin)) {
+                response.addHeader(Header.ACCESS_CONTROL_ALLOW_ORIGIN, requestOrigin.toString());
+            }
         }
 
         // If the resource supports credentials, add a single
@@ -152,7 +133,6 @@ public class CORSRequestHandler {
         // Parse the requested author (custom) headers
         final String rawRequestHeadersString = request.getHeader(Header.ACCESS_CONTROL_REQUEST_HEADERS);
         final String[] requestHeaderValues = HeaderUtils.parseMultipleHeaderValues(rawRequestHeadersString);
-
         final String[] requestHeaders = new String[requestHeaderValues.length];
 
         for (int i = 0; i < requestHeaders.length; i++) {
