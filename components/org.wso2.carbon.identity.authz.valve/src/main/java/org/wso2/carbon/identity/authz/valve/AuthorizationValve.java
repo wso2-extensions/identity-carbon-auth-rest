@@ -75,7 +75,9 @@ public class AuthorizationValve extends ValveBase {
             String requestURI = request.getRequestURI();
             String tenantDomain = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain();
             if (!StringUtils.equals(MultitenantConstants.SUPER_TENANT_DOMAIN_NAME, tenantDomain) &&
-                    requestURI.startsWith(ORGANIZATION_PATH_PARAM)) {
+                    requestURI.startsWith(ORGANIZATION_PATH_PARAM) &&
+                    org.wso2.carbon.identity.organization.management.service.util.Utils.useOrganizationRolesForValidation(
+                            PrivilegedCarbonContext.getThreadLocalCarbonContext().getOrganizationId())) {
                 /*
                 If the request is authenticated using an oauth2 access token and scope validation is required,
                 the token obtained tenant domain should be equal to the accessed resource's tenant domain.
