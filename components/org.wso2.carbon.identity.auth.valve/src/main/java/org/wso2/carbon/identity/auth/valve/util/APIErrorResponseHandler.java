@@ -22,7 +22,9 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.wso2.carbon.base.ServerConfiguration;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
+import org.wso2.carbon.identity.core.util.IdentityUtil;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -44,6 +46,10 @@ public class APIErrorResponseHandler {
     private static final String FORBIDDEN_ERROR_MSG = "Operation is not permitted. You do not have permissions to " +
             "make this request.";
 
+    private static final String REMOVE_REALM_USER_CONFIG = "RestApiAuthentication.RemoveRealmUserFromError";
+
+    private static final boolean removeRealmUser = parseRemoveRealmUser();
+
     /**
      * Generate the error response according to the relevant API endpoint and the HTTP status.
      */
@@ -53,13 +59,18 @@ public class APIErrorResponseHandler {
         if (log.isDebugEnabled() && e != null) {
             log.debug("Authentication Error ", e);
         }
-        StringBuilder value = new StringBuilder(16);
-        value.append("realm user=\"");
-        if (authenticationContext != null && authenticationContext.getUser() != null) {
-            value.append(authenticationContext.getUser().getUserName());
+        if (error == HttpServletResponse.SC_UNAUTHORIZED) {
+            response.setHeader(AUTH_HEADER_NAME, getRealmInfo());
         }
-        value.append('\"');
-        response.setHeader(AUTH_HEADER_NAME, value.toString());
+        else if (!removeRealmUser){
+            StringBuilder value = new StringBuilder(16);
+            value.append("realm user=\"");
+            if (authenticationContext != null && authenticationContext.getUser() != null) {
+                value.append(authenticationContext.getUser().getUserName());
+            }
+            value.append('\"');
+            response.setHeader(AUTH_HEADER_NAME, value.toString());
+        }
         if (response.getRequest() != null) {
             String uri = response.getRequest().getRequestURI();
             uri = removeTenantDetailFromURI(uri);
@@ -201,5 +212,19 @@ public class APIErrorResponseHandler {
     private static boolean isCorrelationIDPresent() {
 
         return MDC.get(CORRELATION_ID_MDC) != null;
+    }
+
+    private static String getRealmInfo() {
+
+        return "Basic realm=" + ServerConfiguration.getInstance().getFirstProperty("HostName");
+    }
+
+    private static boolean parseRemoveRealmUser() {
+
+        String removeRealmUser = IdentityUtil.getProperty(REMOVE_REALM_USER_CONFIG);
+        if (StringUtils.isNotBlank(removeRealmUser)) {
+            return Boolean.parseBoolean(removeRealmUser);
+        }
+        return true;
     }
 }
