@@ -46,9 +46,9 @@ public class APIErrorResponseHandler {
     private static final String FORBIDDEN_ERROR_MSG = "Operation is not permitted. You do not have permissions to " +
             "make this request.";
 
-    private static final String REMOVE_REALM_USER_CONFIG = "RestApiAuthentication.RemoveRealmUserFromError";
+    private static final String ADD_REALM_USER_CONFIG = "RestApiAuthentication.AddRealmUserToError";
 
-    private static final boolean removeRealmUser = parseRemoveRealmUser();
+    private static final boolean addRealmUser = parseAddRealmUser();
 
     /**
      * Generate the error response according to the relevant API endpoint and the HTTP status.
@@ -62,7 +62,7 @@ public class APIErrorResponseHandler {
         if (error == HttpServletResponse.SC_UNAUTHORIZED) {
             response.setHeader(AUTH_HEADER_NAME, getRealmInfo());
         }
-        else if (!removeRealmUser){
+        else if (addRealmUser){
             StringBuilder value = new StringBuilder(16);
             value.append("realm user=\"");
             if (authenticationContext != null && authenticationContext.getUser() != null) {
@@ -219,12 +219,12 @@ public class APIErrorResponseHandler {
         return "Basic realm=" + ServerConfiguration.getInstance().getFirstProperty("HostName");
     }
 
-    private static boolean parseRemoveRealmUser() {
+    private static boolean parseAddRealmUser() {
 
-        String removeRealmUser = IdentityUtil.getProperty(REMOVE_REALM_USER_CONFIG);
-        if (StringUtils.isNotBlank(removeRealmUser)) {
-            return Boolean.parseBoolean(removeRealmUser);
+        String addRealmUser = IdentityUtil.getProperty(ADD_REALM_USER_CONFIG);
+        if (StringUtils.isNotBlank(addRealmUser)) {
+            return Boolean.parseBoolean(addRealmUser);
         }
-        return true;
+        return false;
     }
 }
