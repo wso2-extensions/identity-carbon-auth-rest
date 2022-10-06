@@ -221,7 +221,6 @@ public class APIErrorResponseHandler {
 
     private static boolean parseAddRealmUser() {
 
-        String addRealmUser = IdentityUtil.getProperty(ADD_REALM_USER_CONFIG);
-        return Boolean.parseBoolean(addRealmUser);
+        return Boolean.parseBoolean(IdentityUtil.getProperty(ADD_REALM_USER_CONFIG));
     }
 }
