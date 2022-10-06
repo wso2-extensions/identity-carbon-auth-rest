@@ -60,6 +60,8 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
+import java.net.URISyntaxException;
+import java.util.regex.Pattern;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
 
@@ -82,6 +84,8 @@ public class AuthenticationValve extends ValveBase {
     private final String CONFIG_CONTEXTUAL_PARAM = "LoggableContextualParams.contextual_param";
     private final String CONFIG_LOG_PARAM_USER_AGENT = "user_agent";
     private final String CONFIG_LOG_PARAM_REMOTE_ADDRESS = "remote_address";
+    private static final String URL_PATH_FILTER_REGEX = "(.*)/((\\.+)|(.*;+.*)|%2e)/(.*)";
+    private static final Pattern URL_MATCHING_PATTERN = Pattern.compile(URL_PATH_FILTER_REGEX);
 
     private static final Log log = LogFactory.getLog(AuthenticationValve.class);
 
@@ -94,10 +98,13 @@ public class AuthenticationValve extends ValveBase {
         if (!validateTenantDomain(request, response, tenantDomain)) {
             return;
         }
+        AuthenticationManager authenticationManager = AuthHandlerManager.getInstance().getAuthenticationManager();
         try {
-            AuthenticationManager authenticationManager = AuthHandlerManager.getInstance().getAuthenticationManager();
-            ResourceConfig securedResource = authenticationManager.getSecuredResource(new ResourceConfigKey(request
-                    .getRequestURI(), request.getMethod()));
+            validateURL(request.getRequestURI());
+            String normalizedRequestURI = AuthConfigurationUtil.getInstance().getNormalizedRequestURI(request.getRequestURI());
+            ResourceConfig securedResource = authenticationManager.getSecuredResource(
+                    new ResourceConfigKey(normalizedRequestURI, request.getMethod()));
+
 
             setRemoteAddressAndUserAgentToMDC(request);
 
@@ -158,6 +165,9 @@ public class AuthenticationValve extends ValveBase {
             log.error("Identity Runtime Exception occurred in Authentication valve :", e);
             APIErrorResponseHandler.handleErrorResponse(authenticationContext, response,
                     HttpServletResponse.SC_SERVICE_UNAVAILABLE, null);
+        } catch (URISyntaxException e) {
+            log.error("Error while normalizing the request URI to process the authentication: ", e);
+            APIErrorResponseHandler.handleErrorResponse(null, response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, null);
         } finally {
             // Clear 'IdentityError' thread local.
             if (IdentityUtil.getIdentityErrorMsg() != null) {
@@ -395,4 +405,12 @@ public class AuthenticationValve extends ValveBase {
         }
     }
 
+
+    private void validateURL(String url) throws AuthenticationFailException {
+
+        if (url != null && URL_MATCHING_PATTERN.matcher(url).matches()) {
+            throw new AuthenticationFailException("Given URL contain un-normalized content. URL validation failed for "
+                    + url);
+        }
+    }
 }

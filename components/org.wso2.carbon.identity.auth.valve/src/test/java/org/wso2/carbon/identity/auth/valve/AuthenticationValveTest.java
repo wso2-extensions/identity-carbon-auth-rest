@@ -96,6 +96,7 @@ public class AuthenticationValveTest extends PowerMockTestCase {
     private final String CONFIG_CONTEXTUAL_PARAM = "LoggableContextualParams.contextual_param";
     private final String CONFIG_LOG_PARAM_USER_AGENT = "user_agent";
     private final String CONFIG_LOG_PARAM_REMOTE_ADDRESS = "remote_address";
+    private static final String UN_NORMALIZED_DUMMY_RESOURCE = "/./test/resource";
 
     @Mock
     private ResourceConfig securedResourceConfig;
@@ -376,6 +377,16 @@ public class AuthenticationValveTest extends PowerMockTestCase {
         invokeAuthenticationValve();
         JsonObject jsonObject = getJsonResponseBody();
         Assert.assertEquals(401, jsonObject.get("code").getAsInt());
+    }
+
+    @Test
+    public void testInvokeWithUnNormalizedURL() throws Exception {
+
+        when(request.getRequestURI()).thenReturn(UN_NORMALIZED_DUMMY_RESOURCE);
+        invokeAuthenticationValve();
+        final Map<String, Object> attributes = mockAttributeMap();
+        AuthenticationContext authContext = (AuthenticationContext) attributes.get(AUTH_CONTEXT);
+        Assert.assertNull(authContext);
     }
 
     private void setIdentityErrorThreadLocal() {
