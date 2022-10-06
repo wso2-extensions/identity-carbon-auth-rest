@@ -100,7 +100,7 @@ public class AuthenticationValve extends ValveBase {
         }
         AuthenticationManager authenticationManager = AuthHandlerManager.getInstance().getAuthenticationManager();
         try {
-            validateURL(request.getRequestURI());
+            validateRequestURI(request.getRequestURI());
             String normalizedRequestURI = AuthConfigurationUtil.getInstance().getNormalizedRequestURI(request.getRequestURI());
             ResourceConfig securedResource = authenticationManager.getSecuredResource(
                     new ResourceConfigKey(normalizedRequestURI, request.getMethod()));
@@ -406,7 +406,7 @@ public class AuthenticationValve extends ValveBase {
     }
 
 
-    private void validateURL(String url) throws AuthenticationFailException {
+    private void validateRequestURI(String url) throws AuthenticationFailException {
 
         if (url != null && URL_MATCHING_PATTERN.matcher(url).matches()) {
             throw new AuthenticationFailException("Given URL contain un-normalized content. URL validation failed for "
