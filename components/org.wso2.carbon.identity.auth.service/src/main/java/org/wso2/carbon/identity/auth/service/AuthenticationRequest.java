@@ -23,8 +23,11 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.identity.auth.service.exception.AuthRuntimeException;
+import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
 
 import java.io.Serializable;
+import java.io.UnsupportedEncodingException;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -172,7 +175,7 @@ public class AuthenticationRequest implements Serializable
         }
 
         public AuthenticationRequestBuilder setContextPath(String contextPath) {
-            this.contextPath = contextPath;
+            this.contextPath = getNormalizedURI(contextPath);
             return this;
         }
 
@@ -212,7 +215,7 @@ public class AuthenticationRequest implements Serializable
         }
 
         public AuthenticationRequestBuilder setRequestUri(String requestUri) {
-            this.requestUri = requestUri;
+            this.requestUri = getNormalizedURI(requestUri);
             return this;
         }
 
@@ -225,7 +228,13 @@ public class AuthenticationRequest implements Serializable
         public AuthenticationRequest build() {
             return new AuthenticationRequest(this);
         }
-
+        private String getNormalizedURI(String path) {
+            try {
+                return AuthConfigurationUtil.getInstance().getNormalizedRequestURI(path);
+            } catch (URISyntaxException | UnsupportedEncodingException e) {
+                throw new AuthRuntimeException("Error normalizing URL path: " + path, e);
+            }
+        }
     }
 
 

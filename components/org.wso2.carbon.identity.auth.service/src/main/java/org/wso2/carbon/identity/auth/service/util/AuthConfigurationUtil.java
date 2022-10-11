@@ -17,6 +17,11 @@ import org.wso2.securevault.SecretResolver;
 import org.wso2.securevault.SecretResolverFactory;
 import org.wso2.securevault.commons.MiscellaneousUtil;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -258,6 +263,17 @@ public class AuthConfigurationUtil {
 
     public String getClientAuthenticationHash(String appName) {
         return applicationConfigMap.get(appName);
+    }
+
+
+    public String getNormalizedRequestURI(String requestURI) throws URISyntaxException, UnsupportedEncodingException {
+
+        if (requestURI == null) {
+            return null;
+        }
+
+        String decodedURl = URLDecoder.decode(requestURI, StandardCharsets.UTF_8.name());
+        return new URI(decodedURl).normalize().toString();
     }
 
     public boolean isIntermediateCertValidationEnabled() {

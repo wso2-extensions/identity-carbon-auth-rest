@@ -25,9 +25,12 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.identity.auth.service.AuthenticationRequest;
 import org.wso2.carbon.identity.auth.service.exception.AuthClientException;
+import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
 import org.wso2.carbon.identity.core.handler.AbstractIdentityHandler;
 
 import javax.servlet.http.Cookie;
+import java.io.UnsupportedEncodingException;
+import java.net.URISyntaxException;
 import java.util.Enumeration;
 
 
@@ -79,7 +82,12 @@ public class AuthenticationRequestBuilderFactory extends AbstractIdentityHandler
                         cookie);
             }
         }
-        authenticationRequestBuilder.setRequestUri(request.getRequestURI());
+        try {
+            authenticationRequestBuilder.setRequestUri(AuthConfigurationUtil.getInstance().
+                    getNormalizedRequestURI(request.getRequestURI()));
+        } catch (URISyntaxException|UnsupportedEncodingException e) {
+            throw new AuthClientException("Error while normalizing url " + request.getRequestURI(), e);
+        }
         authenticationRequestBuilder.setContextPath(request.getContextPath());
         authenticationRequestBuilder.setMethod(request.getMethod());
         authenticationRequestBuilder.setRequest(request);
