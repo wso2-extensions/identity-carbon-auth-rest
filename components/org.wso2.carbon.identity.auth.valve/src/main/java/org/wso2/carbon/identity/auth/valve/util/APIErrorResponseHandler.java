@@ -216,7 +216,7 @@ public class APIErrorResponseHandler {
 
     private static String getRealmInfo() {
 
-        return "Basic realm=" + ServerConfiguration.getInstance().getFirstProperty("HostName");
+        return "Bearer realm=" + ServerConfiguration.getInstance().getFirstProperty("HostName");
     }
 
     private static boolean parseAddRealmUser() {
