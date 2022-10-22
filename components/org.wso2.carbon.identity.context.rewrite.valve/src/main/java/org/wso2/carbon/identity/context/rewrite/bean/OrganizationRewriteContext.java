@@ -20,6 +20,9 @@ package org.wso2.carbon.identity.context.rewrite.bean;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
+
+import static org.wso2.carbon.identity.context.rewrite.constant.RewriteConstants.ORGANIZATION_PATH_PARAM;
 
 /**
  * Bean for organization qualified context rewrites.
@@ -28,17 +31,24 @@ public class OrganizationRewriteContext {
 
     private boolean isWebApp;
     private String context;
+    private Pattern orgContextPattern;
     private List<String> subPaths = new ArrayList<>();
 
     public OrganizationRewriteContext(boolean isWebApp, String context) {
 
         this.isWebApp = isWebApp;
         this.context = context;
+        this.orgContextPattern = Pattern.compile("^" + ORGANIZATION_PATH_PARAM + "([^/]+)" + context);
     }
 
     public String getContext() {
 
         return context;
+    }
+
+    public Pattern getOrgContextPattern() {
+
+        return orgContextPattern;
     }
 
     public List<String> getSubPaths() {
