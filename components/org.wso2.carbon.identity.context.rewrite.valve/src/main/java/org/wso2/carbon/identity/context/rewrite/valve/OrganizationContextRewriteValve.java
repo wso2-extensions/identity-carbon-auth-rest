@@ -77,8 +77,7 @@ public class OrganizationContextRewriteValve extends ValveBase {
         if (ContextRewriteValveServiceComponentHolder.getInstance().isOrganizationManagementEnabled() &&
                 StringUtils.startsWith(requestURI, ORGANIZATION_PATH_PARAM)) {
             for (OrganizationRewriteContext organizationRewriteContext : orgContextsToRewrite) {
-                Pattern orgPattern = Pattern.compile("^" + ORGANIZATION_PATH_PARAM + "([^/]+)" +
-                        organizationRewriteContext.getContext());
+                Pattern orgPattern = organizationRewriteContext.getOrgContextPattern();
                 if (orgPattern.matcher(requestURI).find() || orgPattern.matcher(requestURI + "/").find()) {
                     subPathsConfigured = false;
                     orgRoutingPathSupported = true;
