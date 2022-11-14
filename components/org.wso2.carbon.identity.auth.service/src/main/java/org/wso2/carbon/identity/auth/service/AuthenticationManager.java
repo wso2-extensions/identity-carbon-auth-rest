@@ -80,34 +80,38 @@ public class AuthenticationManager implements IdentityHandler {
      */
     public AuthenticationResult authenticate(AuthenticationContext authenticationContext) throws
             AuthServerException, AuthClientException, AuthenticationFailException {
-        if ( log.isDebugEnabled() ) {
-            if ( authenticationContext != null && authenticationContext.getAuthenticationRequest() != null ) {
+
+        AuthenticationResult authenticationResult = new AuthenticationResult(AuthenticationStatus.FAILED);
+
+        if (authenticationContext != null && authenticationContext.getAuthenticationRequest() != null) {
+
+            if (log.isDebugEnabled()) {
                 AuthenticationRequest authenticationRequest = authenticationContext.getAuthenticationRequest();
                 String contextPath = authenticationRequest.getContextPath();
                 log.debug("Context Path : " + contextPath + " started to authenticate.");
             }
-        }
 
-        List<AuthenticationHandler> authenticationHandlerList =
-                AuthenticationServiceHolder.getInstance().getAuthenticationHandlers();
+            List<AuthenticationHandler> authenticationHandlerList =
+                    AuthenticationServiceHolder.getInstance().getAuthenticationHandlers();
 
-        // Filter authentication handlers engaged for this resource.
-        authenticationHandlerList = filterAuthenticationHandlers(authenticationContext, authenticationHandlerList);
+            // Filter authentication handlers engaged for this resource.
+            authenticationHandlerList = filterAuthenticationHandlers(authenticationContext, authenticationHandlerList);
 
-        AuthenticationHandler authenticationHandler = HandlerManager.getInstance().getFirstPriorityHandler
-                (authenticationHandlerList, true, authenticationContext);
+            AuthenticationHandler authenticationHandler = HandlerManager.getInstance().getFirstPriorityHandler
+                    (authenticationHandlerList, true, authenticationContext);
 
-        if (authenticationHandler == null) {
-            throw new AuthenticationFailException("AuthenticationHandler not found.");
-        }
-        if ( log.isDebugEnabled() ) {
-            log.debug("AuthenticationHandler found : " + authenticationHandler.getClass().getName() + ".");
-        }
-        AuthenticationResult authenticationResult = authenticationHandler.authenticate(authenticationContext);
+            if (authenticationHandler == null) {
+                throw new AuthenticationFailException("AuthenticationHandler not found.");
+            }
+            if (log.isDebugEnabled()) {
+                log.debug("AuthenticationHandler found : " + authenticationHandler.getClass().getName() + ".");
+            }
+            authenticationResult = authenticationHandler.authenticate(authenticationContext);
 
-        if ( log.isDebugEnabled() ) {
-            if ( authenticationResult != null ) {
-                log.debug("AuthenticationResult : " + authenticationResult.getAuthenticationStatus() + ".");
+            if (log.isDebugEnabled()) {
+                if (authenticationResult != null) {
+                    log.debug("AuthenticationResult : " + authenticationResult.getAuthenticationStatus() + ".");
+                }
             }
         }
 
@@ -133,7 +137,7 @@ public class AuthenticationManager implements IdentityHandler {
     private List<AuthenticationHandler> filterAuthenticationHandlers(AuthenticationContext authenticationContext,
                                                                      List<AuthenticationHandler> handlers) {
 
-        ResourceConfig resourceConfig = getResourceConfig(authenticationContext);
+        ResourceConfig resourceConfig = authenticationContext.getResourceConfig();
         final String allowedAuthHandlers = resourceConfig.getAllowedAuthHandlers();
         final List<String> allowedAuthenticationHandlersForResource =
                 AuthConfigurationUtil.getInstance().buildAllowedAuthenticationHandlers(allowedAuthHandlers);
@@ -147,16 +151,6 @@ public class AuthenticationManager implements IdentityHandler {
                                                 AuthenticationHandler handler) {
 
         return allowedAuthenticationHandlersForResource.contains(handler.getName());
-    }
-
-    private ResourceConfig getResourceConfig(AuthenticationContext context) {
-
-        AuthenticationRequest authenticationRequest = context.getAuthenticationRequest();
-        String requestUri = authenticationRequest.getRequestUri();
-        String method = authenticationRequest.getMethod();
-
-        ResourceConfigKey resourceConfigKey = new ResourceConfigKey(requestUri, method);
-        return getSecuredResource(resourceConfigKey);
     }
 
     @Override

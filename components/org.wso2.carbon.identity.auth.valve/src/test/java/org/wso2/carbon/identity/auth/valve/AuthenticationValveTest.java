@@ -23,7 +23,7 @@ import org.apache.catalina.Valve;
 import org.apache.catalina.connector.Request;
 import org.apache.catalina.connector.Response;
 import org.apache.commons.collections.iterators.IteratorEnumeration;
-import org.mockito.Matchers;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
@@ -96,6 +96,7 @@ public class AuthenticationValveTest extends PowerMockTestCase {
     private final String CONFIG_CONTEXTUAL_PARAM = "LoggableContextualParams.contextual_param";
     private final String CONFIG_LOG_PARAM_USER_AGENT = "user_agent";
     private final String CONFIG_LOG_PARAM_REMOTE_ADDRESS = "remote_address";
+    private static final String UN_NORMALIZED_DUMMY_RESOURCE = "/./test/resource";
 
     @Mock
     private ResourceConfig securedResourceConfig;
@@ -235,7 +236,7 @@ public class AuthenticationValveTest extends PowerMockTestCase {
             setIdentityErrorThreadLocal();
         }
         when(securedResourceConfig.isSecured()).thenReturn(true);
-        when(authenticationManager.authenticate(Matchers.any(AuthenticationContext.class))).thenThrow(exception);
+        when(authenticationManager.authenticate(ArgumentMatchers.any(AuthenticationContext.class))).thenThrow(exception);
         invokeAuthenticationValve();
         JsonObject jsonObject = getJsonResponseBody();
         Assert.assertEquals(jsonObject.get("code").getAsInt(), statusCode);
@@ -262,7 +263,7 @@ public class AuthenticationValveTest extends PowerMockTestCase {
         }
         when(securedResourceConfig.isSecured()).thenReturn(true);
         AuthenticationResult authenticationResult = new AuthenticationResult(AuthenticationStatus.NOTSECURED);
-        when(authenticationManager.authenticate(Matchers.any(AuthenticationContext.class))).thenReturn
+        when(authenticationManager.authenticate(ArgumentMatchers.any(AuthenticationContext.class))).thenReturn
                 (authenticationResult);
         final Map<String, Object> attributes = mockAttributeMap();
         invokeAuthenticationValve();
@@ -278,7 +279,7 @@ public class AuthenticationValveTest extends PowerMockTestCase {
         }
         when(securedResourceConfig.isSecured()).thenReturn(true);
         AuthenticationResult authenticationResult = new AuthenticationResult(AuthenticationStatus.SUCCESS);
-        when(authenticationManager.authenticate(Matchers.any(AuthenticationContext.class))).thenReturn
+        when(authenticationManager.authenticate(ArgumentMatchers.any(AuthenticationContext.class))).thenReturn
                 (authenticationResult);
         final Map<String, Object> attributes = mockAttributeMap();
         invokeAuthenticationValve();
@@ -296,7 +297,7 @@ public class AuthenticationValveTest extends PowerMockTestCase {
         }
         when(securedResourceConfig.isSecured()).thenReturn(true);
         AuthenticationResult authenticationResult = new AuthenticationResult(AuthenticationStatus.SUCCESS);
-        when(authenticationManager.authenticate(Matchers.any(AuthenticationContext.class))).thenReturn
+        when(authenticationManager.authenticate(ArgumentMatchers.any(AuthenticationContext.class))).thenReturn
                 (authenticationResult);
         invokeAuthenticationValve();
         Assert.assertNull(MDC.get(USER_AGENT));
@@ -341,7 +342,7 @@ public class AuthenticationValveTest extends PowerMockTestCase {
         when(request.getRequestURI()).thenReturn(scimEndpoint);
         when(response.getRequest()).thenReturn(request);
         when(securedResourceConfig.isSecured()).thenReturn(true);
-        when(authenticationManager.authenticate(Matchers.any(AuthenticationContext.class))).thenThrow(e);
+        when(authenticationManager.authenticate(ArgumentMatchers.any(AuthenticationContext.class))).thenThrow(e);
         invokeAuthenticationValve();
         JsonObject jsonObject = getJsonResponseBody();
         Assert.assertEquals(statusCode, jsonObject.get("status").getAsInt());
@@ -356,7 +357,7 @@ public class AuthenticationValveTest extends PowerMockTestCase {
         when(request.getRequestURI()).thenReturn(scimEndpoint);
         when(response.getRequest()).thenReturn(request);
         when(securedResourceConfig.isSecured()).thenReturn(true);
-        when(authenticationManager.authenticate(Matchers.any(AuthenticationContext.class))).thenThrow(new AuthClientException());
+        when(authenticationManager.authenticate(ArgumentMatchers.any(AuthenticationContext.class))).thenThrow(new AuthClientException());
         invokeAuthenticationValve();
         JsonObject jsonObject = getJsonResponseBody();
         Assert.assertEquals("invalid_client_metadata", jsonObject.get("error").getAsString());
@@ -371,11 +372,21 @@ public class AuthenticationValveTest extends PowerMockTestCase {
         when(request.getRequestURI()).thenReturn(scimEndpoint);
         when(response.getRequest()).thenReturn(request);
         when(securedResourceConfig.isSecured()).thenReturn(true);
-        when(authenticationManager.authenticate(Matchers.any(AuthenticationContext.class))).thenThrow(
+        when(authenticationManager.authenticate(ArgumentMatchers.any(AuthenticationContext.class))).thenThrow(
                 new AuthenticationFailException());
         invokeAuthenticationValve();
         JsonObject jsonObject = getJsonResponseBody();
         Assert.assertEquals(401, jsonObject.get("code").getAsInt());
+    }
+
+    @Test
+    public void testInvokeWithUnNormalizedURL() throws Exception {
+
+        when(request.getRequestURI()).thenReturn(UN_NORMALIZED_DUMMY_RESOURCE);
+        invokeAuthenticationValve();
+        final Map<String, Object> attributes = mockAttributeMap();
+        AuthenticationContext authContext = (AuthenticationContext) attributes.get(AUTH_CONTEXT);
+        Assert.assertNull(authContext);
     }
 
     private void setIdentityErrorThreadLocal() {
@@ -400,7 +411,7 @@ public class AuthenticationValveTest extends PowerMockTestCase {
                 attributes.put(key, value);
                 return null;
             }
-        }).when(request).setAttribute(Matchers.anyString(), Matchers.any());
+        }).when(request).setAttribute(ArgumentMatchers.anyString(), ArgumentMatchers.any());
         return attributes;
     }
 
