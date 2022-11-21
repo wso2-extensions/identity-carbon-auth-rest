@@ -35,6 +35,7 @@ import org.wso2.carbon.identity.core.util.IdentityUtil;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -189,7 +190,7 @@ public class OrganizationContextRewriteValve extends ValveBase {
                 for (String subPath : (ArrayList<String>) subPathContexts) {
                     Optional<OrganizationRewriteContext> maybeOrgRewriteContext = organizationRewriteContexts.stream()
                             .filter(rewriteContext -> subPath.startsWith(rewriteContext.getContext()))
-                            .findFirst();
+                            .max(Comparator.comparingInt(rewriteContext -> rewriteContext.getContext().length()));
                     maybeOrgRewriteContext.ifPresent(
                             organizationRewriteContext -> organizationRewriteContext.addSubPath(subPath));
                 }
