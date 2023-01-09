@@ -28,8 +28,10 @@ import org.wso2.carbon.identity.core.util.IdentityUtil;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.List;
 
 import org.slf4j.MDC;
+import org.wso2.carbon.identity.auth.service.exception.InsufficientUserAuthenticationException;
 
 /**
  * APIErrorResponseHandler handles the authentications and authorizations error responses.
@@ -59,18 +61,17 @@ public class APIErrorResponseHandler {
         if (log.isDebugEnabled() && e != null) {
             log.debug("Authentication Error ", e);
         }
-        if (error == HttpServletResponse.SC_UNAUTHORIZED) {
-            response.setHeader(AUTH_HEADER_NAME, getRealmInfo());
+        StringBuilder value = new StringBuilder(16);
+        value.append("realm user=\"");
+        if (authenticationContext != null && authenticationContext.getUser() != null) {
+            value.append(authenticationContext.getUser().getUserName());
         }
-        else if (addRealmUser){
-            StringBuilder value = new StringBuilder(16);
-            value.append("realm user=\"");
-            if (authenticationContext != null && authenticationContext.getUser() != null) {
-                value.append(authenticationContext.getUser().getUserName());
-            }
-            value.append('\"');
-            response.setHeader(AUTH_HEADER_NAME, value.toString());
+        value.append('\"');
+        if (e instanceof InsufficientUserAuthenticationException) {
+            handleLoAErrorResponseHeader(value, (InsufficientUserAuthenticationException)e);
         }
+
+        response.setHeader(AUTH_HEADER_NAME, value.toString());
         if (response.getRequest() != null) {
             String uri = response.getRequest().getRequestURI();
             uri = removeTenantDetailFromURI(uri);
@@ -201,6 +202,22 @@ public class APIErrorResponseHandler {
             jsonObject.put("traceId", MDC.get(CORRELATION_ID_MDC));
         }
         setResponseBody(response, jsonObject);
+    }
+
+    private static void handleLoAErrorResponseHeader(StringBuilder value, InsufficientUserAuthenticationException e) {
+
+        value.append(", ").append("Bearer error=\"insufficient_user_authentication\", ")
+                .append("error_description=\"A different authentication level is required\", ")
+                .append("acr_values=\"");
+        List<String> acrValues = e.getRequiredAcrValues();
+        for (int i = 0; i < acrValues.size(); i++) {
+            String acrValue = acrValues.get(i);
+            value.append(acrValue);
+            if (i != (acrValues.size() - 1)) {
+                value.append(" ");
+            }
+        }
+        value.append("\"");
     }
 
     private static void setResponseBody(Response response, JSONObject jsonObject) throws IOException {

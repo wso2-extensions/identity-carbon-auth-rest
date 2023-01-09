@@ -19,6 +19,7 @@
 package org.wso2.carbon.identity.auth.service.handler.impl;
 
 import org.apache.catalina.connector.Request;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -34,7 +35,10 @@ import org.wso2.carbon.identity.auth.service.AuthenticationContext;
 import org.wso2.carbon.identity.auth.service.AuthenticationRequest;
 import org.wso2.carbon.identity.auth.service.AuthenticationResult;
 import org.wso2.carbon.identity.auth.service.AuthenticationStatus;
+import org.wso2.carbon.identity.auth.service.exception.AuthenticationFailException;
+import org.wso2.carbon.identity.auth.service.exception.InsufficientUserAuthenticationException;
 import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
+import org.wso2.carbon.identity.auth.service.module.ResourceConfig;
 import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
 import org.wso2.carbon.identity.auth.service.util.Constants;
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
@@ -50,6 +54,10 @@ import org.wso2.carbon.identity.oauth2.model.AccessTokenDO;
 import org.wso2.carbon.identity.oauth2.token.bindings.TokenBinding;
 import org.wso2.carbon.identity.oauth2.util.OAuth2Util;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 
 import static org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil.isAuthHeaderMatch;
@@ -74,7 +82,7 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
     private final String SCIM_ME_ENDPOINT_URI = "scim2/me";
 
     @Override
-    protected AuthenticationResult doAuthenticate(MessageContext messageContext) {
+    protected AuthenticationResult doAuthenticate(MessageContext messageContext) throws AuthenticationFailException {
 
         AuthenticationResult authenticationResult = new AuthenticationResult(AuthenticationStatus.FAILED);
         AuthenticationContext authenticationContext = (AuthenticationContext) messageContext;
@@ -113,6 +121,8 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
                 if (!oAuth2IntrospectionResponseDTO.isActive()) {
                     return authenticationResult;
                 }
+
+                handleLoAofTheToken(authenticationContext, oAuth2IntrospectionResponseDTO);
 
                 // If the request is coming to me endpoint, store the token id to the thread local.
                 if (Optional.ofNullable(authenticationRequest.getRequest()).map(Request::getRequestURI)
@@ -185,6 +195,49 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
             }
         }
         return authenticationResult;
+    }
+
+    private void handleLoAofTheToken(AuthenticationContext authenticationContext,
+            OAuth2IntrospectionResponseDTO oAuth2IntrospectionResponseDTO) throws InsufficientUserAuthenticationException {
+
+        if (!AuthConfigurationUtil.getInstance().isLoAEnabled()) {
+            // If LoA is not enabled for internal resources, we don't have to check if the token contains
+            // enough LoA or not.
+            return;
+        }
+        boolean tokenHasEnoughLoAtoAccessTheAPI = doesTokenHasEnoughLoAtoAccessTheAPI(authenticationContext
+                , oAuth2IntrospectionResponseDTO);
+        if (!tokenHasEnoughLoAtoAccessTheAPI) {
+            // Token does not have enough LoA to access the API.
+            List<String> requiredAuthenticationLevel = Collections.emptyList();
+            if (authenticationContext.getResourceConfig() != null &&
+                    authenticationContext.getResourceConfig().getAuthenticationLevels() != null) {
+                requiredAuthenticationLevel = authenticationContext.getResourceConfig().getAuthenticationLevels();
+            }
+            throw new InsufficientUserAuthenticationException("Access token doesn't have enough authentication level "
+                    + "to access the API.", requiredAuthenticationLevel);
+        }
+    }
+
+
+    private boolean doesTokenHasEnoughLoAtoAccessTheAPI(AuthenticationContext authenticationContext,
+            OAuth2IntrospectionResponseDTO oAuth2IntrospectionResponseDTO ) {
+
+        ResourceConfig resourceConfig = authenticationContext.getResourceConfig();
+        if (resourceConfig == null) {
+            log.warn("Unable to find resource details of '" + authenticationContext.getAuthenticationRequest()
+                    .getRequest().getPathInfo() + "'. Hence level of assurance will not be checked for this request.");
+            return true;
+        }
+        List<String> loaList = resourceConfig.getAuthenticationLevels();
+        if (CollectionUtils.isEmpty(loaList)) {
+            if (log.isDebugEnabled()) {
+                log.debug("Level of assurance is not needed for this request '"
+                        + authenticationContext.getAuthenticationRequest().getRequest().getPathInfo() + "'.");
+            }
+            return true;
+        }
+        return loaList.contains(oAuth2IntrospectionResponseDTO.getAcr());
     }
 
     @Override

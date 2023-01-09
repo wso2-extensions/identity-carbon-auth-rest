@@ -46,6 +46,8 @@ public class AuthConfigurationUtil {
     private String defaultAccess;
     private boolean isScopeValidationEnabled = true;
 
+    private boolean isLoAEnabled = false;
+
     private static final Log log = LogFactory.getLog(AuthConfigurationUtil.class);
 
     private AuthConfigurationUtil() {
@@ -77,6 +79,8 @@ public class AuthConfigurationUtil {
             defaultAccess = resourceAccessControl.getAttributeValue(new QName(Constants.RESOURCE_DEFAULT_ACCESS));
             isScopeValidationEnabled = !Boolean.parseBoolean(resourceAccessControl
                     .getAttributeValue(new QName(Constants.RESOURCE_DISABLE_SCOPE_VALIDATION)));
+            isLoAEnabled = Boolean.parseBoolean(resourceAccessControl.getAttributeValue(
+                    new QName(Constants.CHECK_AUTHENTICATION_LEVEL_ENABLED)));
             Iterator<OMElement> resources = resourceAccessControl.getChildrenWithName(
                     new QName(IdentityCoreConstants.IDENTITY_DEFAULT_NAMESPACE, Constants.RESOURCE_ELE));
             if ( resources != null ) {
@@ -117,6 +121,19 @@ public class AuthConfigurationUtil {
                             OMElement scopeElement = scopesIterator.next();
                             scopes.add(scopeElement.getText());
                         }
+                    }
+
+                    if (isLoAEnabled) {
+                        Iterator<OMElement> loaIterator = resource.getChildrenWithName(new QName(Constants.RESOURCE_AUTHENTICATION_LEVEL_ELE));
+                        if (loaIterator != null) {
+                            List<String> loaList = new ArrayList<>();
+                            while (loaIterator.hasNext()) {
+                                OMElement loaElement = loaIterator.next();
+                                loaList.add(loaElement.getText());
+                            }
+                            resourceConfig.setAuthenticationLevels(loaList);
+                        }
+
                     }
 
                     resourceConfig.setContext(context);
@@ -294,6 +311,15 @@ public class AuthConfigurationUtil {
     public String getDefaultAccess() {
 
         return defaultAccess;
+    }
+
+    /**
+     * Check whether the LoA is enabled for internal resources.
+     * @return True if LoA is enabled.
+     */
+    public boolean isLoAEnabled() {
+
+        return isLoAEnabled;
     }
 
     /**

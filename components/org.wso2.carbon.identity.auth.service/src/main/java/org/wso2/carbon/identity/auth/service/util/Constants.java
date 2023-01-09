@@ -7,11 +7,13 @@ public class Constants {
     public final static String RESOURCE_ELE = "Resource";
     public final static String RESOURCE_DEFAULT_ACCESS = "default-access";
     public final static String RESOURCE_DISABLE_SCOPE_VALIDATION = "disable-scope-validation";
+    public final static String CHECK_AUTHENTICATION_LEVEL_ENABLED = "check-authentication-level";
     public final static String RESOURCE_CONTEXT_ATTR = "context";
     public final static String RESOURCE_SECURED_ATTR = "secured";
     public final static String RESOURCE_HTTP_METHOD_ATTR = "http-method";
     public final static String RESOURCE_PERMISSION_ELE = "Permissions";
     public final static String RESOURCE_SCOPE_ELE = "Scopes";
+    public final static String RESOURCE_AUTHENTICATION_LEVEL_ELE = "Authentication-Level";
     public final static String OAUTH2_ALLOWED_SCOPES = "oauth2-allowed-scopes";
     public final static String OAUTH2_VALIDATE_SCOPE = "oauth2-validate-scopes";
     public final static String RESOURCE_CROSS_TENANT_ATTR = "cross-tenant";
