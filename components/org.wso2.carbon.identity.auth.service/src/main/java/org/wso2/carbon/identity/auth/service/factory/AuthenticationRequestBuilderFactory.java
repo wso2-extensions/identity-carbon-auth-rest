@@ -82,12 +82,7 @@ public class AuthenticationRequestBuilderFactory extends AbstractIdentityHandler
                         cookie);
             }
         }
-        try {
-            authenticationRequestBuilder.setRequestUri(AuthConfigurationUtil.getInstance().
-                    getNormalizedRequestURI(request.getRequestURI()));
-        } catch (URISyntaxException|UnsupportedEncodingException e) {
-            throw new AuthClientException("Error while normalizing url " + request.getRequestURI(), e);
-        }
+        authenticationRequestBuilder.setRequestUri(request.getRequestURI());
         authenticationRequestBuilder.setContextPath(request.getContextPath());
         authenticationRequestBuilder.setMethod(request.getMethod());
         authenticationRequestBuilder.setRequest(request);
