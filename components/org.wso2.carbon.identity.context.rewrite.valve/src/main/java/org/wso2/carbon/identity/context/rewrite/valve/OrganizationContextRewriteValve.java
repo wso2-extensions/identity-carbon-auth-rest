@@ -87,8 +87,8 @@ public class OrganizationContextRewriteValve extends ValveBase {
 
                     if (CollectionUtils.isNotEmpty(organizationRewriteContext.getSubPaths())) {
                         subPathsConfigured = true;
-                        for (String subPath : organizationRewriteContext.getSubPaths()) {
-                            if (StringUtils.contains(requestURI, subPath)) {
+                        for (Pattern subPath : organizationRewriteContext.getSubPaths()) {
+                            if (subPath.matcher(requestURI).find() || subPath.matcher(requestURI + "/").find()) {
                                 orgRoutingSubPathSupported = true;
                                 break;
                             }
@@ -192,7 +192,8 @@ public class OrganizationContextRewriteValve extends ValveBase {
                             .filter(rewriteContext -> subPath.startsWith(rewriteContext.getContext()))
                             .max(Comparator.comparingInt(rewriteContext -> rewriteContext.getContext().length()));
                     maybeOrgRewriteContext.ifPresent(
-                            organizationRewriteContext -> organizationRewriteContext.addSubPath(subPath));
+                            organizationRewriteContext -> organizationRewriteContext.addSubPath(
+                                    Pattern.compile("^" + ORGANIZATION_PATH_PARAM + "([^/]+)" + subPath)));
                 }
             }
         }

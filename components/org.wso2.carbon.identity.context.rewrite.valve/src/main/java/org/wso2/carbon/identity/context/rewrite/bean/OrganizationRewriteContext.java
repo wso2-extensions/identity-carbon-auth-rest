@@ -32,7 +32,7 @@ public class OrganizationRewriteContext {
     private boolean isWebApp;
     private String context;
     private Pattern orgContextPattern;
-    private List<String> subPaths = new ArrayList<>();
+    private List<Pattern> subPaths = new ArrayList<>();
 
     public OrganizationRewriteContext(boolean isWebApp, String context) {
 
@@ -51,7 +51,7 @@ public class OrganizationRewriteContext {
         return orgContextPattern;
     }
 
-    public List<String> getSubPaths() {
+    public List<Pattern> getSubPaths() {
 
         return subPaths;
     }
@@ -61,7 +61,7 @@ public class OrganizationRewriteContext {
         return isWebApp;
     }
 
-    public void addSubPath(String subPath) {
+    public void addSubPath(Pattern subPath) {
 
         this.subPaths.add(subPath);
     }
