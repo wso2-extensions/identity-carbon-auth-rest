@@ -31,6 +31,7 @@ public class ResourceConfig implements Serializable {
     private boolean isCrossTenantAllowed;
     private String permissions;
     private List<String> scopes;
+    private List<String> authenticationLevels; // Level of assurance of the API.
     // Comma separated list of allowed authentication handler names. If all handlers are engaged the value is 'all'
     private String allowedAuthHandlers;
     private List<String> crossAccessAllowedTenants;
@@ -103,5 +104,13 @@ public class ResourceConfig implements Serializable {
     public void setScopes(List<String> scopes) {
 
         this.scopes = scopes;
+    }
+
+    public List<String> getAuthenticationLevels() {
+        return authenticationLevels;
+    }
+
+    public void setAuthenticationLevels(List<String> authenticationLevels) {
+        this.authenticationLevels = authenticationLevels;
     }
 }
