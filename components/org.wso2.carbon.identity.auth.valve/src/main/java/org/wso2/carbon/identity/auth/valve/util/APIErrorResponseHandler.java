@@ -61,8 +61,7 @@ public class APIErrorResponseHandler {
         }
         if (error == HttpServletResponse.SC_UNAUTHORIZED) {
             response.setHeader(AUTH_HEADER_NAME, getRealmInfo());
-        }
-        else if (addRealmUser){
+        } else if (addRealmUser) {
             StringBuilder value = new StringBuilder(16);
             value.append("realm user=\"");
             if (authenticationContext != null && authenticationContext.getUser() != null) {
