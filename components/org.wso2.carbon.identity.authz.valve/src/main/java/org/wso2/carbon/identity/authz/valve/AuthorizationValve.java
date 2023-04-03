@@ -27,8 +27,10 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
+import org.wso2.carbon.identity.auth.service.exception.AuthRuntimeException;
 import org.wso2.carbon.identity.auth.service.handler.HandlerManager;
 import org.wso2.carbon.identity.auth.service.module.ResourceConfig;
+import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
 import org.wso2.carbon.identity.auth.service.util.Constants;
 import org.wso2.carbon.identity.auth.valve.util.APIErrorResponseHandler;
 import org.wso2.carbon.identity.authz.service.AuthorizationContext;
@@ -42,10 +44,15 @@ import org.wso2.carbon.identity.organization.management.authz.service.Organizati
 import org.wso2.carbon.utils.multitenancy.MultitenantConstants;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URISyntaxException;
+import java.util.Arrays;
 import java.util.List;
+import java.util.regex.Pattern;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
 
+import static org.wso2.carbon.identity.auth.service.util.Constants.ENGAGED_AUTH_HANDLER;
 import static org.wso2.carbon.identity.auth.service.util.Constants.OAUTH2_ALLOWED_SCOPES;
 import static org.wso2.carbon.identity.auth.service.util.Constants.OAUTH2_VALIDATE_SCOPE;
 
@@ -163,6 +170,17 @@ public class AuthorizationValve extends ValveBase {
             } else {
                 getNext().invoke(request, response);
             }
+        /*
+         If no authenticated user or application is not found, and if it is a secured endpoint, check whether endpoint
+         is allowed to skip authorization for the engaged auth handler.
+         */
+        } else if ( authenticationContext != null && authenticationContext.getResourceConfig().isSecured()
+                && !isAuthorizationSkipAllowedEndpoint(authenticationContext.getProperty(
+                ENGAGED_AUTH_HANDLER).toString(), request.getRequestURI())) {
+
+            // If not allowed to skip authorization, 403-forbidden response will be received.
+            APIErrorResponseHandler.handleErrorResponse(
+                    authenticationContext, response, HttpServletResponse.SC_FORBIDDEN, null);
         } else {
             getNext().invoke(request, response);
         }
@@ -237,5 +255,31 @@ public class AuthorizationValve extends ValveBase {
     private boolean isClientEmpty(AuthenticationContext authenticationContext) {
 
         return authenticationContext.getProperty(Constants.AUTH_CONTEXT_OAUTH_APP_PROPERTY) == null;
+    }
+
+    /**
+     * Checks the endpoint is allowed to skip authorization for the given auth handler.
+     *
+     * @param authHandlerName   Name of the auth Handler
+     * @param requestUri    Request URI
+     *
+     * @return true if endpoint is allowed to skip authorization.
+     */
+    private boolean isAuthorizationSkipAllowedEndpoint(String authHandlerName, String requestUri) {
+
+        String[] authorizationSkipAllowedEndpointConfig = AuthConfigurationUtil.getInstance().getSkipAuthorizationAllowedEndpoints()
+                .get(authHandlerName);
+        if (authorizationSkipAllowedEndpointConfig == null) {
+            return false;
+        }
+
+        try {
+            String normalizedRequestURI = AuthConfigurationUtil.getInstance().getNormalizedRequestURI(requestUri);
+
+            return Arrays.stream(authorizationSkipAllowedEndpointConfig).anyMatch(
+                    endpoint -> Pattern.compile(endpoint).matcher(normalizedRequestURI).matches());
+        } catch (URISyntaxException | UnsupportedEncodingException e) {
+            throw new AuthRuntimeException("Error normalizing URL path: " + requestUri, e);
+        }
     }
 }

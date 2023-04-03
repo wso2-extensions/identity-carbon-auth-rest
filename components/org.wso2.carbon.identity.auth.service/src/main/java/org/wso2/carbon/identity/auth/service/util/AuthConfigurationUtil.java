@@ -31,6 +31,11 @@ import java.util.List;
 import java.util.Map;
 import javax.xml.namespace.QName;
 
+import static org.wso2.carbon.identity.auth.service.util.Constants.AUTHORIZATION_CONTROL_ELE;
+import static org.wso2.carbon.identity.auth.service.util.Constants.AUTH_HANDLER_ELE;
+import static org.wso2.carbon.identity.auth.service.util.Constants.ENDPOINT_LIST_ELE;
+import static org.wso2.carbon.identity.auth.service.util.Constants.SKIP_AUTHORIZATION_ELE;
+
 public class AuthConfigurationUtil {
 
     private static AuthConfigurationUtil authConfigurationUtil = new AuthConfigurationUtil();
@@ -39,10 +44,12 @@ public class AuthConfigurationUtil {
     private Map<String, String> applicationConfigMap = new HashMap<>();
     private List<String> intermediateCertCNList = new ArrayList<>();
     private List<String> exemptedContextList = new ArrayList<>();
+    private Map<String, String[]> skipAuthorizationAllowedEndpoints = new HashMap<>();
     private boolean isIntermediateCertValidationEnabled = false;
     private static final String SECRET_ALIAS = "secretAlias";
     private static final String SECRET_ALIAS_NAMESPACE_URI = "http://org.wso2.securevault/configuration";
     private static final String SECRET_ALIAS_PREFIX = "svns";
+    private static final String regex = "\\s*,\\s*";
     private String defaultAccess;
     private boolean isScopeValidationEnabled = true;
 
@@ -169,7 +176,6 @@ public class AuthConfigurationUtil {
                 allowedAuthHandlersList.add(handlerName);
             }
         } else {
-            String regex = "\\s*,\\s*";
             String[] allowedAuthHandlerNames = allowedAuthenticationHandlers.split(regex);
             allowedAuthHandlersList.addAll(Arrays.asList(allowedAuthHandlerNames));
         }
@@ -337,5 +343,34 @@ public class AuthConfigurationUtil {
             }
         }
         return false;
+    }
+
+    /**
+     * Build configurations of endpoints which are allowed to skip authorization with particular auth handler.
+     */
+    public void buildSkipAuthorizationAllowedEndpointsData() {
+
+        OMElement skipAuthorizationConfig = IdentityConfigParser.getInstance().getConfigElement(
+                AUTHORIZATION_CONTROL_ELE);
+        if (skipAuthorizationConfig != null) {
+            Iterator<OMElement> configs = skipAuthorizationConfig.getChildrenWithName(
+                    new QName(SKIP_AUTHORIZATION_ELE));
+            if (configs != null) {
+                while (configs.hasNext()) {
+                    OMElement config = configs.next();
+                    String authHandlerName = config.getAttributeValue(new QName(AUTH_HANDLER_ELE));
+                    String[] allowedAuthHandlerNames = config.getAttributeValue(
+                            new QName(ENDPOINT_LIST_ELE)).split(regex);
+                    skipAuthorizationAllowedEndpoints.put(authHandlerName, allowedAuthHandlerNames);
+                }
+            }
+        }
+    }
+
+    /**
+     * Retrieve Map of endpoint that allowed to skip authorization against the auth handler.
+     */
+    public Map<String, String[]> getSkipAuthorizationAllowedEndpoints() {
+        return skipAuthorizationAllowedEndpoints;
     }
 }

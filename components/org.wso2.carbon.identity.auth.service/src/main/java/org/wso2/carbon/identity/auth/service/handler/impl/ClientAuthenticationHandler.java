@@ -49,6 +49,8 @@ public class ClientAuthenticationHandler extends AuthenticationHandler {
     private final String CLIENT_AUTH_HEADER = "Client";
     private final String hashingFunction = "SHA-256";
     private final String SERVICE_PROVIDER_KEY = "serviceProvider";
+    private final String defaultAppName = "dashboard";
+    private final String defaultPassword = "dashboard";
 
     @Override
     public void init(InitConfig initConfig) {
@@ -142,5 +144,35 @@ public class ClientAuthenticationHandler extends AuthenticationHandler {
             throw new AuthenticationFailException(errorMessage);
         }
         return authenticationResult;
+    }
+
+    /**
+     * Check whether default credentials are being used for ClientAuthentication.
+     *
+     * @return true if default credentials are being used.
+     */
+    public boolean isUsingDefaultCredentials() {
+
+        String hashedPasswordFromConfigFile = AuthConfigurationUtil.getInstance().getClientAuthenticationHash(defaultAppName);
+
+        if (hashedPasswordFromConfigFile != null) {
+            try {
+                MessageDigest dgst = MessageDigest.getInstance(hashingFunction);
+                byte[] byteValue = dgst.digest(defaultPassword.getBytes());
+
+                //convert the byte to hex format
+                StringBuilder sb = new StringBuilder();
+                for (byte b : byteValue) {
+                    sb.append(Integer.toString((b & 0xff) + 0x100, 16).substring(1));
+                }
+
+                if (hashedPasswordFromConfigFile.equals(sb.toString())) {
+                    return true;
+                }
+            } catch (NoSuchAlgorithmException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        return false;
     }
 }

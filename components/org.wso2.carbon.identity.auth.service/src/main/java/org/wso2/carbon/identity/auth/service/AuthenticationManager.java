@@ -36,6 +36,8 @@ import org.wso2.carbon.identity.core.handler.InitConfig;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static org.wso2.carbon.identity.auth.service.util.Constants.ENGAGED_AUTH_HANDLER;
+
 /**
  * AuthenticationManager is the manager class for doing the authentication based on the type ex: Basic, Token, etc...
  * <p/>
@@ -106,6 +108,8 @@ public class AuthenticationManager implements IdentityHandler {
             if (log.isDebugEnabled()) {
                 log.debug("AuthenticationHandler found : " + authenticationHandler.getClass().getName() + ".");
             }
+
+            authenticationContext.addProperty(ENGAGED_AUTH_HANDLER, authenticationHandler.getName());
             authenticationResult = authenticationHandler.authenticate(authenticationContext);
 
             if (log.isDebugEnabled()) {
