@@ -151,11 +151,11 @@ public class ClientAuthenticationHandler extends AuthenticationHandler {
      *
      * @return true if default credentials are being used.
      */
-    public boolean isUsingDefaultCredentials() {
+    public boolean hasDefaultCredentialsUsed() {
 
         String hashedPasswordFromConfigFile = AuthConfigurationUtil.getInstance().getClientAuthenticationHash(defaultAppName);
 
-        if (hashedPasswordFromConfigFile != null) {
+        if (StringUtils.isNotBlank(hashedPasswordFromConfigFile)) {
             try {
                 MessageDigest dgst = MessageDigest.getInstance(hashingFunction);
                 byte[] byteValue = dgst.digest(defaultPassword.getBytes());
@@ -170,7 +170,8 @@ public class ClientAuthenticationHandler extends AuthenticationHandler {
                     return true;
                 }
             } catch (NoSuchAlgorithmException e) {
-                throw new RuntimeException(e);
+                log.error("No hash algorithm:" + hashingFunction + " is found.");
+                return false;
             }
         }
         return false;

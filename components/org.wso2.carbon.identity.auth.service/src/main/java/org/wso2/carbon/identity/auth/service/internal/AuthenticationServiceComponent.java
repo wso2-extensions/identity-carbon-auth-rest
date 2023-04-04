@@ -71,7 +71,7 @@ public class AuthenticationServiceComponent {
             AuthConfigurationUtil.getInstance().buildIntermediateCertValidationConfigData();
             if (log.isDebugEnabled())
                 log.debug("AuthenticatorService is activated");
-            if (clientAuthenticationHandler.isUsingDefaultCredentials()) {
+            if (clientAuthenticationHandler.hasDefaultCredentialsUsed()) {
                 log.warn("WARNING: Default credentials are being used for the clientAuthenticationHandler " +
                         "which may cause for a potential security vulnerability: WSO2-2020-0864");
             }

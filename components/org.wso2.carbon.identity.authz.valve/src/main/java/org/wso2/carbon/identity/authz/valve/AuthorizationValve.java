@@ -175,12 +175,12 @@ public class AuthorizationValve extends ValveBase {
          is allowed to skip authorization for the engaged auth handler.
          */
         } else if ( authenticationContext != null && authenticationContext.getResourceConfig().isSecured()
-                && !isAuthorizationSkipAllowedEndpoint(authenticationContext.getProperty(
+                && !isAuthorizationSkipped(authenticationContext.getProperty(
                 ENGAGED_AUTH_HANDLER).toString(), request.getRequestURI())) {
 
             // If not allowed to skip authorization, 403-forbidden response will be received.
             APIErrorResponseHandler.handleErrorResponse(
-                    authenticationContext, response, HttpServletResponse.SC_FORBIDDEN, null);
+                    authenticationContext, response, HttpServletResponse.SC_UNAUTHORIZED, null);
         } else {
             getNext().invoke(request, response);
         }
@@ -265,11 +265,11 @@ public class AuthorizationValve extends ValveBase {
      *
      * @return true if endpoint is allowed to skip authorization.
      */
-    private boolean isAuthorizationSkipAllowedEndpoint(String authHandlerName, String requestUri) {
+    private boolean isAuthorizationSkipped(String authHandlerName, String requestUri) {
 
         String[] authorizationSkipAllowedEndpointConfig = AuthConfigurationUtil.getInstance().getSkipAuthorizationAllowedEndpoints()
                 .get(authHandlerName);
-        if (authorizationSkipAllowedEndpointConfig == null) {
+        if (authorizationSkipAllowedEndpointConfig == null || authorizationSkipAllowedEndpointConfig.length == 0) {
             return false;
         }
 
