@@ -54,11 +54,13 @@ public class AuthenticationServiceComponent {
 
     @Activate
     protected void activate(ComponentContext cxt) {
+
+        ClientAuthenticationHandler clientAuthenticationHandler = new ClientAuthenticationHandler();
         try {
             cxt.getBundleContext().registerService(AuthenticationHandler.class, new BasicAuthenticationHandler(), null);
             cxt.getBundleContext().registerService(AuthenticationHandler.class, new OAuth2AccessTokenHandler(), null);
             cxt.getBundleContext().registerService(AuthenticationHandler.class, new ClientCertificateBasedAuthenticationHandler(), null);
-            cxt.getBundleContext().registerService(AuthenticationHandler.class, new ClientAuthenticationHandler(), null);
+            cxt.getBundleContext().registerService(AuthenticationHandler.class, clientAuthenticationHandler, null);
             cxt.getBundleContext().registerService(AuthenticationHandler.class, new TomcatCookieAuthenticationHandler(), null);
             cxt.getBundleContext().registerService(AuthenticationHandler.class, new BasicClientAuthenticationHandler(), null);
             cxt.getBundleContext().registerService(AuthenticationManager.class, AuthenticationManager.getInstance(), null);
@@ -68,6 +70,10 @@ public class AuthenticationServiceComponent {
             AuthConfigurationUtil.getInstance().buildIntermediateCertValidationConfigData();
             if (log.isDebugEnabled())
                 log.debug("AuthenticatorService is activated");
+            if (clientAuthenticationHandler.hasDefaultCredentialsUsed()) {
+                log.warn("WARNING: Default credentials are being used for the ClientAppAuthentication " +
+                        "which may cause for a potential security vulnerability: WSO2-2023-2617");
+            }
         } catch (Throwable e) {
             log.error(e.getMessage(), e);
         }
