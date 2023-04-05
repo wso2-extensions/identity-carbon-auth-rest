@@ -71,8 +71,8 @@ public class AuthenticationServiceComponent {
             if (log.isDebugEnabled())
                 log.debug("AuthenticatorService is activated");
             if (clientAuthenticationHandler.hasDefaultCredentialsUsed()) {
-                log.warn("WARNING: Default credentials are being used for the ClientAppAuthentication " +
-                        "which may cause for a potential security vulnerability: WSO2-2023-2617");
+                log.warn("WARNING: Internal authentication is using default credentials, which could lead to the " +
+                        "potential security vulnerability: WSO2-2023-2617.");
             }
         } catch (Throwable e) {
             log.error(e.getMessage(), e);
