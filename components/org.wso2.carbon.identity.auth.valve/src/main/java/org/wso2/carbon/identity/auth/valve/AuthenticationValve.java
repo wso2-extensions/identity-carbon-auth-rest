@@ -167,7 +167,7 @@ public class AuthenticationValve extends ValveBase {
                     HttpServletResponse.SC_SERVICE_UNAVAILABLE, null);
         } catch (URISyntaxException e) {
             log.error("Error while normalizing the request URI to process the authentication: ", e);
-            APIErrorResponseHandler.handleErrorResponse(null, response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, null);
+            APIErrorResponseHandler.handleErrorResponse(null, response, HttpServletResponse.SC_BAD_REQUEST, null);
         } finally {
             // Clear 'IdentityError' thread local.
             if (IdentityUtil.getIdentityErrorMsg() != null) {
