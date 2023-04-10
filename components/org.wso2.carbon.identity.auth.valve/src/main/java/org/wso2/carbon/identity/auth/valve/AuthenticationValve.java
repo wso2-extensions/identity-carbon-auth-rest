@@ -62,6 +62,8 @@ import java.util.List;
 
 import java.net.URISyntaxException;
 import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
+
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
 
@@ -165,9 +167,8 @@ public class AuthenticationValve extends ValveBase {
             log.error("Identity Runtime Exception occurred in Authentication valve :", e);
             APIErrorResponseHandler.handleErrorResponse(authenticationContext, response,
                     HttpServletResponse.SC_SERVICE_UNAVAILABLE, null);
-        } catch (URISyntaxException e) {
-            log.error("Error while normalizing the request URI to process the authentication: ", e);
-            APIErrorResponseHandler.handleErrorResponse(null, response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, null);
+        } catch (URISyntaxException | PatternSyntaxException e) {
+            APIErrorResponseHandler.handleErrorResponse(null, response, HttpServletResponse.SC_BAD_REQUEST, null);
         } finally {
             // Clear 'IdentityError' thread local.
             if (IdentityUtil.getIdentityErrorMsg() != null) {
