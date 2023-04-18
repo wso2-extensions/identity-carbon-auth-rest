@@ -167,7 +167,11 @@ public class AuthenticationValve extends ValveBase {
             log.error("Identity Runtime Exception occurred in Authentication valve :", e);
             APIErrorResponseHandler.handleErrorResponse(authenticationContext, response,
                     HttpServletResponse.SC_SERVICE_UNAVAILABLE, null);
-        } catch (URISyntaxException | PatternSyntaxException e) {
+        } catch (URISyntaxException e) {
+            log.debug("Invalid URI syntax of the request :", e);
+            APIErrorResponseHandler.handleErrorResponse(null, response, HttpServletResponse.SC_BAD_REQUEST, null);
+        } catch (PatternSyntaxException e) {
+            log.debug("Invalid pattern syntax of the request :", e);
             APIErrorResponseHandler.handleErrorResponse(null, response, HttpServletResponse.SC_BAD_REQUEST, null);
         } finally {
             // Clear 'IdentityError' thread local.
