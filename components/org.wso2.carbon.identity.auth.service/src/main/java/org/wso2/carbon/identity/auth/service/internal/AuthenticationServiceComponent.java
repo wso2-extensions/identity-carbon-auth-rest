@@ -54,11 +54,13 @@ public class AuthenticationServiceComponent {
 
     @Activate
     protected void activate(ComponentContext cxt) {
+
+        ClientAuthenticationHandler clientAuthenticationHandler = new ClientAuthenticationHandler();
         try {
             cxt.getBundleContext().registerService(AuthenticationHandler.class, new BasicAuthenticationHandler(), null);
             cxt.getBundleContext().registerService(AuthenticationHandler.class, new OAuth2AccessTokenHandler(), null);
             cxt.getBundleContext().registerService(AuthenticationHandler.class, new ClientCertificateBasedAuthenticationHandler(), null);
-            cxt.getBundleContext().registerService(AuthenticationHandler.class, new ClientAuthenticationHandler(), null);
+            cxt.getBundleContext().registerService(AuthenticationHandler.class, clientAuthenticationHandler, null);
             cxt.getBundleContext().registerService(AuthenticationHandler.class, new TomcatCookieAuthenticationHandler(), null);
             cxt.getBundleContext().registerService(AuthenticationHandler.class, new BasicClientAuthenticationHandler(), null);
             cxt.getBundleContext().registerService(AuthenticationManager.class, AuthenticationManager.getInstance(), null);
@@ -68,6 +70,14 @@ public class AuthenticationServiceComponent {
             AuthConfigurationUtil.getInstance().buildIntermediateCertValidationConfigData();
             if (log.isDebugEnabled())
                 log.debug("AuthenticatorService is activated");
+            if (clientAuthenticationHandler.hasDefaultCredentialsUsed()) {
+                log.warn("\n\n##################################  ALERT  ##################################\n" +
+                        "[WARNING]: Internal authentication is utilizing default credentials,\n" +
+                        "which may expose the environment to potential security risks.\n" +
+                        "If this is a production environment, change the credentials immediately.\n" +
+                        "Please refer to the WSO2 security advisory: https://security.docs.wso2.com/en/latest/security-announcements/security-advisories/2023/WSO2-2023-2617/\n" +
+                        "#############################################################################\n");
+            }
         } catch (Throwable e) {
             log.error(e.getMessage(), e);
         }
