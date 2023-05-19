@@ -180,7 +180,7 @@ public class AuthorizationValve extends ValveBase {
 
             // If not allowed to skip authorization, 403-forbidden response will be received.
             APIErrorResponseHandler.handleErrorResponse(
-                    authenticationContext, response, HttpServletResponse.SC_UNAUTHORIZED, null);
+                    authenticationContext, response, HttpServletResponse.SC_FORBIDDEN, null);
         } else {
             getNext().invoke(request, response);
         }

@@ -50,7 +50,7 @@ public class ClientAuthenticationHandler extends AuthenticationHandler {
     private final String hashingFunction = "SHA-256";
     private final String SERVICE_PROVIDER_KEY = "serviceProvider";
     private final String defaultAppName = "dashboard";
-    private final String defaultPassword = "dashboard";
+    private final String defaultHashedPassword = "66cd9688a2ae068244ea01e70f0e230f5623b7fa4cdecb65070a09ec06452262";
 
     @Override
     public void init(InitConfig initConfig) {
@@ -153,27 +153,8 @@ public class ClientAuthenticationHandler extends AuthenticationHandler {
      */
     public boolean hasDefaultCredentialsUsed() {
 
-        String hashedPasswordFromConfigFile = AuthConfigurationUtil.getInstance().getClientAuthenticationHash(defaultAppName);
-
-        if (StringUtils.isNotBlank(hashedPasswordFromConfigFile)) {
-            try {
-                MessageDigest dgst = MessageDigest.getInstance(hashingFunction);
-                byte[] byteValue = dgst.digest(defaultPassword.getBytes());
-
-                //convert the byte to hex format
-                StringBuilder sb = new StringBuilder();
-                for (byte b : byteValue) {
-                    sb.append(Integer.toString((b & 0xff) + 0x100, 16).substring(1));
-                }
-
-                if (hashedPasswordFromConfigFile.equals(sb.toString())) {
-                    return true;
-                }
-            } catch (NoSuchAlgorithmException e) {
-                log.error("No hash algorithm:" + hashingFunction + " is found.");
-                return false;
-            }
-        }
-        return false;
+        String hashedPasswordFromConfigFile = AuthConfigurationUtil.getInstance()
+                .getClientAuthenticationHash(defaultAppName);
+        return defaultHashedPassword.equals(hashedPasswordFromConfigFile);
     }
 }

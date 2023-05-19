@@ -359,9 +359,9 @@ public class AuthConfigurationUtil {
                 while (configs.hasNext()) {
                     OMElement config = configs.next();
                     String authHandlerName = config.getAttributeValue(new QName(AUTH_HANDLER_ELE));
-                    String[] allowedAuthHandlerNames = config.getAttributeValue(
+                    String[] allowedEndpoints = config.getAttributeValue(
                             new QName(ENDPOINT_LIST_ELE)).split(regex);
-                    skipAuthorizationAllowedEndpoints.put(authHandlerName, allowedAuthHandlerNames);
+                    skipAuthorizationAllowedEndpoints.put(authHandlerName, allowedEndpoints);
                 }
             }
         }
