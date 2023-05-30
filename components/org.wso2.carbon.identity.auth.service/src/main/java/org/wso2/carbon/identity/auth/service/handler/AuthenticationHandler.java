@@ -36,6 +36,7 @@ import org.wso2.carbon.identity.auth.service.internal.AuthenticationServiceHolde
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
 import org.wso2.carbon.identity.core.handler.AbstractIdentityMessageHandler;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
+import org.wso2.carbon.identity.organization.management.service.OrganizationUserResidentResolverService;
 import org.wso2.carbon.identity.organization.management.service.exception.OrganizationManagementException;
 
 import java.util.Optional;
@@ -127,9 +128,17 @@ public abstract class AuthenticationHandler extends AbstractIdentityMessageHandl
                     String organizationId = PrivilegedCarbonContext.getThreadLocalCarbonContext().getOrganizationId();
                     if (StringUtils.isNotBlank(organizationId)) {
                         try {
-                            Optional<org.wso2.carbon.user.core.common.User> resolvedUser = AuthenticationServiceHolder
-                                    .getInstance().getOrganizationUserResidentResolverService()
-                                    .resolveUserFromResidentOrganization(user.getUserName(), null, organizationId);
+                            OrganizationUserResidentResolverService orgUserResolver = AuthenticationServiceHolder
+                                    .getInstance().getOrganizationUserResidentResolverService();
+                            Optional<org.wso2.carbon.user.core.common.User> resolvedUser = orgUserResolver
+                                    .resolveUserFromResidentOrganization(
+                                            user.getUserName(), null, organizationId);
+
+                            if (!resolvedUser.isPresent()) {
+                                resolvedUser = orgUserResolver.resolveUserFromResidentOrganization(
+                                        null, user.getUserName(), organizationId);
+                            }
+
                             if (resolvedUser.isPresent()) {
                                 PrivilegedCarbonContext.getThreadLocalCarbonContext().setUserId(resolvedUser.get()
                                         .getUserID());
