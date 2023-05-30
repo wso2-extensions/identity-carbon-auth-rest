@@ -128,14 +128,15 @@ public abstract class AuthenticationHandler extends AbstractIdentityMessageHandl
                     String organizationId = PrivilegedCarbonContext.getThreadLocalCarbonContext().getOrganizationId();
                     if (StringUtils.isNotBlank(organizationId)) {
                         try {
-                            OrganizationUserResidentResolverService orgUserResolver = AuthenticationServiceHolder
+                            OrganizationUserResidentResolverService orgUserResolverService = AuthenticationServiceHolder
                                     .getInstance().getOrganizationUserResidentResolverService();
-                            Optional<org.wso2.carbon.user.core.common.User> resolvedUser = orgUserResolver
+                            Optional<org.wso2.carbon.user.core.common.User> resolvedUser = orgUserResolverService
                                     .resolveUserFromResidentOrganization(
                                             user.getUserName(), null, organizationId);
 
+                            // Handle scenarios where the user id is set as the username.
                             if (!resolvedUser.isPresent()) {
-                                resolvedUser = orgUserResolver.resolveUserFromResidentOrganization(
+                                resolvedUser = orgUserResolverService.resolveUserFromResidentOrganization(
                                         null, user.getUserName(), organizationId);
                             }
 
