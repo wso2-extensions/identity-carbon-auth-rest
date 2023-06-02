@@ -76,7 +76,6 @@ public class AuthenticationServiceComponent {
                         "[WARNING]: Internal authentication is utilizing default credentials,\n" +
                         "which may expose the environment to potential security risks.\n" +
                         "If this is a production environment, change the credentials immediately.\n" +
-                        "Please refer to the WSO2 security advisory: https://security.docs.wso2.com/en/latest/security-announcements/security-advisories/2023/WSO2-2023-2617/\n" +
                         "#############################################################################\n");
             }
         } catch (Throwable e) {

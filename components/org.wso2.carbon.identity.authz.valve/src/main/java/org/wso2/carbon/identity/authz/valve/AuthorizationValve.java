@@ -267,10 +267,10 @@ public class AuthorizationValve extends ValveBase {
      */
     private boolean isAuthorizationSkipped(String authHandlerName, String requestUri) {
 
-        String[] authorizationSkipAllowedEndpointConfig = AuthConfigurationUtil.getInstance().getSkipAuthorizationAllowedEndpoints()
-                .get(authHandlerName);
-        if (authorizationSkipAllowedEndpointConfig == null || authorizationSkipAllowedEndpointConfig.length == 0) {
-            return false;
+        String[] authorizationSkipAllowedEndpointConfig = AuthConfigurationUtil.getInstance()
+                .getSkipAuthorizationAllowedEndpoints().get(authHandlerName);
+        if (authorizationSkipAllowedEndpointConfig == null) {
+            return true;
         }
 
         try {
