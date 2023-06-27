@@ -44,7 +44,12 @@ public class Constants {
     public final static String AUTH_CONTEXT_OAUTH_APP_PROPERTY = "oAuthAppDO";
 
     public static final String AUTHENTICATED_WITH_BASIC_AUTH = "AuthenticatedWithBasicAuth";
-
     public static final String IS_FEDERATED_USER = "isFederatedUser";
     public static final String IDP_NAME = "idpName";
+
+    public final static String AUTHORIZATION_CONTROL_ELE = "AuthorizationControl";
+    public final static String SKIP_AUTHORIZATION_ELE = "SkipAuthorization";
+    public final static String AUTH_HANDLER_ELE = "authHandler";
+    public final static String ENDPOINT_LIST_ELE = "endpoints";
+    public static final String ENGAGED_AUTH_HANDLER = "engagedAuthHandler";
 }

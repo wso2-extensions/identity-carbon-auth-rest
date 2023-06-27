@@ -49,6 +49,8 @@ public class ClientAuthenticationHandler extends AuthenticationHandler {
     private final String CLIENT_AUTH_HEADER = "Client";
     private final String hashingFunction = "SHA-256";
     private final String SERVICE_PROVIDER_KEY = "serviceProvider";
+    private final String defaultAppName = "dashboard";
+    private final String defaultHashedPassword = "66cd9688a2ae068244ea01e70f0e230f5623b7fa4cdecb65070a09ec06452262";
 
     @Override
     public void init(InitConfig initConfig) {
@@ -142,5 +144,17 @@ public class ClientAuthenticationHandler extends AuthenticationHandler {
             throw new AuthenticationFailException(errorMessage);
         }
         return authenticationResult;
+    }
+
+    /**
+     * Check whether default credentials are being used for ClientAuthentication.
+     *
+     * @return true if default credentials are being used.
+     */
+    public boolean hasDefaultCredentialsUsed() {
+
+        String hashedPasswordFromConfigFile = AuthConfigurationUtil.getInstance()
+                .getClientAuthenticationHash(defaultAppName);
+        return defaultHashedPassword.equals(hashedPasswordFromConfigFile);
     }
 }
