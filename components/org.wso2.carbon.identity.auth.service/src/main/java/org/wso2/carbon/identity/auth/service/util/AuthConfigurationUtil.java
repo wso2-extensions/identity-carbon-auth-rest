@@ -369,6 +369,8 @@ public class AuthConfigurationUtil {
 
     /**
      * Retrieve Map of endpoint that allowed to skip authorization against the auth handler.
+     *
+     * @return Map of allowed endpoints and auth handler
      */
     public Map<String, String[]> getSkipAuthorizationAllowedEndpoints() {
         return skipAuthorizationAllowedEndpoints;
