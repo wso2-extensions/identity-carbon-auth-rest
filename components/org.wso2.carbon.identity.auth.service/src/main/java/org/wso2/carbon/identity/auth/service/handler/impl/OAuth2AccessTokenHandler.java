@@ -85,8 +85,12 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
             if (StringUtils.isNotEmpty(authorizationHeader) && authorizationHeader.startsWith(OAUTH_HEADER)) {
                 String accessToken = null;
                 String[] bearerToken = authorizationHeader.split(" ");
+
+                // Fail the authentication flow if the token is empty or a space else gets the token.
                 if (bearerToken.length == 2) {
                     accessToken = bearerToken[1];
+                } else {
+                    return authenticationResult;
                 }
 
                 OAuth2TokenValidationService oAuth2TokenValidationService = new OAuth2TokenValidationService();
