@@ -112,11 +112,17 @@ public class BasicClientAuthenticationHandler extends AuthenticationHandler {
                                 .getRequest().getParameter("appTenant");
                         OAuthAppDO oAuthAppDO;
 
+                        /*
+                            When the app tenant is not provided, it tries to retrieve an app for the tenant
+                            in the request path. Even though there could be a scenario for cross tenant access,
+                            the request should be authenticated with a client in the requested tenant. If not,
+                            should pass the app tenant as a query parameter.
+                         */
                         if (StringUtils.isNotBlank(appTenant)) {
                             oAuthAppDO = OAuth2Util.getAppInformationByClientId(clientId, appTenant);
                         } else {
-                            // TODO: Need to check what should we do when tenant is not defined.
-                            oAuthAppDO = OAuth2Util.getAppInformationByClientIdFromAppListForConsumerKey(clientId);
+                            oAuthAppDO = OAuth2Util.getAppInformationByClientId(clientId);
+                            appTenant = oAuthAppDO.getAppOwner().getTenantDomain();
                         }
 
                         authenticationContext.addProperty(Constants.AUTH_CONTEXT_OAUTH_APP_PROPERTY, oAuthAppDO);
