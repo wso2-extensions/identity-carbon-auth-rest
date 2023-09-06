@@ -74,6 +74,8 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
 
 import static org.wso2.carbon.identity.auth.service.util.Constants.AUTHENTICATED_WITH_BASIC_AUTH;
+import static org.wso2.carbon.identity.oauth.common.OAuthConstants.OAuth10AParams.OAUTH_CONSUMER_KEY;
+import static org.wso2.carbon.identity.oauth.common.OAuthConstants.OAuth20Params.CLIENT_ID;
 import static org.wso2.carbon.identity.oauth.common.OAuthConstants.TENANT_NAME_FROM_CONTEXT;
 
 /**
@@ -130,7 +132,11 @@ public class AuthenticationValve extends ValveBase {
              */
             if (!IdentityTenantUtil.isTenantQualifiedUrlsEnabled() && isOAuthRequest(request)) {
                 String appTenant = MultitenantConstants.SUPER_TENANT_DOMAIN_NAME;
-                String clientId = request.getParameter("client_id");
+                String clientId = request.getParameter(CLIENT_ID);
+
+                if (StringUtils.isEmpty(clientId) && isOAuth10ARequest(request)) {
+                    clientId = request.getParameter(OAUTH_CONSUMER_KEY);
+                }
 
                 if (StringUtils.isEmpty(clientId)) {
                     // Try to get the client id from the authorization header.
@@ -476,16 +482,20 @@ public class AuthenticationValve extends ValveBase {
     private boolean isOAuthRequest(Request request) {
 
         String requestUri = request.getRequestURI();
-        if (StringUtils.isNotEmpty(requestUri) && (requestUri.contains("/oauth/") ||
-                requestUri.contains("/oauth2/"))) {
-            return true;
-        }
+        return StringUtils.isNotEmpty(requestUri) && (requestUri.contains("/oauth/") ||
+                requestUri.contains("/oauth2/"));
+    }
 
-        String authorizationHeader = request.getHeader("Authorization");
-        if (StringUtils.isNotEmpty(authorizationHeader) && authorizationHeader.toLowerCase().contains("basic")) {
-            return true;
-        }
-        return false;
+    /**
+     * Check whether the request is an OAuth 1.0 request.
+     *
+     * @param request Http servlet request.
+     * @return True if the request is an OAuth 1.0 request.
+     */
+    private boolean isOAuth10ARequest(Request request) {
+
+        String requestUri = request.getRequestURI();
+        return StringUtils.isNotEmpty(requestUri) && requestUri.contains("/oauth/");
     }
 
     /**
