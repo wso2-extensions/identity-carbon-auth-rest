@@ -131,7 +131,7 @@ public class AuthenticationValve extends ValveBase {
              Note that when tenant qualified urls are disabled, client id is unique across the server.
              */
             if (!IdentityTenantUtil.isTenantQualifiedUrlsEnabled() && isOAuthRequest(request)) {
-                String appTenant = MultitenantConstants.SUPER_TENANT_DOMAIN_NAME;
+                String appTenant = "";
                 String clientId = request.getParameter(CLIENT_ID);
 
                 if (StringUtils.isEmpty(clientId) && isOAuth10ARequest(request)) {
@@ -165,7 +165,9 @@ public class AuthenticationValve extends ValveBase {
                     }
                 }
 
-                IdentityUtil.threadLocalProperties.get().put(TENANT_NAME_FROM_CONTEXT, appTenant);
+                if (StringUtils.isNotEmpty(appTenant)) {
+                    IdentityUtil.threadLocalProperties.get().put(TENANT_NAME_FROM_CONTEXT, appTenant);
+                }
             }
 
             if (securedResource == null || !securedResource.isSecured()) {
@@ -504,7 +506,8 @@ public class AuthenticationValve extends ValveBase {
      */
     private void unsetThreadLocalContextTenantName(Request request) {
 
-        if (!IdentityTenantUtil.isTenantQualifiedUrlsEnabled() && isOAuthRequest(request)) {
+        if (!IdentityTenantUtil.isTenantQualifiedUrlsEnabled() && isOAuthRequest(request) &&
+                IdentityUtil.threadLocalProperties.get().get(TENANT_NAME_FROM_CONTEXT) != null) {
             IdentityUtil.threadLocalProperties.get().remove(TENANT_NAME_FROM_CONTEXT);
         }
     }
