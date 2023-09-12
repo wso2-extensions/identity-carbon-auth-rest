@@ -26,7 +26,6 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.slf4j.MDC;
-import org.wso2.carbon.base.MultitenantConstants;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.identity.application.authentication.framework.util.FrameworkConstants;
 import org.wso2.carbon.identity.application.common.util.IdentityApplicationManagementUtil;
@@ -52,11 +51,6 @@ import org.wso2.carbon.identity.base.IdentityRuntimeException;
 import org.wso2.carbon.identity.core.util.IdentityConfigParser;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
-import org.wso2.carbon.identity.oauth.common.exception.InvalidOAuthClientException;
-import org.wso2.carbon.identity.oauth.dao.OAuthAppDO;
-import org.wso2.carbon.identity.oauth2.IdentityOAuth2Exception;
-import org.wso2.carbon.identity.oauth2.client.authentication.OAuthClientAuthnException;
-import org.wso2.carbon.identity.oauth2.util.OAuth2Util;
 import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.user.core.tenant.TenantManager;
 
@@ -74,9 +68,6 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
 
 import static org.wso2.carbon.identity.auth.service.util.Constants.AUTHENTICATED_WITH_BASIC_AUTH;
-import static org.wso2.carbon.identity.oauth.common.OAuthConstants.OAuth10AParams.OAUTH_CONSUMER_KEY;
-import static org.wso2.carbon.identity.oauth.common.OAuthConstants.OAuth20Params.CLIENT_ID;
-import static org.wso2.carbon.identity.oauth.common.OAuthConstants.TENANT_NAME_FROM_CONTEXT;
 
 /**
  * AuthenticationValve can be used to intercept any request.
@@ -116,58 +107,13 @@ public class AuthenticationValve extends ValveBase {
             ResourceConfig securedResource = authenticationManager.getSecuredResource(
                     new ResourceConfigKey(normalizedRequestURI, request.getMethod()));
 
+
             setRemoteAddressAndUserAgentToMDC(request);
 
             if (isUnauthorized(securedResource)) {
                 APIErrorResponseHandler.handleErrorResponse(null, response,
                         HttpServletResponse.SC_UNAUTHORIZED, null);
                 return;
-            }
-
-            /*
-             When tenant qualified urls are not enabled, we need to set the tenant domain of the oauth app to
-             the thread local. This is because with the client id tenant uniqueness improvement, DAO layer requires
-             the tenant domain and client id to retrieve an app and the tenant is not available in the request path.
-             Note that when tenant qualified urls are disabled, client id is unique across the server.
-             */
-            if (!IdentityTenantUtil.isTenantQualifiedUrlsEnabled() && isOAuthRequest(request)) {
-                String appTenant = "";
-                String clientId = request.getParameter(CLIENT_ID);
-
-                if (StringUtils.isEmpty(clientId) && isOAuth10ARequest(request)) {
-                    clientId = request.getParameter(OAUTH_CONSUMER_KEY);
-                }
-
-                if (StringUtils.isEmpty(clientId)) {
-                    // Try to get the client id from the authorization header.
-                    try {
-                        String[] credentials = OAuth2Util.extractCredentialsFromAuthzHeader(request);
-                        if (credentials.length == 2 && StringUtils.isNotEmpty(credentials[0])) {
-                            clientId = credentials[0];
-                        }
-                    } catch (OAuthClientAuthnException e) {
-                        if (log.isDebugEnabled()) {
-                            log.debug("Error while extracting credentials from authorization header.", e);
-                        }
-                    }
-                }
-
-                if (StringUtils.isNotEmpty(clientId)) {
-                    try {
-                        OAuthAppDO oAuthAppDO = OAuth2Util.getAppInformationByClientIdOnly(clientId);
-                        appTenant = OAuth2Util.getTenantDomainOfOauthApp(oAuthAppDO);
-                    } catch (IdentityOAuth2Exception e) {
-                        log.error("Error while getting oauth app for client Id: " + clientId, e);
-                    } catch (InvalidOAuthClientException e) {
-                        if (log.isDebugEnabled()) {
-                            log.debug("Error while getting oauth app for client Id: " + clientId, e);
-                        }
-                    }
-                }
-
-                if (StringUtils.isNotEmpty(appTenant)) {
-                    IdentityUtil.threadLocalProperties.get().put(TENANT_NAME_FROM_CONTEXT, appTenant);
-                }
             }
 
             if (securedResource == null || !securedResource.isSecured()) {
@@ -247,8 +193,6 @@ public class AuthenticationValve extends ValveBase {
             unsetMDCThreadLocals();
             // Clear thread local authenticated with basic auth flag.
             unsetAuthenticatedWithBasicAuth();
-            // Clear thread local tenant name.
-            unsetThreadLocalContextTenantName(request);
         }
 
 
@@ -472,43 +416,6 @@ public class AuthenticationValve extends ValveBase {
         if (url != null && URL_MATCHING_PATTERN.matcher(url).matches()) {
             throw new AuthenticationFailException("Given URL contain un-normalized content. URL validation failed for "
                     + url);
-        }
-    }
-
-    /**
-     * Check whether the request is an OAuth request.
-     *
-     * @param request Http servlet request.
-     * @return True if the request is an OAuth request.
-     */
-    private boolean isOAuthRequest(Request request) {
-
-        String requestUri = request.getRequestURI();
-        return StringUtils.isNotEmpty(requestUri) && (requestUri.contains("/oauth/") ||
-                requestUri.contains("/oauth2/"));
-    }
-
-    /**
-     * Check whether the request is an OAuth 1.0 request.
-     *
-     * @param request Http servlet request.
-     * @return True if the request is an OAuth 1.0 request.
-     */
-    private boolean isOAuth10ARequest(Request request) {
-
-        String requestUri = request.getRequestURI();
-        return StringUtils.isNotEmpty(requestUri) && requestUri.contains("/oauth/");
-    }
-
-    /**
-     * Unset the context tenant name from thread local properties.
-     * @param request Http servlet request.
-     */
-    private void unsetThreadLocalContextTenantName(Request request) {
-
-        if (!IdentityTenantUtil.isTenantQualifiedUrlsEnabled() && isOAuthRequest(request) &&
-                IdentityUtil.threadLocalProperties.get().get(TENANT_NAME_FROM_CONTEXT) != null) {
-            IdentityUtil.threadLocalProperties.get().remove(TENANT_NAME_FROM_CONTEXT);
         }
     }
 }
