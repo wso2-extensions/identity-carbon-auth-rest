@@ -150,11 +150,7 @@ public abstract class AuthenticationHandler extends AbstractIdentityMessageHandl
                                     "for organization specific calls.", ex);
                         }
                     }
-                    String loggableUserId = user.getLoggableUserId();
-                    if (LoggerUtils.isLogMaskingEnable) {
-                        loggableUserId = LoggerUtils.getMaskedContent(loggableUserId);
-                    }
-                    LOG.error("User id not found for user: " + loggableUserId);
+                    LOG.error("User id not found for user: " + user.getLoggableMaskedUserId());
                 }
             }
         }
