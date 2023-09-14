@@ -31,7 +31,6 @@ import org.wso2.carbon.identity.auth.service.AuthenticationStatus;
 import org.wso2.carbon.identity.auth.service.exception.AuthClientException;
 import org.wso2.carbon.identity.auth.service.exception.AuthServerException;
 import org.wso2.carbon.identity.auth.service.exception.AuthenticationFailException;
-import org.wso2.carbon.identity.auth.service.handler.impl.BasicAuthenticationHandler;
 import org.wso2.carbon.identity.auth.service.internal.AuthenticationServiceHolder;
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
 import org.wso2.carbon.identity.core.handler.AbstractIdentityMessageHandler;
@@ -150,7 +149,7 @@ public abstract class AuthenticationHandler extends AbstractIdentityMessageHandl
                                     "for organization specific calls.", ex);
                         }
                     }
-                    LOG.error("User id not found for user: " + user.getLoggableUserId());
+                    LOG.error("User id not found for user: " + user.getLoggableMaskedUserId());
                 }
             }
         }
