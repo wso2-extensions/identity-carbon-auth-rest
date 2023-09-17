@@ -111,7 +111,6 @@ public class OAuthAppTenantResolverValve extends ValveBase {
      */
     private boolean isOAuthRequest(Request request) {
 
-        // TODO: Need to check whether this works when invoking with tenanted path.
         String requestUri = request.getRequestURI();
         return StringUtils.isNotEmpty(requestUri) && (requestUri.startsWith("/oauth/") ||
                 requestUri.startsWith("/oauth2/"));
