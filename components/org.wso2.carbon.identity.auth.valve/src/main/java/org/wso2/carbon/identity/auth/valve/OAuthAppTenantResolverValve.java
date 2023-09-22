@@ -24,7 +24,6 @@ import org.apache.catalina.valves.ValveBase;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.identity.oauth.common.exception.InvalidOAuthClientException;
 import org.wso2.carbon.identity.oauth.dao.OAuthAppDO;
@@ -56,7 +55,7 @@ public class OAuthAppTenantResolverValve extends ValveBase {
     public void invoke(Request request, Response response) throws IOException, ServletException {
 
         try {
-            if (!IdentityTenantUtil.isTenantQualifiedUrlsEnabled() && isOAuthRequest(request)) {
+            if (isOAuthRequest(request)) {
                 String appTenant = "";
                 String clientId = request.getParameter(CLIENT_ID);
 
@@ -66,14 +65,16 @@ public class OAuthAppTenantResolverValve extends ValveBase {
 
                 // If empty, try to get the client id from the authorization header.
                 if (StringUtils.isEmpty(clientId)) {
-                    try {
-                        String[] credentials = OAuth2Util.extractCredentialsFromAuthzHeader(request);
-                        if (credentials.length == 2 && StringUtils.isNotEmpty(credentials[0])) {
-                            clientId = credentials[0];
-                        }
-                    } catch (OAuthClientAuthnException e) {
-                        if (log.isDebugEnabled()) {
-                            log.debug("Error while extracting credentials from authorization header.", e);
+                    if (OAuth2Util.isBasicAuthorizationHeaderExists(request)) {
+                        try {
+                            String[] credentials = OAuth2Util.extractCredentialsFromAuthzHeader(request);
+                            if (credentials != null) {
+                                clientId = credentials[0];
+                            }
+                        } catch (OAuthClientAuthnException e) {
+                            if (log.isDebugEnabled()) {
+                                log.debug("Error while extracting credentials from authorization header.", e);
+                            }
                         }
                     }
                 }
@@ -83,7 +84,7 @@ public class OAuthAppTenantResolverValve extends ValveBase {
                         OAuthAppDO oAuthAppDO = OAuth2Util.getAppInformationByClientIdOnly(clientId);
                         appTenant = OAuth2Util.getTenantDomainOfOauthApp(oAuthAppDO);
                     } catch (IdentityOAuth2Exception e) {
-                        log.error("Error while getting oauth app for client Id: " + clientId, e);
+                        log.error("Error while getting oauth app for client Id.", e);
                     } catch (InvalidOAuthClientException e) {
                         if (log.isDebugEnabled()) {
                             log.debug("Error while getting oauth app for client Id: " + clientId, e);
@@ -99,7 +100,7 @@ public class OAuthAppTenantResolverValve extends ValveBase {
             getNext().invoke(request, response);
         } finally {
             // Clear thread local tenant name.
-            unsetThreadLocalContextTenantName(request);
+            unsetThreadLocalContextTenantName();
         }
     }
 
@@ -130,12 +131,10 @@ public class OAuthAppTenantResolverValve extends ValveBase {
 
     /**
      * Unset the context tenant name from thread local properties.
-     * @param request Http servlet request.
      */
-    private void unsetThreadLocalContextTenantName(Request request) {
+    private void unsetThreadLocalContextTenantName() {
 
-        if (!IdentityTenantUtil.isTenantQualifiedUrlsEnabled() && isOAuthRequest(request) &&
-                IdentityUtil.threadLocalProperties.get().get(TENANT_NAME_FROM_CONTEXT) != null) {
+        if (IdentityUtil.threadLocalProperties.get().get(TENANT_NAME_FROM_CONTEXT) != null) {
             IdentityUtil.threadLocalProperties.get().remove(TENANT_NAME_FROM_CONTEXT);
         }
     }
