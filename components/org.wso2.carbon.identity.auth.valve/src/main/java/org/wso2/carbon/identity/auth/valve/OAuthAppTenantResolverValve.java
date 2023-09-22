@@ -50,6 +50,8 @@ import static org.wso2.carbon.identity.oauth.common.OAuthConstants.TENANT_NAME_F
 public class OAuthAppTenantResolverValve extends ValveBase {
 
     private static final Log log = LogFactory.getLog(OAuthAppTenantResolverValve.class);
+    private static String oAuthServerBaseURL = null;
+    private static String oAuth2ServerBaseURL = null;
 
     @Override
     public void invoke(Request request, Response response) throws IOException, ServletException {
@@ -112,9 +114,10 @@ public class OAuthAppTenantResolverValve extends ValveBase {
      */
     private boolean isOAuthRequest(Request request) {
 
-        String requestUri = request.getRequestURI();
-        return StringUtils.isNotEmpty(requestUri) && (requestUri.startsWith("/oauth/") ||
-                requestUri.startsWith("/oauth2/"));
+        initBaseUrls();
+        String requestUrl = request.getRequestURL().toString();
+        return StringUtils.isNotEmpty(requestUrl) && (requestUrl.startsWith(oAuth2ServerBaseURL) ||
+                requestUrl.startsWith(oAuthServerBaseURL));
     }
 
     /**
@@ -125,8 +128,8 @@ public class OAuthAppTenantResolverValve extends ValveBase {
      */
     private boolean isOAuth10ARequest(Request request) {
 
-        String requestUri = request.getRequestURI();
-        return StringUtils.isNotEmpty(requestUri) && requestUri.startsWith("/oauth/");
+        String requestUrl = request.getRequestURL().toString();
+        return StringUtils.isNotEmpty(requestUrl) && requestUrl.startsWith(oAuthServerBaseURL);
     }
 
     /**
@@ -136,6 +139,19 @@ public class OAuthAppTenantResolverValve extends ValveBase {
 
         if (IdentityUtil.threadLocalProperties.get().get(TENANT_NAME_FROM_CONTEXT) != null) {
             IdentityUtil.threadLocalProperties.get().remove(TENANT_NAME_FROM_CONTEXT);
+        }
+    }
+
+    /**
+     * Initialize the base urls.
+     */
+    private void initBaseUrls() {
+
+        if (StringUtils.isEmpty(oAuthServerBaseURL)) {
+            oAuthServerBaseURL = IdentityUtil.getServerURL("/oauth", true, true) + "/";
+        }
+        if (StringUtils.isEmpty(oAuth2ServerBaseURL)) {
+            oAuth2ServerBaseURL = IdentityUtil.getServerURL("/oauth2", true, true) + "/";
         }
     }
 }
