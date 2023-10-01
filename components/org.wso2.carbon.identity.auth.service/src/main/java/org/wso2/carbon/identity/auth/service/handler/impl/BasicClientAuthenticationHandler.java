@@ -109,7 +109,7 @@ public class BasicClientAuthenticationHandler extends AuthenticationHandler {
                         }
 
                         String appTenant = ((AuthenticationContext) messageContext).getAuthenticationRequest()
-                                .getRequest().getParameter("appTenant");
+                                .getRequest().getParameter(APP_TENANT_QUERY_PARAM);
                         OAuthAppDO oAuthAppDO;
 
                         /*
