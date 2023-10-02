@@ -33,6 +33,7 @@ import org.wso2.carbon.identity.core.bean.context.MessageContext;
 import org.wso2.carbon.identity.core.handler.InitConfig;
 import org.wso2.carbon.identity.oauth.IdentityOAuthAdminException;
 import org.wso2.carbon.identity.oauth.common.exception.InvalidOAuthClientException;
+import org.wso2.carbon.identity.oauth.dao.OAuthAppDO;
 import org.wso2.carbon.identity.oauth2.IdentityOAuth2Exception;
 import org.wso2.carbon.identity.oauth2.util.OAuth2Util;
 
@@ -49,6 +50,7 @@ public class BasicClientAuthenticationHandler extends AuthenticationHandler {
 
     private static final Log log = LogFactory.getLog(BasicClientAuthenticationHandler.class);
     private final String BASIC_AUTH_HEADER = "Basic";
+    private static final String APP_TENANT_QUERY_PARAM = "appTenant";
 
     @Override
     public void init(InitConfig initConfig) {
@@ -105,10 +107,26 @@ public class BasicClientAuthenticationHandler extends AuthenticationHandler {
                                     + " with client secret.");
                         }
 
-                        authenticationContext.addProperty(Constants.AUTH_CONTEXT_OAUTH_APP_PROPERTY,
-                                OAuth2Util.getAppInformationByClientId(clientId));
+                        String appTenant = ((AuthenticationContext) messageContext).getAuthenticationRequest()
+                                .getRequest().getParameter(APP_TENANT_QUERY_PARAM);
+                        OAuthAppDO oAuthAppDO;
 
-                        if (OAuth2Util.authenticateClient(clientId, clientSecret)) {
+                        /*
+                            When the app tenant is not provided, it tries to retrieve an app for the tenant
+                            in the request path. Even though there could be a scenario for cross tenant access,
+                            the request should be authenticated with a client in the requested tenant. If not,
+                            should pass the app tenant as a query parameter.
+                         */
+                        if (StringUtils.isNotBlank(appTenant)) {
+                            oAuthAppDO = OAuth2Util.getAppInformationByClientId(clientId, appTenant);
+                        } else {
+                            oAuthAppDO = OAuth2Util.getAppInformationByClientId(clientId);
+                            appTenant = oAuthAppDO.getAppOwner().getTenantDomain();
+                        }
+
+                        authenticationContext.addProperty(Constants.AUTH_CONTEXT_OAUTH_APP_PROPERTY, oAuthAppDO);
+
+                        if (OAuth2Util.authenticateClient(clientId, clientSecret, appTenant)) {
                             authenticationResult.setAuthenticationStatus(AuthenticationStatus.SUCCESS);
                         } else {
                             authenticationResult.setAuthenticationStatus(AuthenticationStatus.FAILED);
