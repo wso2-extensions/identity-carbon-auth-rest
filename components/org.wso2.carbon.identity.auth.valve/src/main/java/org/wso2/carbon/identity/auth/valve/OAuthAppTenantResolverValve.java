@@ -44,12 +44,12 @@ import static org.wso2.carbon.identity.oauth.common.OAuthConstants.TENANT_NAME_F
  *
  * When tenant qualified urls are not enabled, we need to set the tenant domain of the oauth app to the thread
  * local. This is because with the client id tenant uniqueness improvement, DAO layer requires the tenant domain
- * and client id to retrieve an app and the tenant is not available in the request path. Note that when tenant
+ * and client id to retrieve an app when the tenant is not available in the request path. Note that when tenant
  * qualified urls are disabled, client id is unique across the server.
  */
 public class OAuthAppTenantResolverValve extends ValveBase {
 
-    private static final Log log = LogFactory.getLog(OAuthAppTenantResolverValve.class);
+    private static final Log LOG = LogFactory.getLog(OAuthAppTenantResolverValve.class);
     private static String oAuthServerBaseURL = null;
     private static String oAuth2ServerBaseURL = null;
 
@@ -74,8 +74,8 @@ public class OAuthAppTenantResolverValve extends ValveBase {
                                 clientId = credentials[0];
                             }
                         } catch (OAuthClientAuthnException e) {
-                            if (log.isDebugEnabled()) {
-                                log.debug("Error while extracting credentials from authorization header.", e);
+                            if (LOG.isDebugEnabled()) {
+                                LOG.debug("Error while extracting credentials from authorization header.", e);
                             }
                         }
                     }
@@ -86,10 +86,10 @@ public class OAuthAppTenantResolverValve extends ValveBase {
                         OAuthAppDO oAuthAppDO = OAuth2Util.getAppInformationByClientIdOnly(clientId);
                         appTenant = OAuth2Util.getTenantDomainOfOauthApp(oAuthAppDO);
                     } catch (IdentityOAuth2Exception e) {
-                        log.error("Error while getting oauth app for client Id.", e);
+                        LOG.error("Error while getting oauth app for client Id: " + clientId, e);
                     } catch (InvalidOAuthClientException e) {
-                        if (log.isDebugEnabled()) {
-                            log.debug("Error while getting oauth app for client Id: " + clientId, e);
+                        if (LOG.isDebugEnabled()) {
+                            LOG.debug("Error while getting oauth app for client Id: " + clientId, e);
                         }
                     }
                 }
