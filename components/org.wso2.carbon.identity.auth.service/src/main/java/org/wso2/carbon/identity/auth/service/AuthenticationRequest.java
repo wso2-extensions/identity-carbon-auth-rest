@@ -57,19 +57,17 @@ public class AuthenticationRequest implements Serializable
 
     private static final Log log = LogFactory.getLog(AuthenticationRequest.class);
 
-    protected Map<String, Object> attributes = new HashMap<>();
-    protected Map<String, String> headers = new HashMap<>();
-    protected Map<CookieKey, Cookie> cookies = new HashMap<>();
-    protected Map<CookieKey, List<Cookie>> cookieListMap = new HashMap<>();
-    protected String contextPath;
-    protected String method;
-    protected String requestUri;
+    private Map<String, Object> attributes = new HashMap<>();
+    private Map<String, String> headers = new HashMap<>();
+    private Map<CookieKey, List<Cookie>> cookieListMap = new HashMap<>();
+    private String contextPath;
+    private String method;
+    private String requestUri;
     private Request request;
 
     protected AuthenticationRequest(AuthenticationRequestBuilder builder) {
         this.attributes = builder.attributes;
         this.headers = builder.headers;
-        this.cookies = builder.cookies;
         this.cookieListMap = builder.cookieListMap;
         this.contextPath = builder.contextPath;
         this.method = builder.method;
@@ -122,11 +120,6 @@ public class AuthenticationRequest implements Serializable
     public void setRequest(Request request) {
 
         this.request = request;
-    }
-
-    @Deprecated
-    public Map<CookieKey, Cookie> getCookieMap() {
-        return Collections.unmodifiableMap(cookies);
     }
 
     public Map<CookieKey, List<Cookie>> getCookieListMap() {
