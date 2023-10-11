@@ -23,7 +23,6 @@ import org.apache.catalina.LifecycleException;
 import org.apache.catalina.connector.Request;
 import org.apache.catalina.connector.Response;
 import org.apache.catalina.valves.ValveBase;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -39,14 +38,8 @@ import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.user.core.tenant.TenantManager;
-import org.wso2.carbon.utils.CarbonUtils;
 
-import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -139,6 +132,13 @@ public class TenantContextRewriteValve extends ValveBase {
             if (tenantDomain != null &&
                     !tenantManager.isTenantActive(IdentityTenantUtil.getTenantId(tenantDomain))) {
                 handleInvalidTenantDomainErrorResponse(response, HttpServletResponse.SC_NOT_FOUND, tenantDomain);
+            } else if (IdentityTenantUtil.isTenantQualifiedUrlsEnabled() && !isValidTenantQualifiedUrl(requestURI)) {
+                if (log.isDebugEnabled()) {
+                    log.debug("/t/carbon.super should be appended to the request URL only if the Tenant qualified URL " +
+                            "feature is enabled and AppendSuperTenantInUrl configuration is enabled. Hence " +
+                            "restricting the access to super tenant.");
+                }
+                handleRestrictedTenantDomainErrorResponse(request, response);
             } else {
                 IdentityUtil.threadLocalProperties.get().put(TENANT_NAME_FROM_CONTEXT, tenantDomain);
 
@@ -320,5 +320,23 @@ public class TenantContextRewriteValve extends ValveBase {
             String errorPage = ContextRewriteValveServiceComponentHolder.getInstance().getPageNotFoundErrorPage();
             response.getWriter().print(errorPage);
         }
+    }
+
+    /**
+     * Validate request URI whether it contains tenant in the context path according to the configurations.
+     *
+     * @param requestURI    Request URI
+     * @return boolean whether requestURI is
+     */
+    private boolean isValidTenantQualifiedUrl(String requestURI) {
+
+        String tenantInContextPath = "/t/" +  MultitenantConstants.SUPER_TENANT_DOMAIN_NAME;
+        if (IdentityTenantUtil.isSuperTenantRequiredInUrl() && requestURI.contains(tenantInContextPath)) {
+            return true;
+        } else if (!IdentityTenantUtil.isSuperTenantRequiredInUrl() && !requestURI.contains(tenantInContextPath)) {
+            return true;
+        }
+
+        return false;
     }
 }
