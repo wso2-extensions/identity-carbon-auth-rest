@@ -151,7 +151,6 @@ public class AuthenticationRequest implements Serializable
 
         public Map<String, Object> attributes = new HashMap<>();
         private Map<String, String> headers = new HashMap<>();
-        private Map<CookieKey, Cookie> cookies = new HashMap<>();
         private Map<CookieKey, List<Cookie>> cookieListMap = new HashMap<>();
         private String contextPath;
         private String method;
@@ -191,10 +190,6 @@ public class AuthenticationRequest implements Serializable
         }
 
         public AuthenticationRequestBuilder addCookie(CookieKey cookieKey, Cookie value) {
-            if ( this.cookies.containsKey(cookieKey) ) {
-                log.warn("Overriding existing cookie '" + cookieKey.toString() + "' in cookie map");
-            }
-            this.cookies.put(cookieKey, value);
 
             List<Cookie> cookieValues;
             if ( this.cookieListMap.containsKey(cookieKey) ) {
