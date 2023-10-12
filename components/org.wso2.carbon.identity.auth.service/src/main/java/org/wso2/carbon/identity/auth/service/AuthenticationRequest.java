@@ -57,19 +57,17 @@ public class AuthenticationRequest implements Serializable
 
     private static final Log log = LogFactory.getLog(AuthenticationRequest.class);
 
-    protected Map<String, Object> attributes = new HashMap<>();
-    protected Map<String, String> headers = new HashMap<>();
-    protected Map<CookieKey, Cookie> cookies = new HashMap<>();
-    protected Map<CookieKey, List<Cookie>> cookieListMap = new HashMap<>();
-    protected String contextPath;
-    protected String method;
-    protected String requestUri;
+    private Map<String, Object> attributes = new HashMap<>();
+    private Map<String, String> headers = new HashMap<>();
+    private Map<CookieKey, List<Cookie>> cookieListMap = new HashMap<>();
+    private String contextPath;
+    private String method;
+    private String requestUri;
     private Request request;
 
     protected AuthenticationRequest(AuthenticationRequestBuilder builder) {
         this.attributes = builder.attributes;
         this.headers = builder.headers;
-        this.cookies = builder.cookies;
         this.cookieListMap = builder.cookieListMap;
         this.contextPath = builder.contextPath;
         this.method = builder.method;
@@ -124,11 +122,6 @@ public class AuthenticationRequest implements Serializable
         this.request = request;
     }
 
-    @Deprecated
-    public Map<CookieKey, Cookie> getCookieMap() {
-        return Collections.unmodifiableMap(cookies);
-    }
-
     public Map<CookieKey, List<Cookie>> getCookieListMap() {
         return Collections.unmodifiableMap(cookieListMap);
     }
@@ -158,7 +151,6 @@ public class AuthenticationRequest implements Serializable
 
         public Map<String, Object> attributes = new HashMap<>();
         private Map<String, String> headers = new HashMap<>();
-        private Map<CookieKey, Cookie> cookies = new HashMap<>();
         private Map<CookieKey, List<Cookie>> cookieListMap = new HashMap<>();
         private String contextPath;
         private String method;
@@ -198,10 +190,6 @@ public class AuthenticationRequest implements Serializable
         }
 
         public AuthenticationRequestBuilder addCookie(CookieKey cookieKey, Cookie value) {
-            if ( this.cookies.containsKey(cookieKey) ) {
-                log.warn("Overriding existing cookie '" + cookieKey.toString() + "' in cookie map");
-            }
-            this.cookies.put(cookieKey, value);
 
             List<Cookie> cookieValues;
             if ( this.cookieListMap.containsKey(cookieKey) ) {
