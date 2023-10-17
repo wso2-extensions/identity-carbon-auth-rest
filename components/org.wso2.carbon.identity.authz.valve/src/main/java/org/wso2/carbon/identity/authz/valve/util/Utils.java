@@ -91,7 +91,7 @@ public class Utils {
         return tenantDomainFromURLMapping.equals(tenantDomain);
     }
 
-    public static boolean isUserAuthorizedOrganization(AuthenticationContext authenticationContext, Request request) {
+    public static boolean isUserAuthorizedForOrganization(AuthenticationContext authenticationContext, Request request) {
 
         User user = authenticationContext.getUser();
         if (user == null) {

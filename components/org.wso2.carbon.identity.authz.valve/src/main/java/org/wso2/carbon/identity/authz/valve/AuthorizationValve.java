@@ -83,6 +83,7 @@ public class AuthorizationValve extends ValveBase {
 
             String requestURI = request.getRequestURI();
             String tenantDomain = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain();
+            // The below check on organization qualified resource access should be removed.
             if (!StringUtils.equals(MultitenantConstants.SUPER_TENANT_DOMAIN_NAME, tenantDomain) &&
                     requestURI.startsWith(ORGANIZATION_PATH_PARAM) &&
                     org.wso2.carbon.identity.organization.management.service.util.Utils.useOrganizationRolesForValidation(
@@ -93,7 +94,7 @@ public class AuthorizationValve extends ValveBase {
                  */
                 Object scopeValidationEnabled = authenticationContext.getParameter(OAUTH2_VALIDATE_SCOPE);
                 if (scopeValidationEnabled != null && Boolean.parseBoolean(scopeValidationEnabled.toString())) {
-                    if (!Utils.isUserAuthorizedOrganization(authenticationContext, request)) {
+                    if (!Utils.isUserAuthorizedForOrganization(authenticationContext, request)) {
                         if (log.isDebugEnabled()) {
                             log.debug("Authorization to " + request.getRequestURI() +
                                     " is denied because the used access token issued from a different tenant domain: " +
