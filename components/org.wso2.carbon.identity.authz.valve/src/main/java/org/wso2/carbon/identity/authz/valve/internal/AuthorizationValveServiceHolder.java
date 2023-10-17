@@ -19,6 +19,7 @@
 package org.wso2.carbon.identity.authz.valve.internal;
 
 import org.wso2.carbon.identity.authz.service.AuthorizationManager;
+import org.wso2.carbon.identity.organization.management.service.OrganizationManager;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,6 +31,7 @@ public class AuthorizationValveServiceHolder {
 
     private static AuthorizationValveServiceHolder authorizationValveServiceHolder = new
             AuthorizationValveServiceHolder();
+    private OrganizationManager organizationManager;
 
     private List<AuthorizationManager> authorizationManagerList = new ArrayList<>();
 
@@ -46,5 +48,16 @@ public class AuthorizationValveServiceHolder {
 
     public void setAuthorizationManagerList(List<AuthorizationManager> authorizationManagerList) {
         this.authorizationManagerList = authorizationManagerList;
+    }
+
+    public OrganizationManager getOrganizationManager() {
+
+        return organizationManager;
+    }
+
+    public void setOrganizationManager(
+            OrganizationManager organizationManager) {
+
+        this.organizationManager = organizationManager;
     }
 }
