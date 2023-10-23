@@ -30,6 +30,7 @@ import org.osgi.service.component.annotations.Deactivate;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ReferenceCardinality;
 import org.osgi.service.component.annotations.ReferencePolicy;
+import org.wso2.carbon.identity.organization.management.service.OrganizationManager;
 
 @Component(
          name = "org.wso2.carbon.identity.authz.valve", 
@@ -62,6 +63,25 @@ public class AuthorizationValveServiceComponent {
     protected void unsetAuthorizationManager(AuthorizationManager authorizationManager) {
         List<AuthorizationManager> authorizationManagerList = AuthorizationValveServiceHolder.getInstance().getAuthorizationManagerList();
         authorizationManagerList.remove(authorizationManager);
+    }
+
+    @Reference(
+            name = "organization.service",
+            service = OrganizationManager.class,
+            cardinality = ReferenceCardinality.MANDATORY,
+            policy = ReferencePolicy.DYNAMIC,
+            unbind = "unsetOrganizationManager"
+    )
+    protected void setOrganizationManager(OrganizationManager organizationManager) {
+
+        log.debug("Setting the organization management service.");
+        AuthorizationValveServiceHolder.getInstance().setOrganizationManager(organizationManager);
+    }
+
+    protected void unsetOrganizationManager(OrganizationManager organizationManager) {
+
+        log.debug("Unset organization management service.");
+        AuthorizationValveServiceHolder.getInstance().setOrganizationManager(null);
     }
 }
 

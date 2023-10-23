@@ -19,7 +19,9 @@
 package org.wso2.carbon.identity.authz.valve.util;
 
 import org.apache.catalina.connector.Request;
+import org.apache.commons.lang.StringUtils;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
+import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
 import org.wso2.carbon.identity.application.common.model.User;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
 import org.wso2.carbon.identity.auth.service.util.Constants;
@@ -50,6 +52,22 @@ public class Utils {
         return domain;
     }
 
+    public static String getOrganizationIdFromURLMapping(Request request) {
+
+        String requestURI = request.getRequestURI();
+        String organizationId = StringUtils.EMPTY;
+
+        if (requestURI.contains("/o/")) {
+            String temp = requestURI.substring(requestURI.indexOf("/o/") + 3);
+            int index = temp.indexOf('/');
+            if (index != -1) {
+                temp = temp.substring(0, index);
+                organizationId = temp;
+            }
+        }
+        return organizationId;
+    }
+
     /**
      * Checks whether the tenantDomain from URL mapping and the tenantDomain get from the user name are same.
      *
@@ -71,6 +89,19 @@ public class Utils {
             tenantDomain = OAuth2Util.getTenantDomainOfOauthApp(oAuthAppDO);
         }
         return tenantDomainFromURLMapping.equals(tenantDomain);
+    }
+
+    public static boolean isUserAuthorizedForOrganization(AuthenticationContext authenticationContext, Request request) {
+
+        User user = authenticationContext.getUser();
+        if (user == null) {
+            return false;
+        }
+        String authorizedOrganization = ((AuthenticatedUser) user).getAccessingOrganization();
+        if (StringUtils.isNotEmpty(authorizedOrganization)) {
+            return getOrganizationIdFromURLMapping(request).equals(authorizedOrganization);
+        }
+        return isUserBelongsToRequestedTenant(authenticationContext, request);
     }
 
     /**

@@ -1,7 +1,7 @@
 /*
- * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016-2023, WSO2 LLC. (http://www.wso2.com).
  *
- * WSO2 Inc. licenses this file to you under the Apache License,
+ * WSO2 LLC. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License.
  * You may obtain a copy of the License at
@@ -31,14 +31,9 @@ import org.wso2.carbon.identity.auth.service.AuthenticationStatus;
 import org.wso2.carbon.identity.auth.service.exception.AuthClientException;
 import org.wso2.carbon.identity.auth.service.exception.AuthServerException;
 import org.wso2.carbon.identity.auth.service.exception.AuthenticationFailException;
-import org.wso2.carbon.identity.auth.service.internal.AuthenticationServiceHolder;
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
 import org.wso2.carbon.identity.core.handler.AbstractIdentityMessageHandler;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
-import org.wso2.carbon.identity.organization.management.service.OrganizationUserResidentResolverService;
-import org.wso2.carbon.identity.organization.management.service.exception.OrganizationManagementException;
-
-import java.util.Optional;
 
 /**
  * This is the abstract class for custom authentication handlers.
@@ -104,51 +99,35 @@ public abstract class AuthenticationHandler extends AbstractIdentityMessageHandl
 
             User user = authenticationContext.getUser();
             if (user != null) {
-                // Set the user in to the Carbon context if the user belongs to same tenant. Skip this for cross tenant
-                // scenarios.
+                // Set the user in to the Carbon context if the user belongs to same tenant or else if the accessing
+                // organization is authorized to access. Skip this for cross tenant scenarios.
 
-                if (user.getTenantDomain() != null && user.getTenantDomain().equalsIgnoreCase(PrivilegedCarbonContext
-                        .getThreadLocalCarbonContext().getTenantDomain())) {
+                String authorizedOrganization = null;
+                if (user instanceof AuthenticatedUser) {
+                    authorizedOrganization = ((AuthenticatedUser) user).getAccessingOrganization();
+                }
+                if (user.getTenantDomain() != null && (user.getTenantDomain()
+                        .equalsIgnoreCase(PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain()) ||
+                        StringUtils.isNotEmpty(authorizedOrganization))) {
                     PrivilegedCarbonContext.getThreadLocalCarbonContext().setUsername(IdentityUtil.addDomainToName
                             (user.getUserName(), user.getUserStoreDomain()));
                 }
                 // Set the user id to the Carbon context if the user authentication is succeeded.
                 try {
+                    AuthenticatedUser authenticatedUser;
                     if (user instanceof AuthenticatedUser) {
-                        PrivilegedCarbonContext.getThreadLocalCarbonContext()
-                                .setUserId(((AuthenticatedUser) user).getUserId());
-                    } else {
-                        AuthenticatedUser authenticatedUser = new AuthenticatedUser(user);
-                        PrivilegedCarbonContext.getThreadLocalCarbonContext()
-                                .setUserId(authenticatedUser.getUserId());
-                    }
-                } catch (UserIdNotFoundException e) {
-                    // Resolve authenticated resident user for organization specific calls.
-                    String organizationId = PrivilegedCarbonContext.getThreadLocalCarbonContext().getOrganizationId();
-                    if (StringUtils.isNotBlank(organizationId)) {
-                        try {
-                            OrganizationUserResidentResolverService orgUserResolverService = AuthenticationServiceHolder
-                                    .getInstance().getOrganizationUserResidentResolverService();
-                            Optional<org.wso2.carbon.user.core.common.User> resolvedUser = orgUserResolverService
-                                    .resolveUserFromResidentOrganization(
-                                            user.getUserName(), null, organizationId);
-
-                            // Handle scenarios where the user id is set as the username.
-                            if (!resolvedUser.isPresent()) {
-                                resolvedUser = orgUserResolverService.resolveUserFromResidentOrganization(
-                                        null, user.getUserName(), organizationId);
-                            }
-
-                            if (resolvedUser.isPresent()) {
-                                PrivilegedCarbonContext.getThreadLocalCarbonContext().setUserId(resolvedUser.get()
-                                        .getUserID());
-                                return;
-                            }
-                        } catch (OrganizationManagementException ex) {
-                            LOG.error("Server encountered an error while resolving authenticated resident user " +
-                                    "for organization specific calls.", ex);
+                        authenticatedUser = (AuthenticatedUser) user;
+                        // For B2B organization users, set the user ID which is set as username in user object.
+                        if (authenticatedUser.isFederatedUser() && StringUtils.isNotEmpty(authorizedOrganization)) {
+                            PrivilegedCarbonContext.getThreadLocalCarbonContext()
+                                    .setUserId(authenticatedUser.getUserName());
+                            return;
                         }
+                    } else {
+                        authenticatedUser = new AuthenticatedUser(user);
                     }
+                    PrivilegedCarbonContext.getThreadLocalCarbonContext().setUserId(authenticatedUser.getUserId());
+                } catch (UserIdNotFoundException e) {
                     LOG.error("User id not found for user: " + user.getLoggableMaskedUserId());
                 }
             }

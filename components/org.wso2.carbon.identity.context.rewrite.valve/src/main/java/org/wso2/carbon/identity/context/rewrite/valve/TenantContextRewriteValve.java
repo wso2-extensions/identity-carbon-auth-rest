@@ -27,7 +27,6 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.slf4j.MDC;
-import org.wso2.carbon.base.MultitenantConstants;
 import org.wso2.carbon.base.ServerConfiguration;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.identity.base.IdentityRuntimeException;
@@ -38,6 +37,7 @@ import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.user.core.tenant.TenantManager;
+import org.wso2.carbon.utils.multitenancy.MultitenantConstants;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -85,6 +85,7 @@ public class TenantContextRewriteValve extends ValveBase {
         boolean isContextRewrite = false;
         boolean isWebApp = false;
 
+        String contextTenantDomain = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain();
         //Get the rewrite contexts and check whether request URI contains any of rewrite contains.
         for (RewriteContext context : contextsToRewrite) {
             Pattern patternTenant = context.getTenantContextPattern();
@@ -96,8 +97,7 @@ public class TenantContextRewriteValve extends ValveBase {
                 break;
             } else if (isTenantQualifiedUrlsEnabled && (patternSuperTenant.matcher(requestURI).find() ||
                     patternSuperTenant.matcher(requestURI + "/").find())) {
-                IdentityUtil.threadLocalProperties.get().put(TENANT_NAME_FROM_CONTEXT, MultitenantConstants
-                        .SUPER_TENANT_DOMAIN_NAME);
+                IdentityUtil.threadLocalProperties.get().put(TENANT_NAME_FROM_CONTEXT, contextTenantDomain);
                 break;
             }
         }
@@ -143,7 +143,7 @@ public class TenantContextRewriteValve extends ValveBase {
                 IdentityUtil.threadLocalProperties.get().put(TENANT_NAME_FROM_CONTEXT, tenantDomain);
 
                 if (isWebApp) {
-                    String dispatchLocation = "/" + requestURI.replace("/t/" + tenantDomain + contextToForward, "");
+                    String dispatchLocation = "/" + requestURI.replaceAll("/t/.*" + contextToForward, "");
                     if (contextListToOverwriteDispatch.contains(contextToForward) && !isIgnorePath(dispatchLocation)) {
                         dispatchLocation = "/";
                     }
