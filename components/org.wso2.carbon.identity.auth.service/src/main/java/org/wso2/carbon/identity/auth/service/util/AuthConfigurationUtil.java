@@ -2,7 +2,6 @@ package org.wso2.carbon.identity.auth.service.util;
 
 import org.apache.axiom.om.OMElement;
 import org.apache.axiom.om.impl.builder.StAXOMBuilder;
-import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -16,20 +15,21 @@ import org.wso2.carbon.identity.auth.service.module.ResourceConfigKey;
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
 import org.wso2.carbon.identity.core.util.IdentityConfigParser;
 import org.wso2.carbon.identity.core.util.IdentityCoreConstants;
-import org.wso2.carbon.utils.CarbonUtils;
+import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.securevault.SecretResolver;
 import org.wso2.securevault.SecretResolverFactory;
 import org.wso2.securevault.commons.MiscellaneousUtil;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -173,30 +173,26 @@ public class AuthConfigurationUtil {
 
     private static OMElement getResourceAccessControlConfigs() {
 
+        OMElement resourceAccessControl = null;
         /*
         Check whether legacy authorization runtime is enabled.
         Use the legacy resource access control configs if enabled.
         */
-        if (!CarbonConstants.ENABLE_LEGACY_AUTHZ_RUNTIME) {
-            return IdentityConfigParser.getInstance().getConfigElement(Constants
+        if (CarbonConstants.ENABLE_LEGACY_AUTHZ_RUNTIME) {
+            resourceAccessControl = IdentityConfigParser.getInstance().getConfigElement(Constants
                     .RESOURCE_ACCESS_CONTROL_ELE);
         }
-        try {
-            InputStream inStream = null;
-            String configDirPath = CarbonUtils.getCarbonConfigDirPath() + File.separator + "identity";
-            File configFile = new File(configDirPath, FilenameUtils.getName("resource-access-control-v2.xml"));
-            if (configFile.exists()) {
-                inStream = new FileInputStream(configFile);
-            }
-            if (inStream == null) {
-                String message = "Identity configuration not found at: " + configFile.getName();
+        Path path = Paths.get(IdentityUtil.getIdentityConfigDirPath(), Constants.RESOURCE_ACCESS_CONTROL_V2_FILE);
+        if (Files.exists(path)) {
+            try (InputStream in = Files.newInputStream(path)) {
+                StAXOMBuilder builder = new StAXOMBuilder(in);
+                resourceAccessControl = builder.getDocumentElement();
+            } catch (IOException | XMLStreamException e) {
+                String message = "Resource Access control configuration not found at: " + path.getFileName();
                 log.error(message);
             }
-            StAXOMBuilder builder = new StAXOMBuilder(inStream);
-            return builder.getDocumentElement();
-        } catch (FileNotFoundException | XMLStreamException e) {
-            throw new RuntimeException(e);
         }
+        return resourceAccessControl;
     }
 
     public List<String> buildAllowedAuthenticationHandlers(String allowedAuthenticationHandlers) {

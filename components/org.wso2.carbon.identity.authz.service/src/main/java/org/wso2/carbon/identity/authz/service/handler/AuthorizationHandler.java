@@ -75,8 +75,14 @@ public class AuthorizationHandler extends AbstractIdentityHandler {
             // If the scopes are configured for the API, it gets the first priority
             if (isScopeValidationRequired(authorizationContext, validateScope)) {
                 validateScopes(authorizationContext, authorizationResult, allowedScopes);
-            } else if (StringUtils.isNotBlank(permissionString) || authorizationContext.getRequiredScopes().size() == 0) {
-                validatePermissions(authorizationResult, user, permissionString, tenantUserRealm);
+            }
+            else if (CarbonConstants.ENABLE_LEGACY_AUTHZ_RUNTIME) {
+                if (StringUtils.isNotBlank(permissionString) || authorizationContext.getRequiredScopes().size() == 0) {
+                    validatePermissions(authorizationResult, user, permissionString, tenantUserRealm);
+                }
+            } else {
+                // TODO: Use OAuth2 scope validator, once merged.
+                validateScopes(authorizationContext, authorizationResult, allowedScopes);
             }
         } catch (UserStoreException e) {
             String errorMessage = "Error occurred while trying to authorize, " + e.getMessage();

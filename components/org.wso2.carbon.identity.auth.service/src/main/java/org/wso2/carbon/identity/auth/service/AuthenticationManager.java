@@ -30,8 +30,10 @@ import org.wso2.carbon.identity.auth.service.internal.AuthenticationServiceHolde
 import org.wso2.carbon.identity.auth.service.module.ResourceConfig;
 import org.wso2.carbon.identity.auth.service.module.ResourceConfigKey;
 import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
+import org.wso2.carbon.identity.auth.service.util.Constants;
 import org.wso2.carbon.identity.core.handler.IdentityHandler;
 import org.wso2.carbon.identity.core.handler.InitConfig;
+import org.wso2.carbon.identity.core.util.IdentityUtil;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -154,6 +156,10 @@ public class AuthenticationManager implements IdentityHandler {
     private boolean isHandlerAllowedForResource(List<String> allowedAuthenticationHandlersForResource,
                                                 AuthenticationHandler handler) {
 
+        if (Boolean.parseBoolean(IdentityUtil.getProperty(Constants.DISABLE_BASIC_AUTH_HANDLER_CONFIG)) &&
+                handler.getName().equals(Constants.BASIC_AUTHENTICATION)) {
+            return false;
+        }
         return allowedAuthenticationHandlersForResource.contains(handler.getName());
     }
 
