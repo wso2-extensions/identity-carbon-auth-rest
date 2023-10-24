@@ -51,9 +51,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
+
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
 
+import static org.wso2.carbon.identity.context.rewrite.constant.RewriteConstants.ORGANIZATION_PATH_PARAM;
 import static org.wso2.carbon.identity.context.rewrite.constant.RewriteConstants.TENANT_DOMAIN;
 import static org.wso2.carbon.identity.context.rewrite.constant.RewriteConstants.TENANT_ID;
 import static org.wso2.carbon.identity.core.util.IdentityCoreConstants.ENABLE_TENANT_QUALIFIED_URLS;
@@ -108,7 +110,6 @@ public class TenantContextRewriteValve extends ValveBase {
             }
         }
 
-
         String tenantDomain = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain();
         try {
             MDC.put(TENANT_DOMAIN, tenantDomain);
@@ -143,6 +144,14 @@ public class TenantContextRewriteValve extends ValveBase {
 
                 if (isWebApp) {
                     String dispatchLocation = "/" + requestURI.replaceAll("/t/.*" + contextToForward, "");
+                    /* Verify the request not start with /o/ for backward compatibility. If /o/ path is found middle of
+                     the request it should be dispatched to organization APIs.
+                     Ex-: Request: /t/<tenant-domain>/o/api/server/v1/applications  -->  /o/server/v1/applications
+                     */
+                    if (!requestURI.startsWith(ORGANIZATION_PATH_PARAM) &&
+                            requestURI.contains(ORGANIZATION_PATH_PARAM)) {
+                        dispatchLocation = "/o" + dispatchLocation;
+                    }
                     if (contextListToOverwriteDispatch.contains(contextToForward) && !isIgnorePath(dispatchLocation)) {
                         dispatchLocation = "/";
                     }
@@ -195,6 +204,7 @@ public class TenantContextRewriteValve extends ValveBase {
     }
 
     private List<RewriteContext> getContextsToRewrite() {
+
         List<RewriteContext> rewriteContexts = new ArrayList<>();
         Map<String, Object> configuration = IdentityConfigParser.getInstance().getConfiguration();
         Object webAppContexts = configuration.get("TenantContextsToRewrite.WebApp.Context");
