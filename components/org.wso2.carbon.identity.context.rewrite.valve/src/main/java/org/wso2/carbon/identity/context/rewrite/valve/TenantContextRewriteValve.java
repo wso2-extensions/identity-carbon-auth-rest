@@ -80,7 +80,6 @@ public class TenantContextRewriteValve extends ValveBase {
         contextsToRewrite = getContextsToRewrite();
         contextListToOverwriteDispatch = getContextListToOverwriteDispatchLocation();
         ignorePathListForOverwriteDispatch = getIgnorePathListForOverwriteDispatch();
-        organizationRoutingOnlySupportedAPIPaths = getOrganizationRoutingOnlySupportedAPIPaths();
         isTenantQualifiedUrlsEnabled = isTenantQualifiedUrlsEnabled();
 
     }
@@ -118,20 +117,6 @@ public class TenantContextRewriteValve extends ValveBase {
             if (!isContextRewrite) {
                 getNext().invoke(request, response);
                 return;
-            }
-            if (isWebApp) {
-                boolean organizationRoutingOnlySupportedAPIPath = false;
-                for (String path : organizationRoutingOnlySupportedAPIPaths) {
-                    if (StringUtils.contains(requestURI, path)) {
-                        organizationRoutingOnlySupportedAPIPath = true;
-                        break;
-                    }
-                }
-                // Tenant context rewriting should not happen for organization routing only supported API paths.
-                if (organizationRoutingOnlySupportedAPIPath) {
-                    getNext().invoke(request, response);
-                    return;
-                }
             }
 
             tenantManager = ContextRewriteValveServiceComponentHolder.getInstance().getRealmService()
@@ -249,11 +234,6 @@ public class TenantContextRewriteValve extends ValveBase {
     private List<String> getIgnorePathListForOverwriteDispatch() {
 
         return getConfigValues("TenantContextsToRewrite.OverwriteDispatch.IgnorePath");
-    }
-
-    private List<String> getOrganizationRoutingOnlySupportedAPIPaths() {
-
-        return getConfigValues("OrgRoutingOnlySupportedAPIPaths.Path");
     }
 
     private List<String> getConfigValues(String elementPath) {
