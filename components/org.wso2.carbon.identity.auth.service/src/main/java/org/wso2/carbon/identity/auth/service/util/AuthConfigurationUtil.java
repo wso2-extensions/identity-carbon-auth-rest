@@ -173,26 +173,30 @@ public class AuthConfigurationUtil {
 
     private static OMElement getResourceAccessControlConfigs() {
 
-        OMElement resourceAccessControl = null;
         /*
         Check whether legacy authorization runtime is enabled.
         Use the legacy resource access control configs if enabled.
         */
         if (CarbonConstants.ENABLE_LEGACY_AUTHZ_RUNTIME) {
-            resourceAccessControl = IdentityConfigParser.getInstance().getConfigElement(Constants
+            return IdentityConfigParser.getInstance().getConfigElement(Constants
                     .RESOURCE_ACCESS_CONTROL_ELE);
         }
         Path path = Paths.get(IdentityUtil.getIdentityConfigDirPath(), Constants.RESOURCE_ACCESS_CONTROL_V2_FILE);
         if (Files.exists(path)) {
             try (InputStream in = Files.newInputStream(path)) {
                 StAXOMBuilder builder = new StAXOMBuilder(in);
-                resourceAccessControl = builder.getDocumentElement();
-            } catch (IOException | XMLStreamException e) {
-                String message = "Resource Access control configuration not found at: " + path.getFileName();
+                return builder.getDocumentElement().cloneOMElement();
+            } catch (IOException e) {
+                String message = "Error while reading Resource Access control configuration at: " + path.getFileName();
+                log.error(message);
+            } catch (XMLStreamException e) {
+                String message = "Error while parsing Resource Access control configuration at: " + path.getFileName();
                 log.error(message);
             }
+        } else {
+            log.error("Resource Access control configuration not found at: " + path.getFileName());
         }
-        return resourceAccessControl;
+        return null;
     }
 
     public List<String> buildAllowedAuthenticationHandlers(String allowedAuthenticationHandlers) {

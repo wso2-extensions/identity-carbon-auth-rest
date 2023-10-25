@@ -1,7 +1,7 @@
 /*
- * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016-2023, WSO2 LLC. (http://www.wso2.com).
  *
- * WSO2 Inc. licenses this file to you under the Apache License,
+ * WSO2 LLC. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License.
  * You may obtain a copy of the License at
@@ -15,6 +15,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.wso2.carbon.identity.authz.service.handler;
 
 import org.apache.commons.collections.CollectionUtils;
@@ -76,13 +77,8 @@ public class AuthorizationHandler extends AbstractIdentityHandler {
             if (isScopeValidationRequired(authorizationContext, validateScope)) {
                 validateScopes(authorizationContext, authorizationResult, allowedScopes);
             }
-            else if (CarbonConstants.ENABLE_LEGACY_AUTHZ_RUNTIME) {
-                if (StringUtils.isNotBlank(permissionString) || authorizationContext.getRequiredScopes().size() == 0) {
-                    validatePermissions(authorizationResult, user, permissionString, tenantUserRealm);
-                }
-            } else {
-                // TODO: Use OAuth2 scope validator, once merged.
-                validateScopes(authorizationContext, authorizationResult, allowedScopes);
+            if (StringUtils.isNotBlank(permissionString) || authorizationContext.getRequiredScopes().size() == 0) {
+                validatePermissions(authorizationResult, user, permissionString, tenantUserRealm);
             }
         } catch (UserStoreException e) {
             String errorMessage = "Error occurred while trying to authorize, " + e.getMessage();
