@@ -193,6 +193,9 @@ public class AuthenticationValve extends ValveBase {
             unsetMDCThreadLocals();
             // Clear thread local authenticated with basic auth flag.
             unsetAuthenticatedWithBasicAuth();
+
+            // Clear user resident organization thread local.
+            IdentityUtil.threadLocalProperties.get().remove("USER_RESIDENT_ORG");
         }
 
 
