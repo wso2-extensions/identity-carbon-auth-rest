@@ -103,14 +103,19 @@ public abstract class AuthenticationHandler extends AbstractIdentityMessageHandl
                 // organization is authorized to access. Skip this for cross tenant scenarios.
 
                 String authorizedOrganization = null;
+                String userResidentOrganization = null;
                 if (user instanceof AuthenticatedUser) {
                     authorizedOrganization = ((AuthenticatedUser) user).getAccessingOrganization();
+                    userResidentOrganization = ((AuthenticatedUser) user).getUserResidentOrganization();
                 }
+
                 if (user.getTenantDomain() != null && (user.getTenantDomain()
                         .equalsIgnoreCase(PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain()) ||
                         StringUtils.isNotEmpty(authorizedOrganization))) {
                     PrivilegedCarbonContext.getThreadLocalCarbonContext().setUsername(IdentityUtil.addDomainToName
                             (user.getUserName(), user.getUserStoreDomain()));
+                    // Set the user's resident organization if user is accessing an organization
+                    IdentityUtil.threadLocalProperties.get().put("USER_RESIDENT_ORG", userResidentOrganization);
                 }
                 // Set the user id to the Carbon context if the user authentication is succeeded.
                 try {
