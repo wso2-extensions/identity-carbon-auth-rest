@@ -300,12 +300,16 @@ public class AuthorizationValve extends ValveBase {
 
     private void startOrganizationBoundTenantFlow(String authorizedOrganization) {
 
+        String userId = PrivilegedCarbonContext.getThreadLocalCarbonContext().getUserId();
+        String userName = PrivilegedCarbonContext.getThreadLocalCarbonContext().getUsername();
         PrivilegedCarbonContext.startTenantFlow();
         PrivilegedCarbonContext.getThreadLocalCarbonContext().setOrganizationId(authorizedOrganization);
         try {
             String authorizedTenantDomain = AuthorizationValveServiceHolder.getInstance().getOrganizationManager()
                     .resolveTenantDomain(authorizedOrganization);
             PrivilegedCarbonContext.getThreadLocalCarbonContext().setTenantDomain(authorizedTenantDomain, true);
+            PrivilegedCarbonContext.getThreadLocalCarbonContext().setUserId(userId);
+            PrivilegedCarbonContext.getThreadLocalCarbonContext().setUsername(userName);
         } catch (OrganizationManagementException e) {
             throw new AuthRuntimeException("Error while resolving tenant domain by organization.", e);
         }
