@@ -1,7 +1,7 @@
 /*
- * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016-2023, WSO2 LLC. (http://www.wso2.com).
  *
- * WSO2 Inc. licenses this file to you under the Apache License,
+ * WSO2 LLC. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License.
  * You may obtain a copy of the License at
@@ -30,8 +30,10 @@ import org.wso2.carbon.identity.auth.service.internal.AuthenticationServiceHolde
 import org.wso2.carbon.identity.auth.service.module.ResourceConfig;
 import org.wso2.carbon.identity.auth.service.module.ResourceConfigKey;
 import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
+import org.wso2.carbon.identity.auth.service.util.Constants;
 import org.wso2.carbon.identity.core.handler.IdentityHandler;
 import org.wso2.carbon.identity.core.handler.InitConfig;
+import org.wso2.carbon.identity.core.util.IdentityUtil;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -154,6 +156,10 @@ public class AuthenticationManager implements IdentityHandler {
     private boolean isHandlerAllowedForResource(List<String> allowedAuthenticationHandlersForResource,
                                                 AuthenticationHandler handler) {
 
+        if (Constants.BASIC_AUTHENTICATION.equals(handler.getName()) &&
+                !Boolean.parseBoolean(IdentityUtil.getProperty(Constants.ENABLE_BASIC_AUTH_HANDLER_CONFIG))) {
+            return false;
+        }
         return allowedAuthenticationHandlersForResource.contains(handler.getName());
     }
 

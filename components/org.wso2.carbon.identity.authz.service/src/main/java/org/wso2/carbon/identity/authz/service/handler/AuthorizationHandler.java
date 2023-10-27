@@ -1,7 +1,7 @@
 /*
- * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016-2023, WSO2 LLC. (http://www.wso2.com).
  *
- * WSO2 Inc. licenses this file to you under the Apache License,
+ * WSO2 LLC. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License.
  * You may obtain a copy of the License at
@@ -15,6 +15,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.wso2.carbon.identity.authz.service.handler;
 
 import org.apache.commons.collections.CollectionUtils;
@@ -23,6 +24,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.CarbonConstants;
+import org.wso2.carbon.context.PrivilegedCarbonContext;
+import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
 import org.wso2.carbon.identity.application.common.model.User;
 import org.wso2.carbon.identity.authz.service.AuthorizationContext;
 import org.wso2.carbon.identity.authz.service.AuthorizationResult;
@@ -32,6 +35,8 @@ import org.wso2.carbon.identity.authz.service.internal.AuthorizationServiceHolde
 import org.wso2.carbon.identity.core.handler.AbstractIdentityHandler;
 import org.wso2.carbon.identity.core.handler.InitConfig;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
+import org.wso2.carbon.identity.oauth2.IdentityOAuth2Exception;
+import org.wso2.carbon.identity.oauth2.util.AuthzUtil;
 import org.wso2.carbon.user.api.AuthorizationManager;
 import org.wso2.carbon.user.api.UserRealm;
 import org.wso2.carbon.user.api.UserStoreException;
@@ -75,10 +80,23 @@ public class AuthorizationHandler extends AbstractIdentityHandler {
             // If the scopes are configured for the API, it gets the first priority
             if (isScopeValidationRequired(authorizationContext, validateScope)) {
                 validateScopes(authorizationContext, authorizationResult, allowedScopes);
-            } else if (StringUtils.isNotBlank(permissionString) || authorizationContext.getRequiredScopes().size() == 0) {
-                validatePermissions(authorizationResult, user, permissionString, tenantUserRealm);
+            } else if (CarbonConstants.ENABLE_LEGACY_AUTHZ_RUNTIME) {
+                if (StringUtils.isNotBlank(permissionString) || authorizationContext.getRequiredScopes().size() == 0) {
+                    validatePermissions(authorizationResult, user, permissionString, tenantUserRealm);
+                }
+            } else {
+                AuthenticatedUser authenticatedUser = new AuthenticatedUser(user);
+                String userId = PrivilegedCarbonContext.getThreadLocalCarbonContext().getUserId();
+                if (userId != null) {
+                    authenticatedUser.setUserId(userId);
+                    boolean isAuthorized = AuthzUtil.isUserAuthorized(authenticatedUser,
+                            authorizationContext.getRequiredScopes());
+                    if (isAuthorized) {
+                        authorizationResult.setAuthorizationStatus(AuthorizationStatus.GRANT);
+                    }
+                }
             }
-        } catch (UserStoreException e) {
+        } catch (UserStoreException | IdentityOAuth2Exception e) {
             String errorMessage = "Error occurred while trying to authorize, " + e.getMessage();
             log.error(errorMessage);
             throw new AuthzServiceServerException(errorMessage, e);

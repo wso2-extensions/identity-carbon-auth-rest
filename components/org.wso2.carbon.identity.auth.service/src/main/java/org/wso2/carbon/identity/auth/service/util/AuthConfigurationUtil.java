@@ -1,10 +1,12 @@
 package org.wso2.carbon.identity.auth.service.util;
 
 import org.apache.axiom.om.OMElement;
+import org.apache.axiom.om.impl.builder.StAXOMBuilder;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpHeaders;
+import org.wso2.carbon.CarbonConstants;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
 import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
 import org.wso2.carbon.identity.auth.service.internal.AuthenticationServiceHolder;
@@ -13,15 +15,21 @@ import org.wso2.carbon.identity.auth.service.module.ResourceConfigKey;
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
 import org.wso2.carbon.identity.core.util.IdentityConfigParser;
 import org.wso2.carbon.identity.core.util.IdentityCoreConstants;
+import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.securevault.SecretResolver;
 import org.wso2.securevault.SecretResolverFactory;
 import org.wso2.securevault.commons.MiscellaneousUtil;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -29,7 +37,9 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
 import javax.xml.namespace.QName;
+import javax.xml.stream.XMLStreamException;
 
 import static org.wso2.carbon.identity.auth.service.util.Constants.AUTHORIZATION_CONTROL_ELE;
 import static org.wso2.carbon.identity.auth.service.util.Constants.AUTH_HANDLER_ELE;
@@ -78,8 +88,7 @@ public class AuthConfigurationUtil {
      */
     public void buildResourceAccessControlData() {
 
-        OMElement resourceAccessControl = IdentityConfigParser.getInstance().getConfigElement(Constants
-                .RESOURCE_ACCESS_CONTROL_ELE);
+        OMElement resourceAccessControl = getResourceAccessControlConfigs();
         if ( resourceAccessControl != null ) {
             defaultAccess = resourceAccessControl.getAttributeValue(new QName(Constants.RESOURCE_DEFAULT_ACCESS));
             isScopeValidationEnabled = !Boolean.parseBoolean(resourceAccessControl
@@ -160,6 +169,34 @@ public class AuthConfigurationUtil {
                 }
             }
         }
+    }
+
+    private static OMElement getResourceAccessControlConfigs() {
+
+        /*
+        Check whether legacy authorization runtime is enabled.
+        Use the legacy resource access control configs if enabled.
+        */
+        if (CarbonConstants.ENABLE_LEGACY_AUTHZ_RUNTIME) {
+            return IdentityConfigParser.getInstance().getConfigElement(Constants
+                    .RESOURCE_ACCESS_CONTROL_ELE);
+        }
+        Path path = Paths.get(IdentityUtil.getIdentityConfigDirPath(), Constants.RESOURCE_ACCESS_CONTROL_V2_FILE);
+        if (Files.exists(path)) {
+            try (InputStream in = Files.newInputStream(path)) {
+                StAXOMBuilder builder = new StAXOMBuilder(in);
+                return builder.getDocumentElement().cloneOMElement();
+            } catch (IOException e) {
+                String message = "Error while reading Resource Access control configuration at: " + path.getFileName();
+                log.error(message);
+            } catch (XMLStreamException e) {
+                String message = "Error while parsing Resource Access control configuration at: " + path.getFileName();
+                log.error(message);
+            }
+        } else {
+            log.error("Resource Access control configuration not found at: " + path.getFileName());
+        }
+        return null;
     }
 
     public List<String> buildAllowedAuthenticationHandlers(String allowedAuthenticationHandlers) {
