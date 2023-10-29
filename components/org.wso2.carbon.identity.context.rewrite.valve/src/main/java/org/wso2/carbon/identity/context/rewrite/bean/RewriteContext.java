@@ -29,11 +29,16 @@ public class RewriteContext {
 
     private Pattern baseContextPattern;
 
+    private static final String CONSOLE_CONTEXT = "/console/";
+
     public RewriteContext(boolean isWebApp, String context) {
 
         this.isWebApp = isWebApp;
         this.context = context;
-        this.tenantContextPattern = Pattern.compile("^/t/([^/]+(?:/o)?)" + context);
+        this.tenantContextPattern = this.isWebApp ? CONSOLE_CONTEXT.equals(context)
+                ? Pattern.compile("^/t/([^/]+)(/o|/o/([^/]+))?" + context)
+                : Pattern.compile("^/t/([^/]+)(/o)?" + context)
+                : Pattern.compile("^/t/([^/]+)" + context);
         this.baseContextPattern = Pattern.compile("^" + context);
     }
 
