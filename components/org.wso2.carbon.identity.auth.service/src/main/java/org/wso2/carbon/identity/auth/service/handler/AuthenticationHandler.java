@@ -115,7 +115,8 @@ public abstract class AuthenticationHandler extends AbstractIdentityMessageHandl
                     PrivilegedCarbonContext.getThreadLocalCarbonContext().setUsername(IdentityUtil.addDomainToName
                             (user.getUserName(), user.getUserStoreDomain()));
                     // Set the user's resident organization if user is accessing an organization
-                    IdentityUtil.threadLocalProperties.get().put("USER_RESIDENT_ORG", userResidentOrganization);
+                    PrivilegedCarbonContext.getThreadLocalCarbonContext()
+                            .setUserResidentOrganizationId(userResidentOrganization);
                 }
                 // Set the user id to the Carbon context if the user authentication is succeeded.
                 try {
