@@ -34,6 +34,8 @@ import org.wso2.carbon.identity.auth.service.exception.AuthenticationFailExcepti
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
 import org.wso2.carbon.identity.core.handler.AbstractIdentityMessageHandler;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
+import org.wso2.carbon.user.core.util.UserCoreUtil;
+import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
 /**
  * This is the abstract class for custom authentication handlers.
@@ -124,8 +126,9 @@ public abstract class AuthenticationHandler extends AbstractIdentityMessageHandl
                         authenticatedUser = (AuthenticatedUser) user;
                         // For B2B organization users, set the user ID which is set as username in user object.
                         if (authenticatedUser.isFederatedUser() && StringUtils.isNotEmpty(authorizedOrganization)) {
-                            PrivilegedCarbonContext.getThreadLocalCarbonContext()
-                                    .setUserId(authenticatedUser.getUserName());
+                            String userName = MultitenantUtils.getTenantAwareUsername(authenticatedUser.getUserName());
+                            userName = UserCoreUtil.removeDomainFromName(userName);
+                            PrivilegedCarbonContext.getThreadLocalCarbonContext().setUserId(userName);
                             return;
                         }
                     } else {
