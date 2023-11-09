@@ -41,7 +41,9 @@ import org.wso2.carbon.identity.authz.service.AuthorizationStatus;
 import org.wso2.carbon.identity.authz.service.exception.AuthzServiceServerException;
 import org.wso2.carbon.identity.authz.valve.internal.AuthorizationValveServiceHolder;
 import org.wso2.carbon.identity.authz.valve.util.Utils;
+import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.identity.organization.management.authz.service.OrganizationManagementAuthorizationContext;
+import org.wso2.carbon.identity.organization.management.service.constant.OrganizationManagementConstants;
 import org.wso2.carbon.identity.organization.management.service.exception.OrganizationManagementException;
 import org.wso2.carbon.utils.multitenancy.MultitenantConstants;
 
@@ -170,6 +172,8 @@ public class AuthorizationValve extends ValveBase {
                                 getNext().invoke(request, response);
                             } finally {
                                 PrivilegedCarbonContext.endTenantFlow();
+                                IdentityUtil.threadLocalProperties.get()
+                                        .remove(OrganizationManagementConstants.ROOT_TENANT_DOMAIN);
                             }
                         } else {
                             getNext().invoke(request, response);
@@ -300,6 +304,8 @@ public class AuthorizationValve extends ValveBase {
 
     private void startOrganizationBoundTenantFlow(String authorizedOrganization) {
 
+        String tenantDomain = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain();
+        IdentityUtil.threadLocalProperties.get().put(OrganizationManagementConstants.ROOT_TENANT_DOMAIN, tenantDomain);
         String userId = PrivilegedCarbonContext.getThreadLocalCarbonContext().getUserId();
         String userName = PrivilegedCarbonContext.getThreadLocalCarbonContext().getUsername();
         String userResidentOrganizationId = PrivilegedCarbonContext.getThreadLocalCarbonContext()
