@@ -170,7 +170,9 @@ public abstract class AuthenticationHandler extends AbstractIdentityMessageHandl
                 String userId = PrivilegedCarbonContext.getThreadLocalCarbonContext().getUserId();
                 org.wso2.carbon.user.core.common.User user =
                         ((AbstractUserStoreManager) tenantUserRealm.getUserStoreManager()).getUser(userId, null);
-                PrivilegedCarbonContext.getThreadLocalCarbonContext().setUsername(user.getUsername());
+                if (user != null && StringUtils.isNotEmpty(user.getUsername())) {
+                    PrivilegedCarbonContext.getThreadLocalCarbonContext().setUsername(user.getUsername());
+                }
             }
         } catch (OrganizationManagementException | UserStoreException e) {
             LOG.debug("Authenticated user's username could not be resolved.", e);
