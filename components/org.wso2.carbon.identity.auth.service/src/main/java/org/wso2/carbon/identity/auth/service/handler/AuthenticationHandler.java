@@ -175,7 +175,7 @@ public abstract class AuthenticationHandler extends AbstractIdentityMessageHandl
                 }
             }
         } catch (OrganizationManagementException | UserStoreException e) {
-            LOG.debug("Authenticated user's username could not be resolved.", e);
+            LOG.error("Authenticated user's username could not be resolved.", e);
         }
     }
 }
