@@ -1,7 +1,7 @@
 /*
- * Copyright (c) 2022, WSO2 Inc. (http://www.wso2.com).
+ * Copyright (c) 2022-2023, WSO2 LLC. (http://www.wso2.com).
  *
- * WSO2 Inc. licenses this file to you under the Apache License,
+ * WSO2 LLC. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License.
  * You may obtain a copy of the License at
@@ -23,6 +23,7 @@ public class RewriteConstants {
     public static final String TENANT_DOMAIN = "tenantDomain";
     public static final String TENANT_ID = "tenantId";
     public static final String ORGANIZATION_PATH_PARAM = "/o/";
+    public static final String SUPER_TENANT_QUALIFIED_REQUEST = "/t/carbon.super/";
     public static final String ERROR_CODE = "code";
     public static final String ERROR_MESSAGE = "message";
     public static final String ERROR_DESCRIPTION = "description";

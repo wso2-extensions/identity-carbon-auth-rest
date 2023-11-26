@@ -1,7 +1,7 @@
 /*
- * Copyright (c) 2022, WSO2 Inc. (http://www.wso2.com).
+ * Copyright (c) 2022-2023, WSO2 LLC. (http://www.wso2.com).
  *
- * WSO2 Inc. licenses this file to you under the Apache License,
+ * WSO2 LLC. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License.
  * You may obtain a copy of the License at
@@ -49,6 +49,7 @@ import static org.wso2.carbon.identity.context.rewrite.constant.RewriteConstants
 import static org.wso2.carbon.identity.context.rewrite.constant.RewriteConstants.TENANT_ID;
 import static org.wso2.carbon.identity.context.rewrite.util.Utils.getOrganizationDomainFromURL;
 import static org.wso2.carbon.identity.context.rewrite.util.Utils.handleErrorResponse;
+import static org.wso2.carbon.identity.context.rewrite.util.Utils.isOrganizationPerspectiveResourceAccess;
 import static org.wso2.carbon.identity.core.util.IdentityCoreConstants.TENANT_NAME_FROM_CONTEXT;
 
 /**
@@ -107,6 +108,10 @@ public class OrganizationContextRewriteValve extends ValveBase {
             the base paths and any sub paths that might be defined under them.
              */
             if (!orgRoutingPathSupported || (subPathsConfigured && !orgRoutingSubPathSupported)) {
+                if (isOrganizationPerspectiveResourceAccess()) {
+                    getNext().invoke(request, response);
+                    return;
+                }
                 handleErrorResponse(HttpServletResponse.SC_NOT_FOUND, "Organization specific routing failed.",
                         "Unsupported organization specific routing endpoint.", response);
                 return;
