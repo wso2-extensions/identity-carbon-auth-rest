@@ -1,7 +1,7 @@
 /*
- * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016-2023, WSO2 LLC. (http://www.wso2.com).
  *
- * WSO2 Inc. licenses this file to you under the Apache License,
+ * WSO2 LLC. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License.
  * You may obtain a copy of the License at
@@ -23,7 +23,6 @@ import org.apache.catalina.LifecycleException;
 import org.apache.catalina.connector.Request;
 import org.apache.catalina.connector.Response;
 import org.apache.catalina.valves.ValveBase;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -38,14 +37,8 @@ import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.user.core.tenant.TenantManager;
-import org.wso2.carbon.utils.CarbonUtils;
 
-import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -56,8 +49,10 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
 
 import static org.wso2.carbon.identity.context.rewrite.constant.RewriteConstants.ORGANIZATION_PATH_PARAM;
+import static org.wso2.carbon.identity.context.rewrite.constant.RewriteConstants.SUPER_TENANT_QUALIFIED_REQUEST;
 import static org.wso2.carbon.identity.context.rewrite.constant.RewriteConstants.TENANT_DOMAIN;
 import static org.wso2.carbon.identity.context.rewrite.constant.RewriteConstants.TENANT_ID;
+import static org.wso2.carbon.identity.context.rewrite.util.Utils.isAccessingOrganizationUnderSuperTenant;
 import static org.wso2.carbon.identity.core.util.IdentityCoreConstants.ENABLE_TENANT_QUALIFIED_URLS;
 import static org.wso2.carbon.identity.core.util.IdentityCoreConstants.TENANT_NAME_FROM_CONTEXT;
 
@@ -91,6 +86,12 @@ public class TenantContextRewriteValve extends ValveBase {
         String contextToForward = null;
         boolean isContextRewrite = false;
         boolean isWebApp = false;
+
+        /* If an organization under the super tenant is accessed with organization qualified URL, it is prefixed
+           with super tenant domain qualifier. /o/... -> /t/<carbon.super>/o/... */
+        if (StringUtils.startsWith(requestURI, ORGANIZATION_PATH_PARAM) && isAccessingOrganizationUnderSuperTenant()) {
+            requestURI = requestURI.replace(ORGANIZATION_PATH_PARAM, SUPER_TENANT_QUALIFIED_REQUEST);
+        }
 
         String contextTenantDomain = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain();
         //Get the rewrite contexts and check whether request URI contains any of rewrite contains.

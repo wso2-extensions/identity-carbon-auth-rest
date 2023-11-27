@@ -1,7 +1,7 @@
 /*
- * Copyright (c) 2022, WSO2 Inc. (http://www.wso2.com).
+ * Copyright (c) 2022-2023, WSO2 LLC. (http://www.wso2.com).
  *
- * WSO2 Inc. licenses this file to you under the Apache License,
+ * WSO2 LLC. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License.
  * You may obtain a copy of the License at
@@ -49,6 +49,7 @@ import static org.wso2.carbon.identity.context.rewrite.constant.RewriteConstants
 import static org.wso2.carbon.identity.context.rewrite.constant.RewriteConstants.TENANT_ID;
 import static org.wso2.carbon.identity.context.rewrite.util.Utils.getOrganizationDomainFromURL;
 import static org.wso2.carbon.identity.context.rewrite.util.Utils.handleErrorResponse;
+import static org.wso2.carbon.identity.context.rewrite.util.Utils.isAccessingOrganizationUnderSuperTenant;
 import static org.wso2.carbon.identity.core.util.IdentityCoreConstants.TENANT_NAME_FROM_CONTEXT;
 
 /**
@@ -74,6 +75,13 @@ public class OrganizationContextRewriteValve extends ValveBase {
         boolean orgRoutingSubPathSupported = false;
         boolean subPathsConfigured = false;
         boolean isWebApp = false;
+
+        /* Organization context rewrite valve can be skipped when accessing organization under the super tenant.
+           Ex - /o/api/server/v1/applications */
+        if (isAccessingOrganizationUnderSuperTenant()) {
+            getNext().invoke(request, response);
+            return;
+        }
 
         if (ContextRewriteValveServiceComponentHolder.getInstance().isOrganizationManagementEnabled() &&
                 StringUtils.startsWith(requestURI, ORGANIZATION_PATH_PARAM)) {

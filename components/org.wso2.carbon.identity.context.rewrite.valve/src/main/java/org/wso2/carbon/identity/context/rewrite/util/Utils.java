@@ -1,8 +1,8 @@
 /*
- * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016-2023, WSO2 LLC. (http://www.wso2.com).
  *
- * WSO2 Inc. licenses this file to you under the Apache License,
- *  Version 2.0 (the "License"); you may not use this file except
+ * WSO2 LLC. licenses this file to you under the Apache License,
+ * Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License.
  * You may obtain a copy of the License at
  *
@@ -21,6 +21,8 @@ package org.wso2.carbon.identity.context.rewrite.util;
 import com.google.gson.JsonObject;
 import org.apache.catalina.connector.Request;
 import org.apache.catalina.connector.Response;
+import org.wso2.carbon.identity.core.util.IdentityUtil;
+import org.wso2.carbon.identity.organization.management.service.constant.OrganizationManagementConstants;
 import org.wso2.carbon.utils.multitenancy.MultitenantConstants;
 
 import java.io.IOException;
@@ -74,4 +76,16 @@ public class Utils {
         response.getWriter().print(errorResponse);
     }
 
+    /**
+     * Check whether the request is for organization resources under super tenant.
+     *
+     * @return True if the request send for accessing an organization of the super tenant.
+     */
+    public static boolean isAccessingOrganizationUnderSuperTenant() {
+
+        // The root tenant domain is set when accessing organization resources.
+        String rootTenantDomain = (String) IdentityUtil.threadLocalProperties.get()
+                .get(OrganizationManagementConstants.ROOT_TENANT_DOMAIN);
+        return MultitenantConstants.SUPER_TENANT_DOMAIN_NAME.equals(rootTenantDomain);
+    }
 }
