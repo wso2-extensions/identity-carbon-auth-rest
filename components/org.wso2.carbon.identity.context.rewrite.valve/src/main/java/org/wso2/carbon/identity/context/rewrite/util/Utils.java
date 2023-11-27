@@ -21,7 +21,6 @@ package org.wso2.carbon.identity.context.rewrite.util;
 import com.google.gson.JsonObject;
 import org.apache.catalina.connector.Request;
 import org.apache.catalina.connector.Response;
-import org.apache.commons.lang.StringUtils;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.identity.organization.management.service.constant.OrganizationManagementConstants;
 import org.wso2.carbon.utils.multitenancy.MultitenantConstants;
@@ -77,11 +76,16 @@ public class Utils {
         response.getWriter().print(errorResponse);
     }
 
-    public static boolean isOrganizationPerspectiveResourceAccess() {
+    /**
+     * Check whether the requesting for organization resources under super tenant.
+     *
+     * @return True if the request send for accessing an organization of the super tenant.
+     */
+    public static boolean isAccessingOrganizationUnderSuperTenant() {
 
-        // The root tenant domain is set for organization perspective resource access requests.
+        // The root tenant domain is set when accessing organization resources.
         String rootTenantDomain = (String) IdentityUtil.threadLocalProperties.get()
                 .get(OrganizationManagementConstants.ROOT_TENANT_DOMAIN);
-        return StringUtils.isNotEmpty(rootTenantDomain);
+        return MultitenantConstants.SUPER_TENANT_DOMAIN_NAME.equals(rootTenantDomain);
     }
 }

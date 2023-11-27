@@ -49,7 +49,7 @@ import static org.wso2.carbon.identity.context.rewrite.constant.RewriteConstants
 import static org.wso2.carbon.identity.context.rewrite.constant.RewriteConstants.TENANT_ID;
 import static org.wso2.carbon.identity.context.rewrite.util.Utils.getOrganizationDomainFromURL;
 import static org.wso2.carbon.identity.context.rewrite.util.Utils.handleErrorResponse;
-import static org.wso2.carbon.identity.context.rewrite.util.Utils.isOrganizationPerspectiveResourceAccess;
+import static org.wso2.carbon.identity.context.rewrite.util.Utils.isAccessingOrganizationUnderSuperTenant;
 import static org.wso2.carbon.identity.core.util.IdentityCoreConstants.TENANT_NAME_FROM_CONTEXT;
 
 /**
@@ -75,6 +75,13 @@ public class OrganizationContextRewriteValve extends ValveBase {
         boolean orgRoutingSubPathSupported = false;
         boolean subPathsConfigured = false;
         boolean isWebApp = false;
+
+        /* Organization context rewrite valve can be skipped when accessing organization under the super tenant.
+           Ex - /o/api/server/v1/applications */
+        if (isAccessingOrganizationUnderSuperTenant()) {
+            getNext().invoke(request, response);
+            return;
+        }
 
         if (ContextRewriteValveServiceComponentHolder.getInstance().isOrganizationManagementEnabled() &&
                 StringUtils.startsWith(requestURI, ORGANIZATION_PATH_PARAM)) {
@@ -108,10 +115,6 @@ public class OrganizationContextRewriteValve extends ValveBase {
             the base paths and any sub paths that might be defined under them.
              */
             if (!orgRoutingPathSupported || (subPathsConfigured && !orgRoutingSubPathSupported)) {
-                if (isOrganizationPerspectiveResourceAccess()) {
-                    getNext().invoke(request, response);
-                    return;
-                }
                 handleErrorResponse(HttpServletResponse.SC_NOT_FOUND, "Organization specific routing failed.",
                         "Unsupported organization specific routing endpoint.", response);
                 return;

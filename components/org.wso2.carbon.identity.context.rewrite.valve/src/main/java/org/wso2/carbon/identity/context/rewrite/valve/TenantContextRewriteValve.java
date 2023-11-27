@@ -52,7 +52,7 @@ import static org.wso2.carbon.identity.context.rewrite.constant.RewriteConstants
 import static org.wso2.carbon.identity.context.rewrite.constant.RewriteConstants.SUPER_TENANT_QUALIFIED_REQUEST;
 import static org.wso2.carbon.identity.context.rewrite.constant.RewriteConstants.TENANT_DOMAIN;
 import static org.wso2.carbon.identity.context.rewrite.constant.RewriteConstants.TENANT_ID;
-import static org.wso2.carbon.identity.context.rewrite.util.Utils.isOrganizationPerspectiveResourceAccess;
+import static org.wso2.carbon.identity.context.rewrite.util.Utils.isAccessingOrganizationUnderSuperTenant;
 import static org.wso2.carbon.identity.core.util.IdentityCoreConstants.ENABLE_TENANT_QUALIFIED_URLS;
 import static org.wso2.carbon.identity.core.util.IdentityCoreConstants.TENANT_NAME_FROM_CONTEXT;
 
@@ -87,9 +87,9 @@ public class TenantContextRewriteValve extends ValveBase {
         boolean isContextRewrite = false;
         boolean isWebApp = false;
 
-        /* The organization perspective resource accessed with organization qualified URL is prefixed
-           with super tenant qualified URL. /o/... -> /t/<carbon.super>/o/... */
-        if (StringUtils.startsWith(requestURI, ORGANIZATION_PATH_PARAM) && isOrganizationPerspectiveResourceAccess()) {
+        /* If an organization under the super tenant is accessed with organization qualified URL, it is prefixed
+           with super tenant domain qualifier. /o/... -> /t/<carbon.super>/o/... */
+        if (StringUtils.startsWith(requestURI, ORGANIZATION_PATH_PARAM) && isAccessingOrganizationUnderSuperTenant()) {
             requestURI = requestURI.replace(ORGANIZATION_PATH_PARAM, SUPER_TENANT_QUALIFIED_REQUEST);
         }
 
