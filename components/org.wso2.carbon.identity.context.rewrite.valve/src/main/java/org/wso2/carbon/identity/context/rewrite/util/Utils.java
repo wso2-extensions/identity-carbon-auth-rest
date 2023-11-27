@@ -77,7 +77,7 @@ public class Utils {
     }
 
     /**
-     * Check whether the requesting for organization resources under super tenant.
+     * Check whether the request is for organization resources under super tenant.
      *
      * @return True if the request send for accessing an organization of the super tenant.
      */
