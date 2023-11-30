@@ -163,17 +163,21 @@ public class AuthorizationValve extends ValveBase {
                 try {
                     AuthorizationResult authorizationResult = authorizationManager.authorize(authorizationContext);
                     if (authorizationResult.getAuthorizationStatus().equals(AuthorizationStatus.GRANT)) {
-                        String authorizedOrganization = ((AuthenticatedUser)authorizationContext.getUser())
-                                .getAccessingOrganization();
-                        // Start tenant flow corresponds to the accessed organization.
-                        if (StringUtils.isNotEmpty(authorizedOrganization)) {
-                            try {
-                                startOrganizationBoundTenantFlow(authorizedOrganization);
+                        if (authorizationContext.getUser() instanceof AuthenticatedUser) {
+                            String authorizedOrganization = ((AuthenticatedUser)authorizationContext.getUser())
+                                    .getAccessingOrganization();
+                            // Start tenant flow corresponds to the accessed organization.
+                            if (StringUtils.isNotEmpty(authorizedOrganization)) {
+                                try {
+                                    startOrganizationBoundTenantFlow(authorizedOrganization);
+                                    getNext().invoke(request, response);
+                                } finally {
+                                    PrivilegedCarbonContext.endTenantFlow();
+                                    IdentityUtil.threadLocalProperties.get()
+                                            .remove(OrganizationManagementConstants.ROOT_TENANT_DOMAIN);
+                                }
+                            } else {
                                 getNext().invoke(request, response);
-                            } finally {
-                                PrivilegedCarbonContext.endTenantFlow();
-                                IdentityUtil.threadLocalProperties.get()
-                                        .remove(OrganizationManagementConstants.ROOT_TENANT_DOMAIN);
                             }
                         } else {
                             getNext().invoke(request, response);
