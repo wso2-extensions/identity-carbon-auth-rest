@@ -30,12 +30,14 @@ public class RewriteContext {
     private Pattern baseContextPattern;
 
     private static final String CONSOLE_CONTEXT = "/console/";
+    private static final String MY_ACCOUNT_CONTEXT = "/myaccount/";
 
     public RewriteContext(boolean isWebApp, String context) {
 
         this.isWebApp = isWebApp;
         this.context = context;
-        this.tenantContextPattern = this.isWebApp ? CONSOLE_CONTEXT.equals(context)
+        this.tenantContextPattern = this.isWebApp
+                ? (CONSOLE_CONTEXT.equals(context) || MY_ACCOUNT_CONTEXT.equals(context))
                 ? Pattern.compile("^/t/([^/]+)(/o|/o/([^/]+))?" + context)
                 : Pattern.compile("^/t/([^/]+)(/o)?" + context)
                 : Pattern.compile("^/t/([^/]+)" + context);
