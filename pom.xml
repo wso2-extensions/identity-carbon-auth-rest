@@ -392,7 +392,7 @@
 
         <!-- Identity Event Handler Versions -->
         <identity.event.handler.account.lock.version>1.8.13</identity.event.handler.account.lock.version>
-        <identity.event.handler.account.lock.version.range>[1.4.11, 2.0.0)</identity.event.handler.account.lock.version.range>
+        <identity.event.handler.account.lock.version.range>[1.8.13, 2.0.0)</identity.event.handler.account.lock.version.range>
 
         <!-- Commons Version -->
         <commons-logging.version>1.2</commons-logging.version>
