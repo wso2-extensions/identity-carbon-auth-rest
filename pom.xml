@@ -173,6 +173,11 @@
                 <version>${org.wso2.carbon.identity.organization.management.core.version}</version>
             </dependency>
             <dependency>
+                <groupId>org.wso2.carbon.identity.event.handler.accountlock</groupId>
+                <artifactId>org.wso2.carbon.identity.handler.event.account.lock</artifactId>
+                <version>${identity.event.handler.account.lock.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>org.testng</groupId>
                 <artifactId>testng</artifactId>
                 <version>${testng.version}</version>
@@ -384,6 +389,10 @@
         <!-- Axiom Version -->
         <axiom.wso2.version>1.2.11-wso2v16</axiom.wso2.version>
         <axiom.osgi.version.range>[1.2.11, 2.0.0)</axiom.osgi.version.range>
+
+        <!-- Identity Event Handler Versions -->
+        <identity.event.handler.account.lock.version>1.8.13</identity.event.handler.account.lock.version>
+        <identity.event.handler.account.lock.version.range>[1.4.11, 2.0.0)</identity.event.handler.account.lock.version.range>
 
         <!-- Commons Version -->
         <commons-logging.version>1.2</commons-logging.version>

@@ -157,7 +157,7 @@ public class AuthenticationValve extends ValveBase {
             APIErrorResponseHandler.handleErrorResponse(authenticationContext, response,
                     HttpServletResponse.SC_SERVICE_UNAVAILABLE, e);
         } catch (AuthenticationFailException e) {
-            APIErrorResponseHandler.handleErrorResponse(authenticationContext, response,
+            APIErrorResponseHandler.handleAuthenticationFailErrorResponse(authenticationContext, response,
                     HttpServletResponse.SC_UNAUTHORIZED, e);
         } catch (AuthRuntimeException e) {
             log.error("Auth Runtime Exception occurred in Authentication valve :", e);

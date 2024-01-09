@@ -49,6 +49,7 @@ import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
 import java.nio.charset.Charset;
 
+import org.wso2.carbon.identity.handler.event.account.lock.exception.AccountLockException;
 import static org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil.isAuthHeaderMatch;
 
 /**
@@ -207,6 +208,13 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
                 } catch (org.wso2.carbon.user.api.UserStoreException | OrganizationManagementException e) {
                     String errorMessage = "Error occurred while trying to authenticate. " + e.getMessage();
                     log.error(errorMessage);
+
+                    Throwable cause = e.getCause();
+                    if (cause instanceof AccountLockException) {
+                        String errorCode = ((AccountLockException) cause).getErrorCode();
+                        throw new AuthenticationFailException(errorCode, errorMessage);
+                    }
+
                     throw new AuthenticationFailServerException(errorMessage);
                 }
             } else {
