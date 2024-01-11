@@ -94,9 +94,10 @@ public class APIErrorResponseHandler {
     public static void handleAuthenticationFailErrorResponse(AuthenticationContext authenticationContext, Response response,
                                                        int error, AuthenticationFailException e) throws IOException {
 
-        if (e != null && e.getErrorCode() != null &&
-                USER_ACCOUNT_LOCKED_ERROR_CODE.equals(e.getErrorCode().split(":")[0]) && Boolean.parseBoolean(
-                IdentityUtil.getProperty(IdentityConstants.APIResponse.SET_ACCOUNT_LOCK_AUTH_FAILURE_REASON))) {
+        if (Boolean.parseBoolean(
+                IdentityUtil.getProperty(IdentityConstants.APIResponse.SET_ACCOUNT_LOCK_AUTH_FAILURE_REASON)) &&
+                e != null && e.getErrorCode() != null &&
+                USER_ACCOUNT_LOCKED_ERROR_CODE.equals(e.getErrorCode().split(":")[0])) {
             response.setHeader(AUTH_FAILURE_REASON, AUTH_FAILURE_REASON_ACCOUNT_LOCKED);
         }
 
