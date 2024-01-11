@@ -41,4 +41,9 @@ public class AuthenticationFailServerException extends AuthenticationFailExcepti
 
         super(cause);
     }
+
+    public AuthenticationFailServerException(String errorCode, String message) {
+
+        super(errorCode, message);
+    }
 }

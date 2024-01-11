@@ -24,12 +24,16 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.wso2.carbon.base.ServerConfiguration;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
+import org.wso2.carbon.identity.auth.service.exception.AuthenticationFailException;
+import org.wso2.carbon.identity.base.IdentityConstants;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
 import org.slf4j.MDC;
+
+import static org.wso2.carbon.identity.core.util.IdentityCoreConstants.USER_ACCOUNT_LOCKED_ERROR_CODE;
 
 /**
  * APIErrorResponseHandler handles the authentications and authorizations error responses.
@@ -39,6 +43,8 @@ public class APIErrorResponseHandler {
     private static final Log log = LogFactory.getLog(APIErrorResponseHandler.class);
 
     private static final String AUTH_HEADER_NAME = "WWW-Authenticate";
+    private static final String AUTH_FAILURE_REASON = "Auth-Failure-Reason";
+    private static final String AUTH_FAILURE_REASON_ACCOUNT_LOCKED = "account locked";
     private static final String CORRELATION_ID_MDC = "Correlation-ID";
     private static final String BAD_REQUEST_ERROR_MSG = "Your client has issued a malformed or illegal request.";
     private static final String UNAUTHORIZED_ERROR_MSG = "Authorization failure. Authorization information was" +
@@ -83,6 +89,19 @@ public class APIErrorResponseHandler {
         } else { // if request is null, sending a common error message
             handleErrorResponseForCommonAPIs(response, error, e);
         }
+    }
+
+    public static void handleAuthenticationFailErrorResponse(AuthenticationContext authenticationContext, Response response,
+                                                       int error, AuthenticationFailException e) throws IOException {
+
+        if (Boolean.parseBoolean(
+                IdentityUtil.getProperty(IdentityConstants.APIResponse.SET_ACCOUNT_LOCK_AUTH_FAILURE_REASON)) &&
+                e != null && e.getErrorCode() != null &&
+                USER_ACCOUNT_LOCKED_ERROR_CODE.equals(e.getErrorCode().split(":")[0])) {
+            response.setHeader(AUTH_FAILURE_REASON, AUTH_FAILURE_REASON_ACCOUNT_LOCKED);
+        }
+
+        handleErrorResponse(authenticationContext, response, error, e);
     }
 
     private static String removeTenantDetailFromURI(String uri) {
