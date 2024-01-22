@@ -193,6 +193,8 @@ public class AuthenticationValve extends ValveBase {
             unsetMDCThreadLocals();
             // Clear thread local authenticated with basic auth flag.
             unsetAuthenticatedWithBasicAuth();
+            // Clear thread local authentication type.
+            unsetThreadLocalAuthenticationType();
         }
 
 
@@ -234,6 +236,11 @@ public class AuthenticationValve extends ValveBase {
 
         IdentityUtil.threadLocalProperties.get().remove(SERVICE_PROVIDER);
         IdentityUtil.threadLocalProperties.get().remove(SERVICE_PROVIDER_TENANT_DOMAIN);
+    }
+
+    private void unsetThreadLocalAuthenticationType() {
+
+            IdentityUtil.threadLocalProperties.get().remove(Constants.AUTHENTICATION_TYPE);
     }
 
     private void setThreadLocalAuthUserTenantDomain(AuthenticationContext authenticationContext) {
