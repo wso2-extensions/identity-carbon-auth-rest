@@ -53,6 +53,7 @@ import org.wso2.carbon.identity.oauth2.util.OAuth2Util;
 import java.util.Optional;
 
 import static org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil.isAuthHeaderMatch;
+import static org.wso2.carbon.identity.auth.service.util.Constants.AUTHENTICATION_TYPE;
 import static org.wso2.carbon.identity.auth.service.util.Constants.IDP_NAME;
 import static org.wso2.carbon.identity.auth.service.util.Constants.IS_FEDERATED_USER;
 import static org.wso2.carbon.identity.auth.service.util.Constants.OAUTH2_ALLOWED_SCOPES;
@@ -113,6 +114,9 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
 
                 OAuth2IntrospectionResponseDTO oAuth2IntrospectionResponseDTO =
                         oAuth2TokenValidationService.buildIntrospectionResponse(requestDTO);
+
+                IdentityUtil.threadLocalProperties.get()
+                        .put(AUTHENTICATION_TYPE, oAuth2IntrospectionResponseDTO.getAut());
 
                 if (!oAuth2IntrospectionResponseDTO.isActive()) {
                     return authenticationResult;
