@@ -351,10 +351,10 @@
 
         <!--Carbon identity version-->
         <identity.framework.version>5.25.652</identity.framework.version>
-        <carbon.identity.package.import.version.range>[5.17.8, 7.0.0)</carbon.identity.package.import.version.range>
+        <carbon.identity.package.import.version.range>[5.17.8, 8.0.0)</carbon.identity.package.import.version.range>
 
         <org.wso2.carbon.identity.oauth.version>6.11.168</org.wso2.carbon.identity.oauth.version>
-        <org.wso2.carbon.identity.oauth.import.version.range>[6.2.18, 7.0.0)
+        <org.wso2.carbon.identity.oauth.import.version.range>[6.2.18, 8.0.0)
         </org.wso2.carbon.identity.oauth.import.version.range>
 
         <org.wso2.carbon.identity.organization.management.version>1.1.14
