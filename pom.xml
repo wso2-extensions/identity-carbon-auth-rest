@@ -39,7 +39,7 @@
         <url>https://github.com/wso2-extensions/identity-carbon-auth-rest.git</url>
         <developerConnection>scm:git:https://github.com/wso2-extensions/identity-carbon-auth-rest.git</developerConnection>
         <connection>scm:git:https://github.com/wso2-extensions/identity-carbon-auth-rest.git</connection>
-        <tag>v1.8.11</tag>
+        <tag>HEAD</tag>
     </scm>
 
     <modules>
