@@ -56,4 +56,5 @@ public class Constants {
     public static final String ENABLE_BASIC_AUTH_HANDLER_CONFIG = "EnableBasicAuthHandler";
     public static final String RESOURCE_ACCESS_CONTROL_V2_FILE = "resource-access-control-v2.xml";
     public static final String AUTHENTICATION_TYPE = "authenticationType";
+    public final static String VALIDATE_LEGACY_PERMISSIONS = "validateLegacyPermissions";
 }

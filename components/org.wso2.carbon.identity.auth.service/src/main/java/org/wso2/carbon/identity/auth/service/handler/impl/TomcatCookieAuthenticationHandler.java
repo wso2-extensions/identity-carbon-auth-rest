@@ -37,8 +37,8 @@ import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 import javax.servlet.http.Cookie;
 
 import static org.apache.commons.lang.StringUtils.isNotBlank;
-import static org.wso2.carbon.identity.auth.service.util.Constants.COOKIE_AUTH_HEADER;
 import static org.wso2.carbon.identity.auth.service.util.Constants.JSESSIONID;
+import static org.wso2.carbon.identity.auth.service.util.Constants.VALIDATE_LEGACY_PERMISSIONS;
 
 /**
  * This handler is used to authenticate the rest APIs based on the set-cookie obtained from the AuthenticationAdmin
@@ -47,6 +47,7 @@ import static org.wso2.carbon.identity.auth.service.util.Constants.JSESSIONID;
 public class TomcatCookieAuthenticationHandler extends AuthenticationHandler {
 
     private static final Log log = LogFactory.getLog(TomcatCookieAuthenticationHandler.class);
+    private static final String FILE_UPLOAD_API = "/fileupload/";
 
     @Override
     public String getName() {
@@ -96,6 +97,16 @@ public class TomcatCookieAuthenticationHandler extends AuthenticationHandler {
                     if (log.isDebugEnabled()) {
                         log.debug("Tomcat Cookie Authentication success.");
                     }
+                    /*
+                    TomcatCookieAuthenticationHandler is generally used to authenticate requests coming from Carbon
+                    Management Console. In some cases, we need to validate the legacy permissions for the requests
+                    coming from the Carbon Management Console.
+                    Ex: the /fileupload/ is a rest api that is used only in the carbon management console and it
+                    requires the legacy permission validation.
+                     */
+                    if (requireLegacyPermissionValidation(authenticationContext)) {
+                        authenticationContext.addParameter(VALIDATE_LEGACY_PERMISSIONS, true);
+                    }
                 }
             }
         }
@@ -131,5 +142,11 @@ public class TomcatCookieAuthenticationHandler extends AuthenticationHandler {
         Object request = authenticationContext.getAuthenticationRequest().getAttribute(HTTPConstants
                 .MC_HTTP_SERVLETREQUEST);
         return request != null && request instanceof Request;
+    }
+
+    private boolean requireLegacyPermissionValidation(AuthenticationContext authenticationContext) {
+
+        String uri = authenticationContext.getAuthenticationRequest().getRequestUri();
+        return StringUtils.contains(uri, FILE_UPLOAD_API);
     }
 }
