@@ -59,6 +59,7 @@ import javax.servlet.http.HttpServletResponse;
 import static org.wso2.carbon.identity.auth.service.util.Constants.ENGAGED_AUTH_HANDLER;
 import static org.wso2.carbon.identity.auth.service.util.Constants.OAUTH2_ALLOWED_SCOPES;
 import static org.wso2.carbon.identity.auth.service.util.Constants.OAUTH2_VALIDATE_SCOPE;
+import static org.wso2.carbon.identity.auth.service.util.Constants.VALIDATE_LEGACY_PERMISSIONS;
 
 /**
  * AuthenticationValve can be used to intercept any request.
@@ -153,6 +154,8 @@ public class AuthorizationValve extends ValveBase {
                 authorizationContext.setUser(authenticationContext.getUser());
                 authorizationContext.addParameter(OAUTH2_ALLOWED_SCOPES, authenticationContext.getParameter(OAUTH2_ALLOWED_SCOPES));
                 authorizationContext.addParameter(OAUTH2_VALIDATE_SCOPE, authenticationContext.getParameter(OAUTH2_VALIDATE_SCOPE));
+                authorizationContext.addParameter(VALIDATE_LEGACY_PERMISSIONS,
+                        authenticationContext.getParameter(VALIDATE_LEGACY_PERMISSIONS));
 
                 String tenantDomainFromURLMapping = Utils.getTenantDomainFromURLMapping(request);
                 authorizationContext.setTenantDomainFromURLMapping(tenantDomainFromURLMapping);
@@ -238,6 +241,8 @@ public class AuthorizationValve extends ValveBase {
                     authenticationContext.getParameter(OAUTH2_ALLOWED_SCOPES));
             orgMgtAuthorizationContext.addParameter(OAUTH2_VALIDATE_SCOPE,
                     authenticationContext.getParameter(OAUTH2_VALIDATE_SCOPE));
+            orgMgtAuthorizationContext.addParameter(VALIDATE_LEGACY_PERMISSIONS,
+                    authenticationContext.getParameter(VALIDATE_LEGACY_PERMISSIONS));
 
             List<AuthorizationManager> authorizationManagerList = AuthorizationValveServiceHolder.getInstance()
                     .getAuthorizationManagerList();
