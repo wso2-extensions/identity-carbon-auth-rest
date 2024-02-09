@@ -160,7 +160,7 @@
             <dependency>
                 <groupId>org.wso2.carbon.identity.inbound.auth.oauth2</groupId>
                 <artifactId>org.wso2.carbon.identity.oauth.dcr</artifactId>
-                <version>{org.wso2.carbon.identity.oauth.version}</version>
+                <version>${org.wso2.carbon.identity.oauth.version}</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
@@ -359,7 +359,7 @@
         <identity.framework.version>5.25.652</identity.framework.version>
         <carbon.identity.package.import.version.range>[5.17.8, 8.0.0)</carbon.identity.package.import.version.range>
 
-        <org.wso2.carbon.identity.oauth.version>6.11.168</org.wso2.carbon.identity.oauth.version>
+        <org.wso2.carbon.identity.oauth.version>7.0.9</org.wso2.carbon.identity.oauth.version>
         <org.wso2.carbon.identity.oauth.import.version.range>[6.2.18, 8.0.0)
         </org.wso2.carbon.identity.oauth.import.version.range>
 
