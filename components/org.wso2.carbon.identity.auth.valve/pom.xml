@@ -83,7 +83,6 @@
         <dependency>
             <groupId>org.wso2.carbon.identity.inbound.auth.oauth2</groupId>
             <artifactId>org.wso2.carbon.identity.oauth.dcr</artifactId>
-            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.json.wso2</groupId>

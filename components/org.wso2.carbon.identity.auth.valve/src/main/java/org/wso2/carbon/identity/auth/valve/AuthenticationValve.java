@@ -95,7 +95,7 @@ public class AuthenticationValve extends ValveBase {
 
     private static final Log log = LogFactory.getLog(AuthenticationValve.class);
 
-    public static final String DCR_REGISTER_ENDPOINT_PATH = "/api/identity/oauth2/dcr/v1.1/register/";
+    public static final String DCR_REGISTER_ENDPOINT_PATH = "/api/identity/oauth2/dcr/v1.1/register";
 
     @Override
     public void invoke(Request request, Response response) throws IOException, ServletException {
@@ -211,10 +211,18 @@ public class AuthenticationValve extends ValveBase {
 
     }
 
+    /**
+     * This method is used to override the secured resource based on tenant-wise DCR api security configuration.
+     * @param securedResource securedResource object
+     * @param normalizedRequestURI request URL path
+     * @param httpMethod http method
+     * @param tenantDomain tenant domain of the request
+     * @throws DCRMException DCRMException
+     */
     private void overrideSecuredResource(ResourceConfig securedResource, String normalizedRequestURI, String httpMethod,
                                         String tenantDomain) throws DCRMException {
 
-        if (DCR_REGISTER_ENDPOINT_PATH.equals(normalizedRequestURI) && HttpMethod.POST.equals(httpMethod)) {
+        if (normalizedRequestURI.contains(DCR_REGISTER_ENDPOINT_PATH) && HttpMethod.POST.equals(httpMethod)) {
 
             if (DCRMgtOGSiServiceFactory.getInstance() != null) {
 
