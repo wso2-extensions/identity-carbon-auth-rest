@@ -20,8 +20,12 @@ package org.wso2.carbon.identity.context.rewrite.internal;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.wso2.carbon.identity.context.rewrite.bean.OrganizationRewriteContext;
+import org.wso2.carbon.identity.context.rewrite.bean.RewriteContext;
 import org.wso2.carbon.identity.organization.management.service.OrganizationManagementInitialize;
 import org.wso2.carbon.user.core.service.RealmService;
+
+import java.util.List;
 
 public class ContextRewriteValveServiceComponentHolder {
 
@@ -30,6 +34,12 @@ public class ContextRewriteValveServiceComponentHolder {
     private String pageNotFoundErrorPage;
     private static final Log log = LogFactory.getLog(ContextRewriteValveServiceComponentHolder.class);
     private boolean isOrganizationManagementEnable;
+
+    private List<OrganizationRewriteContext> organizationRewriteContexts;
+    private List<RewriteContext> contextsToRewrite;
+    private List<String> contextListToOverwriteDispatch;
+    private List<String> ignorePathListForOverwriteDispatch;
+    private boolean isTenantQualifiedUrlsEnabled;
 
     private ContextRewriteValveServiceComponentHolder() {
 
@@ -90,5 +100,56 @@ public class ContextRewriteValveServiceComponentHolder {
         if (organizationManagementInitializeService != null) {
             isOrganizationManagementEnable = organizationManagementInitializeService.isOrganizationManagementEnabled();
         }
+    }
+
+    public List<OrganizationRewriteContext> getOrganizationRewriteContexts() {
+
+        return organizationRewriteContexts;
+    }
+
+    public void setOrganizationRewriteContexts(
+            List<OrganizationRewriteContext> organizationRewriteContexts) {
+
+        this.organizationRewriteContexts = organizationRewriteContexts;
+    }
+
+    public List<RewriteContext> getContextsToRewrite() {
+
+        return contextsToRewrite;
+    }
+
+    public void setContextsToRewrite(List<RewriteContext> contextsToRewrite) {
+
+        this.contextsToRewrite = contextsToRewrite;
+    }
+
+    public List<String> getContextListToOverwriteDispatch() {
+
+        return contextListToOverwriteDispatch;
+    }
+
+    public void setContextListToOverwriteDispatch(List<String> contextListToOverwriteDispatch) {
+
+        this.contextListToOverwriteDispatch = contextListToOverwriteDispatch;
+    }
+
+    public List<String> getIgnorePathListForOverwriteDispatch() {
+
+        return ignorePathListForOverwriteDispatch;
+    }
+
+    public void setIgnorePathListForOverwriteDispatch(List<String> ignorePathListForOverwriteDispatch) {
+
+        this.ignorePathListForOverwriteDispatch = ignorePathListForOverwriteDispatch;
+    }
+
+    public boolean isTenantQualifiedUrlsEnabled() {
+
+        return isTenantQualifiedUrlsEnabled;
+    }
+
+    public void setTenantQualifiedUrlsEnabled(boolean tenantQualifiedUrlsEnabled) {
+
+        this.isTenantQualifiedUrlsEnabled = tenantQualifiedUrlsEnabled;
     }
 }
