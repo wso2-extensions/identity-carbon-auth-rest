@@ -57,13 +57,11 @@ import static org.wso2.carbon.identity.core.util.IdentityCoreConstants.TENANT_NA
  */
 public class OrganizationContextRewriteValve extends ValveBase {
 
-    private static List<OrganizationRewriteContext> orgContextsToRewrite;
 
     @Override
     protected synchronized void startInternal() throws LifecycleException {
 
         super.startInternal();
-        orgContextsToRewrite = getOrgContextsToRewrite();
     }
 
     @Override
@@ -85,7 +83,8 @@ public class OrganizationContextRewriteValve extends ValveBase {
 
         if (ContextRewriteValveServiceComponentHolder.getInstance().isOrganizationManagementEnabled() &&
                 StringUtils.startsWith(requestURI, ORGANIZATION_PATH_PARAM)) {
-            for (OrganizationRewriteContext organizationRewriteContext : orgContextsToRewrite) {
+            for (OrganizationRewriteContext organizationRewriteContext
+                    : ContextRewriteValveServiceComponentHolder.getInstance().getOrganizationRewriteContexts()) {
                 Pattern orgPattern = organizationRewriteContext.getOrgContextPattern();
                 if (orgPattern.matcher(requestURI).find() || orgPattern.matcher(requestURI + "/").find()) {
                     subPathsConfigured = false;
@@ -157,53 +156,5 @@ public class OrganizationContextRewriteValve extends ValveBase {
 
         MDC.remove(TENANT_DOMAIN);
         MDC.remove(TENANT_ID);
-    }
-
-    private List<OrganizationRewriteContext> getOrgContextsToRewrite() {
-
-        List<OrganizationRewriteContext> organizationRewriteContexts = new ArrayList<>();
-        Map<String, Object> configuration = IdentityConfigParser.getInstance().getConfiguration();
-        Object webAppBasePathContexts = configuration.get("OrgContextsToRewrite.WebApp.Context.BasePath");
-        setOrganizationRewriteContexts(organizationRewriteContexts, webAppBasePathContexts, true);
-
-        Object webAppSubPathContexts = configuration.get("OrgContextsToRewrite.WebApp.Context.SubPaths.Path");
-        setSubPathContexts(organizationRewriteContexts, webAppSubPathContexts);
-
-        Object servletBasePathContexts = configuration.get("OrgContextsToRewrite.Servlet.Context");
-        setOrganizationRewriteContexts(organizationRewriteContexts, servletBasePathContexts, false);
-
-        return organizationRewriteContexts;
-    }
-
-    private void setOrganizationRewriteContexts(List<OrganizationRewriteContext> organizationRewriteContexts,
-                                                Object basePathContexts, boolean isWebApp) {
-
-        if (basePathContexts != null) {
-            if (basePathContexts instanceof ArrayList) {
-                for (String context : (ArrayList<String>) basePathContexts) {
-                    organizationRewriteContexts.add(new OrganizationRewriteContext(isWebApp, context));
-                }
-            } else {
-                organizationRewriteContexts.add(new OrganizationRewriteContext(isWebApp,
-                        basePathContexts.toString()));
-            }
-        }
-    }
-
-    private void setSubPathContexts(List<OrganizationRewriteContext> organizationRewriteContexts,
-                                    Object subPathContexts) {
-
-        if (subPathContexts != null) {
-            if (subPathContexts instanceof ArrayList) {
-                for (String subPath : (ArrayList<String>) subPathContexts) {
-                    Optional<OrganizationRewriteContext> maybeOrgRewriteContext = organizationRewriteContexts.stream()
-                            .filter(rewriteContext -> subPath.startsWith(rewriteContext.getContext()))
-                            .max(Comparator.comparingInt(rewriteContext -> rewriteContext.getContext().length()));
-                    maybeOrgRewriteContext.ifPresent(
-                            organizationRewriteContext -> organizationRewriteContext.addSubPath(
-                                    Pattern.compile("^" + ORGANIZATION_PATH_PARAM + "([^/]+)" + subPath)));
-                }
-            }
-        }
     }
 }
