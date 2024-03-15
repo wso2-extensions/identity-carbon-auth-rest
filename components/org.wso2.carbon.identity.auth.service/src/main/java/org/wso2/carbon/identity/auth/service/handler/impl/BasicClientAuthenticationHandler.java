@@ -137,7 +137,7 @@ public class BasicClientAuthenticationHandler extends AuthenticationHandler {
                         throw new AuthenticationFailException(errorMessage, e);
                     } catch (InvalidOAuthClientException | IdentityOAuth2Exception e) {
                         String errorMessage = "Invalid client: " + clientId;
-                        log.error(errorMessage, e);
+                        log.debug(errorMessage);
                         throw new AuthenticationFailException(errorMessage, e);
                     }
                 } else {
