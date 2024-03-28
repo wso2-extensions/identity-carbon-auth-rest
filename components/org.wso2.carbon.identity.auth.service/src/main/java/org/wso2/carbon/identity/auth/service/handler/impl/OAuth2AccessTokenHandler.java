@@ -49,6 +49,7 @@ import org.wso2.carbon.identity.oauth2.dto.OAuth2TokenValidationRequestDTO;
 import org.wso2.carbon.identity.oauth2.model.AccessTokenDO;
 import org.wso2.carbon.identity.oauth2.token.bindings.TokenBinding;
 import org.wso2.carbon.identity.oauth2.util.OAuth2Util;
+import org.wso2.carbon.identity.oauth2.validators.RefreshTokenValidator;
 
 import java.util.Optional;
 
@@ -118,7 +119,8 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
                 IdentityUtil.threadLocalProperties.get()
                         .put(AUTHENTICATION_TYPE, oAuth2IntrospectionResponseDTO.getAut());
 
-                if (!oAuth2IntrospectionResponseDTO.isActive()) {
+                if (!oAuth2IntrospectionResponseDTO.isActive() ||
+                        RefreshTokenValidator.TOKEN_TYPE_NAME.equals(oAuth2IntrospectionResponseDTO.getTokenType())) {
                     return authenticationResult;
                 }
 
