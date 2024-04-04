@@ -228,9 +228,9 @@ public class AuthenticationValve extends ValveBase {
 
                 DCRConfiguration dcrConfiguration = DCRMgtOGSiServiceFactory.getInstance().getDCRConfiguration();
                 Boolean isClientAuthenticationRequired = dcrConfiguration.isAuthenticationRequired();
-                if (isClientAuthenticationRequired.equals(Boolean.TRUE)) {
+                if ((Boolean.TRUE).equals(isClientAuthenticationRequired)) {
                     securedResource.setIsSecured(true);
-                } else if (isClientAuthenticationRequired.equals(Boolean.FALSE)){
+                } else if ((Boolean.FALSE).equals(isClientAuthenticationRequired)) {
                     securedResource.setIsSecured(false);
                 }
             } else {
