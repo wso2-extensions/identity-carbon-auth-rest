@@ -181,7 +181,7 @@ public class AuthenticationValve extends ValveBase {
             log.debug("Invalid pattern syntax of the request: ", e);
             APIErrorResponseHandler.handleErrorResponse(null, response, HttpServletResponse.SC_BAD_REQUEST, null);
         } catch (DCRMException e) {
-            log.debug("Error while getting DCR Configuration: ", e);
+            log.error("Error while getting DCR Configuration: ", e);
             APIErrorResponseHandler.handleErrorResponse(null, response,
                     HttpServletResponse.SC_SERVICE_UNAVAILABLE, e);
         } finally {
