@@ -49,18 +49,16 @@ public class DCRMgtOGSiServiceFactory {
                 // Call class for name to check the class is available in the run time.
                 // This method will call only once at the first api call.
                 Class.forName("org.wso2.carbon.identity.oauth.dcr.DCRConfigurationMgtService");
-                DCRConfigurationMgtService taskOperationService
-                        = (DCRConfigurationMgtService) PrivilegedCarbonContext.
-                        getThreadLocalCarbonContext().getOSGiService
-                                (DCRConfigurationMgtService.class, null);
-                if (taskOperationService != null) {
-                    dcrConfigurationMgtService = taskOperationService;
+                DCRConfigurationMgtService dcrConfigMgtService = (DCRConfigurationMgtService) PrivilegedCarbonContext
+                        .getThreadLocalCarbonContext().getOSGiService(DCRConfigurationMgtService.class, null);
+                if (dcrConfigMgtService != null) {
+                    dcrConfigurationMgtService = dcrConfigMgtService;
                 }
 
             } catch (NullPointerException | ClassNotFoundException  e) {
                 /* Catch block without implementation so that the DCRConfigurationMgtService will be set to null
                    in-turn helps in validating the rest API requests. */
-                log.debug("Unable to find the DCRConfigurationMgtService. " +
+                log.error("Unable to find the DCRConfigurationMgtService. " +
                             "DCRConfigurationMgtService is not available in the server.");
             }
         }
