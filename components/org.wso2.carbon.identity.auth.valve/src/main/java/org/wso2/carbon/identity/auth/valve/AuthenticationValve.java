@@ -43,6 +43,7 @@ import org.wso2.carbon.identity.auth.service.module.ResourceConfig;
 import org.wso2.carbon.identity.auth.service.module.ResourceConfigKey;
 import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
 import org.wso2.carbon.identity.auth.service.util.Constants;
+import org.wso2.carbon.identity.auth.valve.factory.DCRMgtOGSiServiceFactory;
 import org.wso2.carbon.identity.auth.valve.internal.AuthenticationValveDataHolder;
 import org.wso2.carbon.identity.auth.valve.internal.AuthenticationValveServiceHolder;
 import org.wso2.carbon.identity.auth.valve.util.APIErrorResponseHandler;
@@ -51,6 +52,8 @@ import org.wso2.carbon.identity.base.IdentityRuntimeException;
 import org.wso2.carbon.identity.core.util.IdentityConfigParser;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
+import org.wso2.carbon.identity.oauth.dcr.exception.DCRMException;
+import org.wso2.carbon.identity.oauth.dcr.model.DCRConfiguration;
 import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.user.core.tenant.TenantManager;
 
@@ -66,6 +69,7 @@ import java.util.regex.PatternSyntaxException;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.HttpMethod;
 
 import static org.wso2.carbon.identity.auth.service.util.Constants.AUTHENTICATED_WITH_BASIC_AUTH;
 
@@ -91,6 +95,8 @@ public class AuthenticationValve extends ValveBase {
 
     private static final Log log = LogFactory.getLog(AuthenticationValve.class);
 
+    private static final String DCR_REGISTER_ENDPOINT_PATH = "/api/identity/oauth2/dcr/v1.1/register";
+
     @Override
     public void invoke(Request request, Response response) throws IOException, ServletException {
 
@@ -107,6 +113,7 @@ public class AuthenticationValve extends ValveBase {
             ResourceConfig securedResource = authenticationManager.getSecuredResource(
                     new ResourceConfigKey(normalizedRequestURI, request.getMethod()));
 
+            overrideSecuredResource(securedResource, normalizedRequestURI, request.getMethod());
 
             setRemoteAddressAndUserAgentToMDC(request);
 
@@ -173,6 +180,10 @@ public class AuthenticationValve extends ValveBase {
         } catch (PatternSyntaxException e) {
             log.debug("Invalid pattern syntax of the request: ", e);
             APIErrorResponseHandler.handleErrorResponse(null, response, HttpServletResponse.SC_BAD_REQUEST, null);
+        } catch (DCRMException e) {
+            log.error("Error while getting DCR Configuration: ", e);
+            APIErrorResponseHandler.handleErrorResponse(null, response,
+                    HttpServletResponse.SC_SERVICE_UNAVAILABLE, e);
         } finally {
             // Clear 'IdentityError' thread local.
             if (IdentityUtil.getIdentityErrorMsg() != null) {
@@ -198,6 +209,35 @@ public class AuthenticationValve extends ValveBase {
         }
 
 
+    }
+
+    /**
+     * This method is used to override the secured resource based on tenant-wise DCR api security configuration.
+     *
+     * @param securedResource securedResource object
+     * @param normalizedRequestURI request URL path
+     * @param httpMethod http method
+     * @throws DCRMException DCRMException
+     */
+    private void overrideSecuredResource(ResourceConfig securedResource, String normalizedRequestURI,
+                                         String httpMethod) throws DCRMException {
+
+        if (normalizedRequestURI.contains(DCR_REGISTER_ENDPOINT_PATH) && HttpMethod.POST.equals(httpMethod)) {
+
+            if (DCRMgtOGSiServiceFactory.getInstance() != null) {
+
+                DCRConfiguration dcrConfiguration = DCRMgtOGSiServiceFactory.getInstance().getDCRConfiguration();
+                Boolean isClientAuthenticationRequired = dcrConfiguration.getAuthenticationRequired();
+                if ((Boolean.TRUE).equals(isClientAuthenticationRequired)) {
+                    securedResource.setIsSecured(true);
+                } else if ((Boolean.FALSE).equals(isClientAuthenticationRequired)) {
+                    securedResource.setIsSecured(false);
+                }
+            } else {
+//                We do not throw an exception here to avoid breaking the flow and to have similar behaviour as before.
+                log.debug("DCRMgtOGSiServiceFactory is null. Cannot get DCR Configuration.");
+            }
+        }
     }
 
     private void setRemoteAddressAndUserAgentToMDC(Request request) {
