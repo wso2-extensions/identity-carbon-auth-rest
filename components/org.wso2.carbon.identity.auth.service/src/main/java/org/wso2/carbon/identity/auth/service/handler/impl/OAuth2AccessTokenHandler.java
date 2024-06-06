@@ -18,12 +18,16 @@
 
 package org.wso2.carbon.identity.auth.service.handler.impl;
 
+import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.SignedJWT;
 import org.apache.catalina.connector.Request;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpHeaders;
+import org.json.JSONObject;
 import org.slf4j.MDC;
+import org.wso2.carbon.CarbonConstants;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
 import org.wso2.carbon.identity.application.authentication.framework.util.FrameworkConstants;
 import org.wso2.carbon.identity.application.common.model.ProvisioningServiceProviderType;
@@ -51,14 +55,11 @@ import org.wso2.carbon.identity.oauth2.token.bindings.TokenBinding;
 import org.wso2.carbon.identity.oauth2.util.OAuth2Util;
 import org.wso2.carbon.identity.oauth2.validators.RefreshTokenValidator;
 
+import java.text.ParseException;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil.isAuthHeaderMatch;
-import static org.wso2.carbon.identity.auth.service.util.Constants.AUTHENTICATION_TYPE;
-import static org.wso2.carbon.identity.auth.service.util.Constants.IDP_NAME;
-import static org.wso2.carbon.identity.auth.service.util.Constants.IS_FEDERATED_USER;
-import static org.wso2.carbon.identity.auth.service.util.Constants.OAUTH2_ALLOWED_SCOPES;
-import static org.wso2.carbon.identity.auth.service.util.Constants.OAUTH2_VALIDATE_SCOPE;
 import static org.wso2.carbon.identity.oauth2.OAuth2Constants.TokenBinderType.SSO_SESSION_BASED_TOKEN_BINDER;
 
 /**
@@ -69,6 +70,7 @@ import static org.wso2.carbon.identity.oauth2.OAuth2Constants.TokenBinderType.SS
 public class OAuth2AccessTokenHandler extends AuthenticationHandler {
 
     private static final Log log = LogFactory.getLog(OAuth2AccessTokenHandler.class);
+    private static final Log AUDIT = CarbonConstants.AUDIT_LOG;
     private final String OAUTH_HEADER = "Bearer";
     private final String CONSUMER_KEY = "consumer-key";
     private final String SERVICE_PROVIDER = "serviceProvider";
@@ -117,7 +119,7 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
                         oAuth2TokenValidationService.buildIntrospectionResponse(requestDTO);
 
                 IdentityUtil.threadLocalProperties.get()
-                        .put(AUTHENTICATION_TYPE, oAuth2IntrospectionResponseDTO.getAut());
+                        .put(Constants.AUTHENTICATION_TYPE, oAuth2IntrospectionResponseDTO.getAut());
 
                 if (!oAuth2IntrospectionResponseDTO.isActive() ||
                         RefreshTokenValidator.TOKEN_TYPE_NAME.equals(oAuth2IntrospectionResponseDTO.getTokenType())) {
@@ -138,6 +140,8 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
                     return authenticationResult;
                 }
 
+                handleImpersonatedAccessToken(authenticationContext, accessToken, oAuth2IntrospectionResponseDTO);
+
                 authenticationResult.setAuthenticationStatus(AuthenticationStatus.SUCCESS);
 
                 User authorizedUser = oAuth2IntrospectionResponseDTO.getAuthorizedUser();
@@ -145,22 +149,23 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
                     authenticationContext.setUser(authorizedUser);
                     if (authorizedUser instanceof AuthenticatedUser) {
                         IdentityUtil.threadLocalProperties.get()
-                                .put(IS_FEDERATED_USER, ((AuthenticatedUser) authorizedUser).isFederatedUser());
+                                .put(Constants.IS_FEDERATED_USER,
+                                        ((AuthenticatedUser) authorizedUser).isFederatedUser());
                         IdentityUtil.threadLocalProperties.get()
-                                .put(IDP_NAME, ((AuthenticatedUser) authorizedUser).getFederatedIdPName());
+                                .put(Constants.IDP_NAME, ((AuthenticatedUser) authorizedUser).getFederatedIdPName());
                     } else {
                         AuthenticatedUser authenticatedUser = new AuthenticatedUser(authorizedUser);
                         IdentityUtil.threadLocalProperties.get()
-                                .put(IS_FEDERATED_USER, authenticatedUser.isFederatedUser());
+                                .put(Constants.IS_FEDERATED_USER, authenticatedUser.isFederatedUser());
                         IdentityUtil.threadLocalProperties.get()
-                                .put(IDP_NAME, authenticatedUser.getFederatedIdPName());
+                                .put(Constants.IDP_NAME, authenticatedUser.getFederatedIdPName());
                     }
                 }
 
                 authenticationContext.addParameter(CONSUMER_KEY, oAuth2IntrospectionResponseDTO.getClientId());
-                authenticationContext.addParameter(OAUTH2_ALLOWED_SCOPES,
+                authenticationContext.addParameter(Constants.OAUTH2_ALLOWED_SCOPES,
                         OAuth2Util.buildScopeArray(oAuth2IntrospectionResponseDTO.getScope()));
-                authenticationContext.addParameter(OAUTH2_VALIDATE_SCOPE,
+                authenticationContext.addParameter(Constants.OAUTH2_VALIDATE_SCOPE,
                         AuthConfigurationUtil.getInstance().isScopeValidationEnabled());
                 String serviceProvider = null;
                 try {
@@ -195,6 +200,89 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
             }
         }
         return authenticationResult;
+    }
+
+    /**
+     * Handles the logging of impersonated access tokens. This method extracts the claims from the given
+     * access token and checks if it represents an impersonation request. If impersonation is detected,
+     * it logs the impersonation event with relevant details such as subject, impersonator, resource path,
+     * HTTP method, client ID, and scope. The method ensures that only non-GET requests are logged for audit purposes.
+     *
+     * @param authenticationContext The authentication context containing the authentication request details.
+     * @param accessToken The access token to be inspected for impersonation.
+     * @param introspectionResponseDTO The introspection response containing token details.
+     */
+    private void handleImpersonatedAccessToken(AuthenticationContext authenticationContext,
+                                               String accessToken,
+                                               OAuth2IntrospectionResponseDTO introspectionResponseDTO) {
+
+        try {
+            // Extract claims from the access token
+            SignedJWT signedJWT = getSignedJWT(accessToken);
+            JWTClaimsSet claimsSet = getClaimSet(signedJWT);
+            if (claimsSet != null) {
+                String subject = resolveSubject(claimsSet);
+                String impersonator = resolveImpersonator(claimsSet);
+                // Check if the token represents an impersonation request
+                if (impersonator != null) {
+                    MDC.put(Constants.IMPERSONATOR, impersonator);
+                    String scope = introspectionResponseDTO.getScope();
+                    String clientId = introspectionResponseDTO.getClientId();
+                    String requestUri = authenticationContext.getAuthenticationRequest().getRequestUri();
+                    String httpMethod = authenticationContext.getAuthenticationRequest().getMethod();
+
+                    // Ensure it's not a GET request before logging
+                    if (!Constants.GET.equals(httpMethod)) {
+                        // Prepare data for audit log
+                        JSONObject data = new JSONObject();
+                        data.put(Constants.SUBJECT, subject);
+                        data.put(Constants.IMPERSONATOR, impersonator);
+                        data.put(Constants.RESOURCE_PATH, requestUri);
+                        data.put(Constants.HTTP_METHOD, httpMethod);
+                        data.put(Constants.CLIENT_ID, clientId);
+                        data.put(Constants.SCOPE, scope);
+
+                        String action;
+
+                        switch (httpMethod) {
+                            case Constants.PATCH:
+                                action = Constants.IMPERSONATION_RESOURCE_MODIFICATION;
+                                break;
+                            case Constants.POST:
+                                action = Constants.IMPERSONATION_RESOURCE_CREATION;
+                                break;
+                            case Constants.DELETE:
+                                action = Constants.IMPERSONATION_RESOURCE_DELETION;
+                                break;
+                            default:
+                                action = Constants.IMPERSONATION_RESOURCE_ACCESS;
+                                break;
+                        }
+                        // Log the audit event
+                        AUDIT.info(createAuditMessage(impersonator, action, subject, data, Constants.AUTHORIZED));
+                    }
+                }
+            }
+        } catch (IdentityOAuth2Exception e) {
+            // Ignore IdentityOAuth2Exception since this is an audit log section
+        }
+    }
+
+    /**
+     * To create an audit message based on provided parameters.
+     *
+     * @param action      Activity
+     * @param target      Target affected by this activity.
+     * @param data        Information passed along with the request.
+     * @param resultField Result value.
+     * @return Relevant audit log in Json format.
+     */
+    private String createAuditMessage(String subject, String action, String target, JSONObject data, String resultField) {
+
+        String auditMessage =
+                Constants.INITIATOR + "=%s " + Constants.ACTION + "=%s " + Constants.TARGET + "=%s "
+                        + Constants.DATA + "=%s " + Constants.OUTCOME + "=%s";
+        return String.format(auditMessage, subject, action, target, data, resultField);
     }
 
     @Override
@@ -384,5 +472,68 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
             provisioningServiceProvider.setTenantDomain(serviceProviderTenantDomain);
             IdentityApplicationManagementUtil.setThreadLocalProvisioningServiceProvider(provisioningServiceProvider);
         }
+    }
+
+    /**
+     * Get the SignedJWT by parsing the subjectToken.
+     *
+     * @param token Token sent in the request
+     * @return SignedJWT
+     * @throws IdentityOAuth2Exception Error when parsing the subjectToken
+     */
+    private SignedJWT getSignedJWT(String token) throws IdentityOAuth2Exception {
+
+        SignedJWT signedJWT;
+        if (StringUtils.isEmpty(token)) {
+            return null;
+        }
+        try {
+            signedJWT = SignedJWT.parse(token);
+            return signedJWT;
+        } catch (ParseException e) {
+            throw new IdentityOAuth2Exception("Error while parsing the JWT", e);
+        }
+    }
+
+    /**
+     * Retrieve the JWTClaimsSet from the SignedJWT.
+     *
+     * @param signedJWT SignedJWT object
+     * @return JWTClaimsSet
+     * @throws IdentityOAuth2Exception Error when retrieving the JWTClaimsSet
+     */
+    public static JWTClaimsSet getClaimSet(SignedJWT signedJWT) throws IdentityOAuth2Exception {
+
+        try {
+            if (signedJWT != null){
+                return signedJWT.getJWTClaimsSet();
+            }
+            return null;
+        } catch (ParseException e) {
+            throw new IdentityOAuth2Exception("Error when retrieving claimsSet from the JWT", e);
+        }
+    }
+
+    /**
+     * The default implementation creates the subject from the Sub attribute.
+     * To translate between the federated and local user store, this may need some mapping.
+     * Override if needed
+     *
+     * @param claimsSet all the JWT claims
+     * @return The subject, to be used
+     */
+    private String resolveSubject(JWTClaimsSet claimsSet) {
+
+        return claimsSet.getSubject();
+    }
+
+    private String resolveImpersonator(JWTClaimsSet claimsSet) {
+
+        if (claimsSet.getClaim(Constants.ACT) != null) {
+
+            Map<String, String>  mayActClaimSet = (Map) claimsSet.getClaim(Constants.ACT);
+            return mayActClaimSet.get(Constants.SUB);
+        }
+        return null;
     }
 }

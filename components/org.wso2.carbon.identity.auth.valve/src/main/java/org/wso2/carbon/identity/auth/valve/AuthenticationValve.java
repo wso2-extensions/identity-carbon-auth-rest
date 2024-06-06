@@ -78,6 +78,7 @@ public class AuthenticationValve extends ValveBase {
     private static final String USER_AGENT = "User-Agent";
     private static final String REMOTE_ADDRESS = "remoteAddress";
     private static final String SERVICE_PROVIDER = "serviceProvider";
+    private static final String IMPERSONATOR = "impersonator";
     private final String CLIENT_COMPONENT = "clientComponent";
     private final String REST_API_CLIENT_COMPONENT = "REST API";
     private static final String AUTH_USER_TENANT_DOMAIN = "authUserTenantDomain";
@@ -275,6 +276,7 @@ public class AuthenticationValve extends ValveBase {
         MDC.remove(USER_AGENT);
         MDC.remove(REMOTE_ADDRESS);
         MDC.remove(SERVICE_PROVIDER);
+        MDC.remove(IMPERSONATOR);
     }
 
     private boolean isLoggableParam(String param) {
