@@ -71,6 +71,14 @@
             <artifactId>org.wso2.carbon.identity.handler.event.account.lock</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.json.wso2</groupId>
+            <artifactId>json</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.wso2.orbit.com.nimbusds</groupId>
+            <artifactId>nimbus-jose-jwt</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.testng</groupId>
             <artifactId>testng</artifactId>
             <scope>test</scope>
@@ -204,6 +212,7 @@
                             org.wso2.carbon.identity.organization.management.service.exception; version="${org.wso2.carbon.identity.organization.management.core.version.range}",
                             org.wso2.carbon.identity.handler.event.account.lock.exception;
                             version="${identity.event.handler.account.lock.version.range}",
+                            com.nimbusds.jwt; version="${nimbusds.osgi.version.range}",
                         </Import-Package>
                         <Export-Package>
                             !org.wso2.carbon.identity.auth.service.internal,

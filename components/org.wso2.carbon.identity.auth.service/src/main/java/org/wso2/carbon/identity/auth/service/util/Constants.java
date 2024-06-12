@@ -57,4 +57,30 @@ public class Constants {
     public static final String RESOURCE_ACCESS_CONTROL_V2_FILE = "resource-access-control-v2.xml";
     public static final String AUTHENTICATION_TYPE = "authenticationType";
     public final static String VALIDATE_LEGACY_PERMISSIONS = "validateLegacyPermissions";
+
+    // Audit Log Constants.
+    public static final String INITIATOR = "Initiator";
+    public static final String ACTION = "Action";
+    public static final String TARGET = "Target";
+    public static final String DATA = "Data";
+    public static final String OUTCOME = "Outcome";
+
+    // Impersonation Constants.
+    public static final String ACT = "act";
+    public static final String SUB = "sub";
+    public static final String GET = "GET";
+    public static final String POST = "POST";
+    public static final String PATCH = "PATCH";
+    public static final String DELETE = "DELETE";
+    public static final String AUTHORIZED = "AUTHORIZED";
+    public static final String IMPERSONATION_RESOURCE_MODIFICATION = "resource-modification-via-impersonation";
+    public static final String IMPERSONATION_RESOURCE_ACCESS = "resource-access-via-impersonation";
+    public static final String IMPERSONATION_RESOURCE_DELETION = "resource-deletion-via-impersonation";
+    public static final String IMPERSONATION_RESOURCE_CREATION = "resource-creation-via-impersonation";
+    public static final String SUBJECT = "subject";
+    public static final String IMPERSONATOR = "impersonator";
+    public static final String RESOURCE_PATH = "ResourcePath";
+    public static final String HTTP_METHOD = "httpMethod";
+    public static final String CLIENT_ID = "clientId";
+    public static final String SCOPE = "scope";
 }
