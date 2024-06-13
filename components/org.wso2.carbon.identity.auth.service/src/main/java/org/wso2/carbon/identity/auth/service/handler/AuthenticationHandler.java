@@ -128,8 +128,10 @@ public abstract class AuthenticationHandler extends AbstractIdentityMessageHandl
                     AuthenticatedUser authenticatedUser;
                     if (user instanceof AuthenticatedUser) {
                         authenticatedUser = (AuthenticatedUser) user;
-                        // For B2B organization users, set the user ID which is set as username in user object.
-                        if (authenticatedUser.isFederatedUser() && StringUtils.isNotEmpty(authorizedOrganization)) {
+                        /* For users whose identity is managed in an organization, will be authenticated using the
+                           organization SSO. As being a federated login user, the username is populated with
+                           corresponding user ID. */
+                        if (authenticatedUser.isOrganizationUser()) {
                             String userName = MultitenantUtils.getTenantAwareUsername(authenticatedUser.getUserName());
                             userName = UserCoreUtil.removeDomainFromName(userName);
                             PrivilegedCarbonContext.getThreadLocalCarbonContext().setUserId(userName);
@@ -146,7 +148,7 @@ public abstract class AuthenticationHandler extends AbstractIdentityMessageHandl
                 }
 
                 if (StringUtils.isNotEmpty(authorizedOrganization)) {
-                    // Set the user's resident organization if user is accessing an organization
+                    // Set the user's resident organization in the carbon context if user is accessing an organization
                     PrivilegedCarbonContext.getThreadLocalCarbonContext()
                             .setUserResidentOrganizationId(userResidentOrganization);
                     if (((AuthenticatedUser) user).isFederatedUser()) {
