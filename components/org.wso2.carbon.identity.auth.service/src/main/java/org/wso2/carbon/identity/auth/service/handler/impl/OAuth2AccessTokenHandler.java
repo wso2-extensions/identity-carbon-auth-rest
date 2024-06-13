@@ -74,7 +74,7 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
     private static final Log AUDIT = CarbonConstants.AUDIT_LOG;
     private final String OAUTH_HEADER = "Bearer";
     private final String CONSUMER_KEY = "consumer-key";
-    private final String SERVICE_PROVIDER = "serviceProvider";
+    private final String SERVICE_PROVIDER_NAME = "serviceProvider";
     private final String SERVICE_PROVIDER_TENANT_DOMAIN = "serviceProviderTenantDomain";
     private final String SERVICE_PROVIDER_UUID = "serviceProviderUUID";
     private final String SCIM_ME_ENDPOINT_URI = "scim2/me";
@@ -198,7 +198,9 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
                 }
 
                 if (serviceProvider != null) {
-                    authenticationContext.addParameter(SERVICE_PROVIDER, serviceProviderName);
+                    if (serviceProviderName != null){
+                        authenticationContext.addParameter(SERVICE_PROVIDER_NAME, serviceProviderName);
+                    }
                     if (serviceProviderTenantDomain != null) {
                         authenticationContext.addParameter(SERVICE_PROVIDER_TENANT_DOMAIN, serviceProviderTenantDomain);
                     }
@@ -206,8 +208,8 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
                         authenticationContext.addParameter(SERVICE_PROVIDER_UUID, serviceProviderUUID);
                     }
 
-                    MDC.put(SERVICE_PROVIDER, serviceProviderName);
-                    MDC.put(SERVICE_PROVIDER, serviceProviderUUID);
+                    MDC.put(SERVICE_PROVIDER_NAME, serviceProviderName);
+                    MDC.put(SERVICE_PROVIDER_UUID, serviceProviderUUID);
                     // Set OAuth service provider details to be consumed by the provisioning framework.
                     setProvisioningServiceProviderThreadLocal(oAuth2IntrospectionResponseDTO.getClientId(),
                             serviceProviderTenantDomain);
