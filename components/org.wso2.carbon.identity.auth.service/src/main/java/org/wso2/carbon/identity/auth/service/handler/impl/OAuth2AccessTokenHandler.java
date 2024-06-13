@@ -184,7 +184,7 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
                                 + oAuth2IntrospectionResponseDTO.getClientId());
                     }
                 } catch (IdentityOAuth2Exception e) {
-                    log.error("Error occurred while retrieving the Service Provider for clientId: "
+                    log.error("Error occurred while getting the Service Provider by Consumer key: "
                             + oAuth2IntrospectionResponseDTO.getClientId(), e);
                 }
 
