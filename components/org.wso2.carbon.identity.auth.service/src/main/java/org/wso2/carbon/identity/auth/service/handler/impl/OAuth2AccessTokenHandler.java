@@ -197,7 +197,7 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
                             + oAuth2IntrospectionResponseDTO.getClientId(), e);
                 }
 
-                if (serviceProviderName != null) {
+                if (serviceProvider != null) {
                     authenticationContext.addParameter(SERVICE_PROVIDER, serviceProviderName);
                     if (serviceProviderTenantDomain != null) {
                         authenticationContext.addParameter(SERVICE_PROVIDER_TENANT_DOMAIN, serviceProviderTenantDomain);
