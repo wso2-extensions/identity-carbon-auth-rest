@@ -31,6 +31,7 @@ import org.wso2.carbon.CarbonConstants;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
 import org.wso2.carbon.identity.application.authentication.framework.util.FrameworkConstants;
 import org.wso2.carbon.identity.application.common.model.ProvisioningServiceProviderType;
+import org.wso2.carbon.identity.application.common.model.ServiceProvider;
 import org.wso2.carbon.identity.application.common.model.ThreadLocalProvisioningServiceProvider;
 import org.wso2.carbon.identity.application.common.model.User;
 import org.wso2.carbon.identity.application.common.util.IdentityApplicationManagementUtil;
@@ -75,6 +76,7 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
     private final String CONSUMER_KEY = "consumer-key";
     private final String SERVICE_PROVIDER = "serviceProvider";
     private final String SERVICE_PROVIDER_TENANT_DOMAIN = "serviceProviderTenantDomain";
+    private final String SERVICE_PROVIDER_UUID = "serviceProviderUUID";
     private final String SCIM_ME_ENDPOINT_URI = "scim2/me";
 
     @Override
@@ -167,13 +169,22 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
                         OAuth2Util.buildScopeArray(oAuth2IntrospectionResponseDTO.getScope()));
                 authenticationContext.addParameter(Constants.OAUTH2_VALIDATE_SCOPE,
                         AuthConfigurationUtil.getInstance().isScopeValidationEnabled());
-                String serviceProvider = null;
+
+                ServiceProvider serviceProvider = null;
+                String serviceProviderName = null;
+                String serviceProviderUUID = null;
+
                 try {
-                    serviceProvider =
-                            OAuth2Util.getServiceProvider(oAuth2IntrospectionResponseDTO.getClientId()).
-                                    getApplicationName();
+                    serviceProvider = OAuth2Util.getServiceProvider(oAuth2IntrospectionResponseDTO.getClientId());
+                    if (serviceProvider != null) {
+                        serviceProviderName = serviceProvider.getApplicationName();
+                        serviceProviderUUID = serviceProvider.getApplicationResourceId();
+                    } else {
+                        throw new IdentityOAuth2Exception("There is no associated Service provider for client Id "
+                                + oAuth2IntrospectionResponseDTO.getClientId());
+                    }
                 } catch (IdentityOAuth2Exception e) {
-                    log.error("Error occurred while getting the Service Provider by Consumer key: "
+                    log.error("Error occurred while retrieving the Service Provider for clientId: "
                             + oAuth2IntrospectionResponseDTO.getClientId(), e);
                 }
 
@@ -186,13 +197,17 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
                             + oAuth2IntrospectionResponseDTO.getClientId(), e);
                 }
 
-                if (serviceProvider != null) {
-                    authenticationContext.addParameter(SERVICE_PROVIDER, serviceProvider);
+                if (serviceProviderName != null) {
+                    authenticationContext.addParameter(SERVICE_PROVIDER, serviceProviderName);
                     if (serviceProviderTenantDomain != null) {
                         authenticationContext.addParameter(SERVICE_PROVIDER_TENANT_DOMAIN, serviceProviderTenantDomain);
                     }
+                    if (serviceProviderUUID != null) {
+                        authenticationContext.addParameter(SERVICE_PROVIDER_UUID, serviceProviderUUID);
+                    }
 
-                    MDC.put(SERVICE_PROVIDER, serviceProvider);
+                    MDC.put(SERVICE_PROVIDER, serviceProviderName);
+                    MDC.put(SERVICE_PROVIDER, serviceProviderUUID);
                     // Set OAuth service provider details to be consumed by the provisioning framework.
                     setProvisioningServiceProviderThreadLocal(oAuth2IntrospectionResponseDTO.getClientId(),
                             serviceProviderTenantDomain);
