@@ -173,13 +173,14 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
                 ServiceProvider serviceProvider = null;
                 String serviceProviderName = null;
                 String serviceProviderUUID = null;
-
                 try {
                     serviceProvider = OAuth2Util.getServiceProvider(oAuth2IntrospectionResponseDTO.getClientId());
                     if (serviceProvider != null) {
                         serviceProviderName = serviceProvider.getApplicationName();
                         serviceProviderUUID = serviceProvider.getApplicationResourceId();
                     } else {
+                        log.debug("There is no associated Service provider for client Id "
+                                + oAuth2IntrospectionResponseDTO.getClientId());
                         throw new IdentityOAuth2Exception("There is no associated Service provider for client Id "
                                 + oAuth2IntrospectionResponseDTO.getClientId());
                     }
@@ -197,23 +198,22 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
                             + oAuth2IntrospectionResponseDTO.getClientId(), e);
                 }
 
-                if (serviceProvider != null) {
-                    if (serviceProviderName != null){
-                        authenticationContext.addParameter(SERVICE_PROVIDER_NAME, serviceProviderName);
-                    }
-                    if (serviceProviderTenantDomain != null) {
-                        authenticationContext.addParameter(SERVICE_PROVIDER_TENANT_DOMAIN, serviceProviderTenantDomain);
-                    }
-                    if (serviceProviderUUID != null) {
-                        authenticationContext.addParameter(SERVICE_PROVIDER_UUID, serviceProviderUUID);
-                    }
-
-                    MDC.put(SERVICE_PROVIDER_NAME, serviceProviderName);
-                    MDC.put(SERVICE_PROVIDER_UUID, serviceProviderUUID);
-                    // Set OAuth service provider details to be consumed by the provisioning framework.
-                    setProvisioningServiceProviderThreadLocal(oAuth2IntrospectionResponseDTO.getClientId(),
-                            serviceProviderTenantDomain);
+                if (serviceProviderName != null){
+                    authenticationContext.addParameter(SERVICE_PROVIDER_NAME, serviceProviderName);
                 }
+                if (serviceProviderTenantDomain != null) {
+                    authenticationContext.addParameter(SERVICE_PROVIDER_TENANT_DOMAIN, serviceProviderTenantDomain);
+                }
+                if (serviceProviderUUID != null) {
+                    authenticationContext.addParameter(SERVICE_PROVIDER_UUID, serviceProviderUUID);
+                }
+
+                MDC.put(SERVICE_PROVIDER_NAME, serviceProviderName);
+                MDC.put(SERVICE_PROVIDER_UUID, serviceProviderUUID);
+                // Set OAuth service provider details to be consumed by the provisioning framework.
+                setProvisioningServiceProviderThreadLocal(oAuth2IntrospectionResponseDTO.getClientId(),
+                        serviceProviderTenantDomain);
+
             }
         }
         return authenticationResult;
