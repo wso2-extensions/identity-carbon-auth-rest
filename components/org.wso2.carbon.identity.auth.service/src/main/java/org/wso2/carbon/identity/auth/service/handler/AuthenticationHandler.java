@@ -171,7 +171,8 @@ public abstract class AuthenticationHandler extends AbstractIdentityMessageHandl
                 org.wso2.carbon.user.core.common.User user =
                         ((AbstractUserStoreManager) tenantUserRealm.getUserStoreManager()).getUser(userId, null);
                 if (user != null && StringUtils.isNotEmpty(user.getUsername())) {
-                    PrivilegedCarbonContext.getThreadLocalCarbonContext().setUsername(user.getUsername());
+                    PrivilegedCarbonContext.getThreadLocalCarbonContext()
+                            .setUsername(user.getDomainQualifiedUsername());
                 }
             }
         } catch (OrganizationManagementException | UserStoreException e) {
