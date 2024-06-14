@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2023, WSO2 LLC. (http://www.wso2.com).
+ * Copyright (c) 2016-2024, WSO2 LLC. (http://www.wso2.com).
  *
  * WSO2 LLC. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -171,7 +171,8 @@ public abstract class AuthenticationHandler extends AbstractIdentityMessageHandl
                 org.wso2.carbon.user.core.common.User user =
                         ((AbstractUserStoreManager) tenantUserRealm.getUserStoreManager()).getUser(userId, null);
                 if (user != null && StringUtils.isNotEmpty(user.getUsername())) {
-                    PrivilegedCarbonContext.getThreadLocalCarbonContext().setUsername(user.getUsername());
+                    PrivilegedCarbonContext.getThreadLocalCarbonContext()
+                            .setUsername(user.getDomainQualifiedUsername());
                 }
             }
         } catch (OrganizationManagementException | UserStoreException e) {
