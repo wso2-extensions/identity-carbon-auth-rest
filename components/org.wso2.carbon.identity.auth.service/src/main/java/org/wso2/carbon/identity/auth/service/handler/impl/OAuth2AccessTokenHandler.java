@@ -182,8 +182,10 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
                     serviceProviderTenantDomain =
                             OAuth2Util.getTenantDomainOfOauthApp(oAuth2IntrospectionResponseDTO.getClientId());
                 } catch (InvalidOAuthClientException | IdentityOAuth2Exception e) {
-                    log.error("Error occurred while getting the OAuth App tenantDomain by Consumer key: "
-                            + oAuth2IntrospectionResponseDTO.getClientId(), e);
+                    if (log.isDebugEnabled()) {
+                        log.debug("Error occurred while getting the OAuth App tenantDomain by Consumer key: "
+                                + oAuth2IntrospectionResponseDTO.getClientId(), e);
+                    }
                 }
 
                 if (serviceProvider != null) {
