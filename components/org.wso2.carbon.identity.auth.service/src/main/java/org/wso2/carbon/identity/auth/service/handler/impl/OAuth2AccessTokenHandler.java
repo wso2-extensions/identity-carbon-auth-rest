@@ -173,8 +173,10 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
                             OAuth2Util.getServiceProvider(oAuth2IntrospectionResponseDTO.getClientId()).
                                     getApplicationName();
                 } catch (IdentityOAuth2Exception e) {
-                    log.error("Error occurred while getting the Service Provider by Consumer key: "
-                            + oAuth2IntrospectionResponseDTO.getClientId(), e);
+                    if (log.isDebugEnabled()) {
+                        log.debug("Error occurred while getting the Service Provider by Consumer key: "
+                                + oAuth2IntrospectionResponseDTO.getClientId(), e);
+                    }
                 }
 
                 String serviceProviderTenantDomain = null;
