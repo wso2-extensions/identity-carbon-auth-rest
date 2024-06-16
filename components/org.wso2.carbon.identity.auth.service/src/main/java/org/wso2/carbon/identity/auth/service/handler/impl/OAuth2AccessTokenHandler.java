@@ -213,7 +213,6 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
                 // Set OAuth service provider details to be consumed by the provisioning framework.
                 setProvisioningServiceProviderThreadLocal(oAuth2IntrospectionResponseDTO.getClientId(),
                         serviceProviderTenantDomain);
-
             }
         }
         return authenticationResult;
