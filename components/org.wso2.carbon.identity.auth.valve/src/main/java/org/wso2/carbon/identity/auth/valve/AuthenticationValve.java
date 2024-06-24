@@ -81,8 +81,9 @@ public class AuthenticationValve extends ValveBase {
     private static final String AUTH_CONTEXT = "auth-context";
     private static final String USER_AGENT = "User-Agent";
     private static final String REMOTE_ADDRESS = "remoteAddress";
-    private static final String SERVICE_PROVIDER = "serviceProvider";
+    private static final String SERVICE_PROVIDER_NAME = "serviceProvider";
     private static final String IMPERSONATOR = "impersonator";
+    private static final String SERVICE_PROVIDER_UUID= "serviceProviderUUID";
     private final String CLIENT_COMPONENT = "clientComponent";
     private final String REST_API_CLIENT_COMPONENT = "REST API";
     private static final String AUTH_USER_TENANT_DOMAIN = "authUserTenantDomain";
@@ -265,18 +266,21 @@ public class AuthenticationValve extends ValveBase {
 
     private void setThreadLocalServiceProvider(AuthenticationContext authenticationContext) {
 
-        Object serviceProvider = authenticationContext.getParameter(SERVICE_PROVIDER);
+        Object serviceProviderName = authenticationContext.getParameter(SERVICE_PROVIDER_NAME);
+        Object serviceProviderUUID = authenticationContext.getParameter(SERVICE_PROVIDER_UUID);
         Object serviceProviderTenantDomain = authenticationContext.getParameter(SERVICE_PROVIDER_TENANT_DOMAIN);
-        if (serviceProvider != null && serviceProviderTenantDomain != null) {
-            IdentityUtil.threadLocalProperties.get().put(SERVICE_PROVIDER, serviceProvider);
+        if(serviceProviderTenantDomain != null && serviceProviderName != null && serviceProviderUUID != null){
+            IdentityUtil.threadLocalProperties.get().put(SERVICE_PROVIDER_NAME, serviceProviderName);
+            IdentityUtil.threadLocalProperties.get().put(SERVICE_PROVIDER_UUID, serviceProviderUUID);
             IdentityUtil.threadLocalProperties.get().put(SERVICE_PROVIDER_TENANT_DOMAIN, serviceProviderTenantDomain);
         }
     }
 
     private void unsetThreadLocalServiceProvider() {
 
-        IdentityUtil.threadLocalProperties.get().remove(SERVICE_PROVIDER);
+        IdentityUtil.threadLocalProperties.get().remove(SERVICE_PROVIDER_NAME);
         IdentityUtil.threadLocalProperties.get().remove(SERVICE_PROVIDER_TENANT_DOMAIN);
+        IdentityUtil.threadLocalProperties.get().remove(SERVICE_PROVIDER_UUID);
     }
 
     private void unsetThreadLocalAuthenticationType() {
@@ -302,7 +306,7 @@ public class AuthenticationValve extends ValveBase {
 
     private void setClientComponent() {
 
-        String serviceProvider = MDC.get(SERVICE_PROVIDER);
+        String serviceProvider = MDC.get(SERVICE_PROVIDER_NAME);
         if (serviceProvider != null) {
             MDC.put(CLIENT_COMPONENT, serviceProvider);
         } else {
@@ -315,7 +319,7 @@ public class AuthenticationValve extends ValveBase {
         MDC.remove(CLIENT_COMPONENT);
         MDC.remove(USER_AGENT);
         MDC.remove(REMOTE_ADDRESS);
-        MDC.remove(SERVICE_PROVIDER);
+        MDC.remove(SERVICE_PROVIDER_NAME);
         MDC.remove(IMPERSONATOR);
     }
 
