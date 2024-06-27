@@ -204,16 +204,15 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
 
                 if (serviceProviderName != null){
                     authenticationContext.addParameter(SERVICE_PROVIDER_NAME, serviceProviderName);
+                    MDC.put(SERVICE_PROVIDER_NAME, serviceProviderName);
                 }
                 if (serviceProviderTenantDomain != null) {
                     authenticationContext.addParameter(SERVICE_PROVIDER_TENANT_DOMAIN, serviceProviderTenantDomain);
                 }
                 if (serviceProviderUUID != null) {
                     authenticationContext.addParameter(SERVICE_PROVIDER_UUID, serviceProviderUUID);
+                    MDC.put(SERVICE_PROVIDER_UUID, serviceProviderUUID);
                 }
-
-                MDC.put(SERVICE_PROVIDER_NAME, serviceProviderName);
-                MDC.put(SERVICE_PROVIDER_UUID, serviceProviderUUID);
                 // Set OAuth service provider details to be consumed by the provisioning framework.
                 setProvisioningServiceProviderThreadLocal(oAuth2IntrospectionResponseDTO.getClientId(),
                         serviceProviderTenantDomain);
