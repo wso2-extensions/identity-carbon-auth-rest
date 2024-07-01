@@ -1,8 +1,8 @@
 /*
- * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016-2024, WSO2 LLC. (http://www.wso2.com).
  *
- * WSO2 Inc. licenses this file to you under the Apache License,
- *  Version 2.0 (the "License"); you may not use this file except
+ * WSO2 LLC. licenses this file to you under the Apache License,
+ * Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License.
  * You may obtain a copy of the License at
  *
@@ -88,20 +88,15 @@ public class Utils {
                     Constants.AUTH_CONTEXT_OAUTH_APP_PROPERTY);
             tenantDomain = OAuth2Util.getTenantDomainOfOauthApp(oAuthAppDO);
         }
-        return tenantDomainFromURLMapping.equals(tenantDomain);
-    }
-
-    public static boolean isUserAuthorizedForOrganization(AuthenticationContext authenticationContext, Request request) {
-
-        User user = authenticationContext.getUser();
-        if (user == null) {
-            return false;
+        if (tenantDomainFromURLMapping.equals(tenantDomain)) {
+            return true;
         }
-        String authorizedOrganization = ((AuthenticatedUser) user).getAccessingOrganization();
-        if (StringUtils.isNotEmpty(authorizedOrganization)) {
-            return getOrganizationIdFromURLMapping(request).equals(authorizedOrganization);
+        // Check request with organization qualified URL is allowed to access.
+        String organizationID = getOrganizationIdFromURLMapping(request);
+        if (user != null) {
+            return StringUtils.equals(organizationID, ((AuthenticatedUser) user).getAccessingOrganization());
         }
-        return isUserBelongsToRequestedTenant(authenticationContext, request);
+        return false;
     }
 
     /**
