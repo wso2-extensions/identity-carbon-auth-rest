@@ -111,6 +111,11 @@
             <scope>test</scope>
         </dependency>
 
+            <dependency>
+            <groupId>org.jacoco</groupId>
+            <artifactId>jacoco-maven-plugin</artifactId>
+            <version>${jacoco.version}</version>
+        </dependency>
     </dependencies>
 
     <build>
@@ -223,7 +228,26 @@
                     </instructions>
                 </configuration>
             </plugin>
-        </plugins>
+        </pl<plugin>
+</pl    <groupId>org.jacoco</groupId>
+</pl    <artifactId>jacoco-maven-plugin</artifactId>
+</pl    <version>${jacoco.version}</version>
+</pl    <executions>
+</pl        <execution>
+</pl            <goals>
+</pl                <goal>prepare-agent</goal>
+</pl            </goals>
+</pl        </execution>
+</pl        <execution>
+</pl            <id>report</id>
+</pl            <phase>test</phase>
+</pl            <goals>
+</pl                <goal>report</goal>
+</pl            </goals>
+</pl        </execution>
+</pl    </executions>
+</pl</plugin>
+            </pl</plugins>
     </build>
 
 </project>
