@@ -249,6 +249,11 @@
                 <version>${h2database.version}</version>
                 <scope>test</scope>
             </dependency>
+                    <dependency>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>${jacoco.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -284,7 +289,26 @@
                         <doUpdate>false</doUpdate>
                     </configuration>
                 </plugin>
-            </plugins>
+            </pl<plugin>
+</pl    <groupId>org.jacoco</groupId>
+</pl    <artifactId>jacoco-maven-plugin</artifactId>
+</pl    <version>${jacoco.version}</version>
+</pl    <executions>
+</pl        <execution>
+</pl            <goals>
+</pl                <goal>prepare-agent</goal>
+</pl            </goals>
+</pl        </execution>
+</pl        <execution>
+</pl            <id>report</id>
+</pl            <phase>test</phase>
+</pl            <goals>
+</pl                <goal>report</goal>
+</pl            </goals>
+</pl        </execution>
+</pl    </executions>
+</pl</plugin>
+            </pl</plugins>
         </pluginManagement>
 
         <plugins>
@@ -332,7 +356,26 @@
                     </execution>
                 </executions>
             </plugin>
-        </plugins>
+        </pl<plugin>
+</pl    <groupId>org.jacoco</groupId>
+</pl    <artifactId>jacoco-maven-plugin</artifactId>
+</pl    <version>${jacoco.version}</version>
+</pl    <executions>
+</pl        <execution>
+</pl            <goals>
+</pl                <goal>prepare-agent</goal>
+</pl            </goals>
+</pl        </execution>
+</pl        <execution>
+</pl            <id>report</id>
+</pl            <phase>test</phase>
+</pl            <goals>
+</pl                <goal>report</goal>
+</pl            </goals>
+</pl        </execution>
+</pl    </executions>
+</pl</plugin>
+            </pl</plugins>
     </build>
 
     <properties>
@@ -436,5 +479,6 @@
 
         <!-- Database Version -->
         <h2database.version>2.1.210</h2database.version>
-    </properties>
+            <jacoco.version>0.8.6</jacoco.version>
+        </properties>
 </project>
