@@ -23,6 +23,7 @@ import org.apache.catalina.LifecycleException;
 import org.apache.catalina.connector.Request;
 import org.apache.catalina.connector.Response;
 import org.apache.catalina.valves.ValveBase;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -30,6 +31,7 @@ import org.slf4j.MDC;
 import org.wso2.carbon.base.ServerConfiguration;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.identity.base.IdentityRuntimeException;
+import org.wso2.carbon.identity.context.rewrite.bean.OrganizationRewriteContext;
 import org.wso2.carbon.identity.context.rewrite.bean.RewriteContext;
 import org.wso2.carbon.identity.context.rewrite.internal.ContextRewriteValveServiceComponentHolder;
 import org.wso2.carbon.identity.core.util.IdentityConfigParser;
@@ -41,8 +43,11 @@ import org.wso2.carbon.user.core.tenant.TenantManager;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.servlet.ServletException;
@@ -59,6 +64,7 @@ import static org.wso2.carbon.identity.core.util.IdentityCoreConstants.TENANT_NA
 public class TenantContextRewriteValve extends ValveBase {
 
     private static List<RewriteContext> contextsToRewrite;
+    private static List<OrganizationRewriteContext> contextsToRewriteInTenantPerspective;
     private static List<String> contextListToOverwriteDispatch;
     private static List<String> ignorePathListForOverwriteDispatch;
     private static List<String> organizationRoutingOnlySupportedAPIPaths;
@@ -73,6 +79,7 @@ public class TenantContextRewriteValve extends ValveBase {
         super.startInternal();
         // Initialize the tenant context rewrite valve.
         contextsToRewrite = getContextsToRewrite();
+        contextsToRewriteInTenantPerspective = getContextsToRewriteInTenantPerspective();
         contextListToOverwriteDispatch = getContextListToOverwriteDispatchLocation();
         ignorePathListForOverwriteDispatch = getIgnorePathListForOverwriteDispatch();
         isTenantQualifiedUrlsEnabled = isTenantQualifiedUrlsEnabled();
@@ -110,6 +117,28 @@ public class TenantContextRewriteValve extends ValveBase {
             }
         }
 
+        outerLoop:
+        for (OrganizationRewriteContext context : contextsToRewriteInTenantPerspective) {
+            Pattern patternTenantPerspective = Pattern.compile("^/t/[^/]+/o/[a-f0-9\\-]+?" + context.getContext());
+            if (patternTenantPerspective.matcher(requestURI).find()) {
+                if (CollectionUtils.isNotEmpty(context.getSubPaths())) {
+                    for (Pattern subPath : context.getSubPaths()) {
+                        if (subPath.matcher(requestURI).find()) {
+                            isContextRewrite = true;
+                            isWebApp = context.isWebApp();
+                            contextToForward = context.getContext();
+                            int startIndex = requestURI.indexOf("/o/") + 3;
+                            int endIndex = requestURI.indexOf("/", startIndex);
+                            String appOrgId = requestURI.substring(startIndex, endIndex);
+                            PrivilegedCarbonContext.getThreadLocalCarbonContext().
+                                    setApplicationResidentOrganizationId(appOrgId);
+                            break outerLoop;
+                        }
+                    }
+                }
+            }
+        }
+
         String tenantDomain = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain();
         try {
             MDC.put(TENANT_DOMAIN, tenantDomain);
@@ -135,7 +164,8 @@ public class TenantContextRewriteValve extends ValveBase {
                      Ex-: Request: /t/<tenant-domain>/o/api/server/v1/applications  -->  /o/server/v1/applications
                      */
                     if (!requestURI.startsWith(ORGANIZATION_PATH_PARAM) &&
-                            requestURI.contains(ORGANIZATION_PATH_PARAM)) {
+                            requestURI.contains(ORGANIZATION_PATH_PARAM) &&
+                                !isOrganizationIdPatternAvailable(requestURI)) {
                         dispatchLocation = "/o" + dispatchLocation;
                     }
                     if (contextListToOverwriteDispatch.contains(contextToForward) && !isIgnorePath(dispatchLocation)) {
@@ -151,7 +181,10 @@ public class TenantContextRewriteValve extends ValveBase {
                         requestURI = requestURI.replace(carbonWebContext + "/", "");
                     }
                     //Servlet
-                    requestURI = requestURI.replace("/t/" + tenantDomain, "");
+                    if (StringUtils.isEmpty(PrivilegedCarbonContext.getThreadLocalCarbonContext()
+                            .getApplicationResidentOrganizationId())) {
+                        requestURI = requestURI.replace("/t/" + tenantDomain, "");
+                    }
                     request.getRequestDispatcher(requestURI).forward(request, response);
                 }
             }
@@ -174,6 +207,11 @@ public class TenantContextRewriteValve extends ValveBase {
             IdentityUtil.threadLocalProperties.get().remove(TENANT_NAME_FROM_CONTEXT);
             unsetMDCThreadLocals();
         }
+    }
+
+    private boolean isOrganizationIdPatternAvailable(String requestURI) {
+
+        return Pattern.compile("^/t/[^/]+/o/[a-f0-9\\-]+?").matcher(requestURI).find();
     }
 
     private void unsetMDCThreadLocals() {
@@ -215,6 +253,53 @@ public class TenantContextRewriteValve extends ValveBase {
             }
         }
         return rewriteContexts;
+    }
+
+    private List<OrganizationRewriteContext> getContextsToRewriteInTenantPerspective() {
+
+        List<OrganizationRewriteContext> organizationRewriteContexts = new ArrayList<>();
+        Map<String, Object> configuration = IdentityConfigParser.getInstance().getConfiguration();
+        Object webAppBasePathContexts = configuration.get("OrgContextsToRewriteInTenantPerspective.WebApp.Context." +
+                "BasePath");
+        setOrganizationRewriteContexts(organizationRewriteContexts, webAppBasePathContexts, true);
+
+        Object webAppSubPathContexts = configuration.get("OrgContextsToRewriteInTenantPerspective.WebApp.Context." +
+                "SubPaths.Path");
+        setSubPathContexts(organizationRewriteContexts, webAppSubPathContexts);
+
+        return organizationRewriteContexts;
+    }
+
+    private void setOrganizationRewriteContexts(List<OrganizationRewriteContext> organizationRewriteContexts,
+                                                Object basePathContexts, boolean isWebApp) {
+
+        if (basePathContexts != null) {
+            if (basePathContexts instanceof ArrayList) {
+                for (String context : (ArrayList<String>) basePathContexts) {
+                    organizationRewriteContexts.add(new OrganizationRewriteContext(isWebApp, context));
+                }
+            } else {
+                organizationRewriteContexts.add(new OrganizationRewriteContext(isWebApp,
+                        basePathContexts.toString()));
+            }
+        }
+    }
+
+    private void setSubPathContexts(List<OrganizationRewriteContext> organizationRewriteContexts,
+                                    Object subPathContexts) {
+
+        if (subPathContexts != null) {
+            if (subPathContexts instanceof ArrayList) {
+                for (String subPath : (ArrayList<String>) subPathContexts) {
+                    Optional<OrganizationRewriteContext> maybeOrgRewriteContext = organizationRewriteContexts.stream()
+                            .filter(rewriteContext -> subPath.startsWith(rewriteContext.getContext()))
+                            .max(Comparator.comparingInt(rewriteContext -> rewriteContext.getContext().length()));
+                    maybeOrgRewriteContext.ifPresent(
+                            organizationRewriteContext -> organizationRewriteContext.addSubPath(
+                                    Pattern.compile("^/t/[^/]+/o/[a-f0-9\\-]+" + subPath)));
+                }
+            }
+        }
     }
 
     /**
