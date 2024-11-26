@@ -58,11 +58,6 @@ import static org.wso2.carbon.identity.core.util.IdentityCoreConstants.TENANT_NA
 
 public class TenantContextRewriteValve extends ValveBase {
 
-    private static List<RewriteContext> contextsToRewrite;
-    private static List<String> contextListToOverwriteDispatch;
-    private static List<String> ignorePathListForOverwriteDispatch;
-    private static List<String> organizationRoutingOnlySupportedAPIPaths;
-    private boolean isTenantQualifiedUrlsEnabled;
     private TenantManager tenantManager;
 
     private static final Log log = LogFactory.getLog(TenantContextRewriteValve.class);
@@ -71,12 +66,6 @@ public class TenantContextRewriteValve extends ValveBase {
     protected synchronized void startInternal() throws LifecycleException {
 
         super.startInternal();
-        // Initialize the tenant context rewrite valve.
-        contextsToRewrite = getContextsToRewrite();
-        contextListToOverwriteDispatch = getContextListToOverwriteDispatchLocation();
-        ignorePathListForOverwriteDispatch = getIgnorePathListForOverwriteDispatch();
-        isTenantQualifiedUrlsEnabled = isTenantQualifiedUrlsEnabled();
-
     }
 
     @Override
@@ -95,7 +84,7 @@ public class TenantContextRewriteValve extends ValveBase {
 
         String contextTenantDomain = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain();
         //Get the rewrite contexts and check whether request URI contains any of rewrite contains.
-        for (RewriteContext context : contextsToRewrite) {
+        for (RewriteContext context : ContextRewriteValveServiceComponentHolder.getInstance().getContextsToRewrite()) {
             Pattern patternTenant = context.getTenantContextPattern();
             Pattern patternSuperTenant = context.getBaseContextPattern();
             if (patternTenant.matcher(requestURI).find() || patternTenant.matcher(requestURI + "/").find()) {
@@ -103,8 +92,9 @@ public class TenantContextRewriteValve extends ValveBase {
                 isWebApp = context.isWebApp();
                 contextToForward = context.getContext();
                 break;
-            } else if (isTenantQualifiedUrlsEnabled && (patternSuperTenant.matcher(requestURI).find() ||
-                    patternSuperTenant.matcher(requestURI + "/").find())) {
+            } else if (ContextRewriteValveServiceComponentHolder.getInstance().isTenantQualifiedUrlsEnabled()
+                    && (patternSuperTenant.matcher(requestURI).find()
+                    || patternSuperTenant.matcher(requestURI + "/").find())) {
                 IdentityUtil.threadLocalProperties.get().put(TENANT_NAME_FROM_CONTEXT, contextTenantDomain);
                 break;
             }
@@ -138,7 +128,7 @@ public class TenantContextRewriteValve extends ValveBase {
                             requestURI.contains(ORGANIZATION_PATH_PARAM)) {
                         dispatchLocation = "/o" + dispatchLocation;
                     }
-                    if (contextListToOverwriteDispatch.contains(contextToForward) && !isIgnorePath(dispatchLocation)) {
+                    if (ContextRewriteValveServiceComponentHolder.getInstance().getContextListToOverwriteDispatch().contains(contextToForward) && !isIgnorePath(dispatchLocation)) {
                         dispatchLocation = "/";
                     }
 
@@ -182,80 +172,10 @@ public class TenantContextRewriteValve extends ValveBase {
         MDC.remove(TENANT_ID);
     }
 
-    private boolean isTenantQualifiedUrlsEnabled() {
-
-        Map<String, Object> configuration = IdentityConfigParser.getInstance().getConfiguration();
-        String enableTenantQualifiedUrls = (String) configuration.get(ENABLE_TENANT_QUALIFIED_URLS);
-        return Boolean.parseBoolean(enableTenantQualifiedUrls);
-    }
-
-    private List<RewriteContext> getContextsToRewrite() {
-
-        List<RewriteContext> rewriteContexts = new ArrayList<>();
-        Map<String, Object> configuration = IdentityConfigParser.getInstance().getConfiguration();
-        Object webAppContexts = configuration.get("TenantContextsToRewrite.WebApp.Context");
-        if (webAppContexts != null) {
-            if (webAppContexts instanceof ArrayList) {
-                for (String context : (ArrayList<String>) webAppContexts) {
-                    rewriteContexts.add(new RewriteContext(true, context));
-                }
-            } else {
-                rewriteContexts.add(new RewriteContext(true, webAppContexts.toString()));
-            }
-        }
-
-        Object servletContexts = configuration.get("TenantContextsToRewrite.Servlet.Context");
-        if (servletContexts != null) {
-            if (servletContexts instanceof ArrayList) {
-                for (String context : (ArrayList<String>) servletContexts) {
-                    rewriteContexts.add(new RewriteContext(false, context));
-                }
-            } else {
-                rewriteContexts.add(new RewriteContext(false, servletContexts.toString()));
-            }
-        }
-        return rewriteContexts;
-    }
-
-    /**
-     * Get context list to overwrite dispatch location.
-     *
-     * @return list of contexts.
-     */
-    private List<String> getContextListToOverwriteDispatchLocation() {
-
-        return getConfigValues("TenantContextsToRewrite.OverwriteDispatch.Context");
-    }
-
-    /**
-     * Get path list to ignore for overwrite dispatch.
-     *
-     * @return list of paths.
-     */
-    private List<String> getIgnorePathListForOverwriteDispatch() {
-
-        return getConfigValues("TenantContextsToRewrite.OverwriteDispatch.IgnorePath");
-    }
-
-    private List<String> getConfigValues(String elementPath) {
-
-        Map<String, Object> configuration = IdentityConfigParser.getInstance().getConfiguration();
-        Object elements = configuration.get(elementPath);
-        if (elements != null) {
-            List<String> configValues = new ArrayList<>();
-            if (elements instanceof List) {
-                configValues.addAll((List<String>) elements);
-            } else {
-                configValues.add(elements.toString());
-            }
-            return configValues;
-        }
-        return Collections.emptyList();
-    }
-
     private boolean isIgnorePath(String dispatchLocation) {
 
-        for (String path : ignorePathListForOverwriteDispatch) {
+        for (String path : ContextRewriteValveServiceComponentHolder.getInstance()
+                .getIgnorePathListForOverwriteDispatch()) {
             if (dispatchLocation.startsWith(path)) {
                 return true;
             }
