@@ -502,7 +502,7 @@
         <tomcat.version>9.0.53.wso2v1</tomcat.version>
 
         <!-- Database Version -->
-        <h2database.version>2.1.210</h2database.version>
+        <h2database.version>2.2.220</h2database.version>
     
         <jacoco.version>0.8.12</jacoco.version>
     </properties>
