@@ -32,6 +32,7 @@ import org.wso2.carbon.identity.application.authentication.framework.model.Authe
 import org.wso2.carbon.identity.application.authentication.framework.util.FrameworkConstants;
 import org.wso2.carbon.identity.application.common.model.ProvisioningServiceProviderType;
 import org.wso2.carbon.identity.application.common.model.ServiceProvider;
+import org.wso2.carbon.identity.application.common.model.ServiceProviderProperty;
 import org.wso2.carbon.identity.application.common.model.ThreadLocalProvisioningServiceProvider;
 import org.wso2.carbon.identity.application.common.model.User;
 import org.wso2.carbon.identity.application.common.util.IdentityApplicationManagementUtil;
@@ -57,6 +58,7 @@ import org.wso2.carbon.identity.oauth2.util.OAuth2Util;
 import org.wso2.carbon.identity.oauth2.validators.RefreshTokenValidator;
 
 import java.text.ParseException;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
 
@@ -173,8 +175,23 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
                 ServiceProvider serviceProvider = null;
                 String serviceProviderName = null;
                 String serviceProviderUUID = null;
+                boolean isSubOrgApp = false;
                 try {
-                    serviceProvider = OAuth2Util.getServiceProvider(oAuth2IntrospectionResponseDTO.getClientId());
+                    if (authorizedUser != null) {
+                        ServiceProviderProperty[] serviceProviderProperties = OAuth2Util.getServiceProvider(
+                                oAuth2IntrospectionResponseDTO.getClientId(), authorizedUser.getTenantDomain()).
+                                getSpProperties();
+                        if (serviceProviderProperties != null && Arrays.stream(serviceProviderProperties)
+                                .anyMatch(property -> "isSubOrgApp".equals(property.getName())
+                                        && Boolean.parseBoolean(property.getValue()))) {
+                            isSubOrgApp = true;
+                            authenticationContext.addParameter("isSubOrgApp", true);
+                            serviceProvider = OAuth2Util.getServiceProvider(oAuth2IntrospectionResponseDTO.getClientId(),
+                                    authorizedUser.getTenantDomain());
+                        }
+                    } else {
+                        serviceProvider = OAuth2Util.getServiceProvider(oAuth2IntrospectionResponseDTO.getClientId());
+                    }
                     if (serviceProvider != null) {
                         serviceProviderName = serviceProvider.getApplicationName();
                         serviceProviderUUID = serviceProvider.getApplicationResourceId();
@@ -193,8 +210,12 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
 
                 String serviceProviderTenantDomain = null;
                 try {
-                    serviceProviderTenantDomain =
-                            OAuth2Util.getTenantDomainOfOauthApp(oAuth2IntrospectionResponseDTO.getClientId());
+                    if (serviceProvider != null && isSubOrgApp) {
+                        serviceProviderTenantDomain = serviceProvider.getTenantDomain();
+                    } else {
+                        serviceProviderTenantDomain = OAuth2Util.getTenantDomainOfOauthApp(
+                                oAuth2IntrospectionResponseDTO.getClientId());
+                    }
                 } catch (InvalidOAuthClientException | IdentityOAuth2Exception e) {
                     if (log.isDebugEnabled()) {
                         log.debug("Error occurred while getting the OAuth App tenantDomain by Consumer key: "

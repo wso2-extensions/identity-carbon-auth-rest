@@ -235,7 +235,11 @@ public class AuthorizationValve extends ValveBase {
     private boolean isRequestValidForTenant(AuthenticationContext authenticationContext,
                                             AuthorizationContext authorizationContext, Request request) {
 
-        return (Utils.isUserBelongsToRequestedTenant(authenticationContext, request) ||
+        boolean isSubOrgApp = false;
+        if (authenticationContext.getParameter("isSubOrgApp") != null) {
+            isSubOrgApp = Boolean.parseBoolean(authenticationContext.getParameter("isSubOrgApp").toString());
+        }
+        return (Utils.isUserBelongsToRequestedTenant(authenticationContext, request) || isSubOrgApp ||
                 (authorizationContext.isCrossTenantAllowed()) &&
                         Utils.isTenantBelongsToAllowedCrossTenant(authenticationContext, authorizationContext));
     }
