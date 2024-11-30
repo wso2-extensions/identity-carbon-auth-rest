@@ -32,7 +32,6 @@ import org.wso2.carbon.identity.application.authentication.framework.model.Authe
 import org.wso2.carbon.identity.application.authentication.framework.util.FrameworkConstants;
 import org.wso2.carbon.identity.application.common.model.ProvisioningServiceProviderType;
 import org.wso2.carbon.identity.application.common.model.ServiceProvider;
-import org.wso2.carbon.identity.application.common.model.ServiceProviderProperty;
 import org.wso2.carbon.identity.application.common.model.ThreadLocalProvisioningServiceProvider;
 import org.wso2.carbon.identity.application.common.model.User;
 import org.wso2.carbon.identity.application.common.util.IdentityApplicationManagementUtil;
@@ -41,6 +40,7 @@ import org.wso2.carbon.identity.auth.service.AuthenticationRequest;
 import org.wso2.carbon.identity.auth.service.AuthenticationResult;
 import org.wso2.carbon.identity.auth.service.AuthenticationStatus;
 import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
+import org.wso2.carbon.identity.auth.service.internal.AuthenticationServiceHolder;
 import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
 import org.wso2.carbon.identity.auth.service.util.Constants;
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
@@ -56,6 +56,7 @@ import org.wso2.carbon.identity.oauth2.model.AccessTokenDO;
 import org.wso2.carbon.identity.oauth2.token.bindings.TokenBinding;
 import org.wso2.carbon.identity.oauth2.util.OAuth2Util;
 import org.wso2.carbon.identity.oauth2.validators.RefreshTokenValidator;
+import org.wso2.carbon.identity.organization.management.service.exception.OrganizationManagementException;
 
 import java.text.ParseException;
 import java.util.Arrays;
@@ -175,20 +176,18 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
                 ServiceProvider serviceProvider = null;
                 String serviceProviderName = null;
                 String serviceProviderUUID = null;
-                boolean isSubOrgApp = false;
+                String accessingTenantDomain = null;
                 try {
+                    // Getting the accessing tenant domain from the authenticated user through the introspection
+                    // response where the token is introspected.
                     if (authorizedUser != null) {
-                        ServiceProviderProperty[] serviceProviderProperties = OAuth2Util.getServiceProvider(
-                                oAuth2IntrospectionResponseDTO.getClientId(), authorizedUser.getTenantDomain()).
-                                getSpProperties();
-                        if (serviceProviderProperties != null && Arrays.stream(serviceProviderProperties)
-                                .anyMatch(property -> "isSubOrgApp".equals(property.getName())
-                                        && Boolean.parseBoolean(property.getValue()))) {
-                            isSubOrgApp = true;
-                            authenticationContext.addParameter("isSubOrgApp", true);
-                            serviceProvider = OAuth2Util.getServiceProvider(oAuth2IntrospectionResponseDTO.getClientId(),
-                                    authorizedUser.getTenantDomain());
-                        }
+                        accessingTenantDomain = authorizedUser.getTenantDomain();
+                        serviceProvider = OAuth2Util.getServiceProvider(
+                                oAuth2IntrospectionResponseDTO.getClientId(), accessingTenantDomain);
+                        boolean isSharedApp = Arrays.stream(serviceProvider.getSpProperties()).anyMatch(
+                                property -> "isAppShared".equals(property.getName()) &&
+                                        Boolean.parseBoolean(property.getValue()));
+                        authenticationContext.addParameter("isAppShared", isSharedApp);
                     } else {
                         serviceProvider = OAuth2Util.getServiceProvider(oAuth2IntrospectionResponseDTO.getClientId());
                     }
@@ -210,11 +209,13 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
 
                 String serviceProviderTenantDomain = null;
                 try {
-                    if (serviceProvider != null && isSubOrgApp) {
-                        serviceProviderTenantDomain = serviceProvider.getTenantDomain();
+                    if (StringUtils.isNotEmpty(accessingTenantDomain)) {
+                        serviceProviderTenantDomain =
+                                OAuth2Util.getTenantDomainOfOauthApp(oAuth2IntrospectionResponseDTO.getClientId(),
+                                        accessingTenantDomain);
                     } else {
-                        serviceProviderTenantDomain = OAuth2Util.getTenantDomainOfOauthApp(
-                                oAuth2IntrospectionResponseDTO.getClientId());
+                        serviceProviderTenantDomain =
+                                OAuth2Util.getTenantDomainOfOauthApp(oAuth2IntrospectionResponseDTO.getClientId());
                     }
                 } catch (InvalidOAuthClientException | IdentityOAuth2Exception e) {
                     if (log.isDebugEnabled()) {

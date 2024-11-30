@@ -45,6 +45,7 @@ import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.identity.organization.management.authz.service.OrganizationManagementAuthorizationContext;
 import org.wso2.carbon.identity.organization.management.service.constant.OrganizationManagementConstants;
 import org.wso2.carbon.identity.organization.management.service.exception.OrganizationManagementException;
+import org.wso2.carbon.identity.organization.management.service.util.OrganizationManagementUtil;
 import org.wso2.carbon.utils.multitenancy.MultitenantConstants;
 
 import java.io.IOException;
@@ -85,25 +86,37 @@ public class AuthorizationValve extends ValveBase {
             }
 
             String requestURI = request.getRequestURI();
-            if (!isRequestValidForTenant(authenticationContext, authorizationContext, request)) {
+            String spTenantDomain = null;
+            String isAppSharedStr = null;
+            if (authenticationContext.getParameter("serviceProviderTenantDomain") != null) {
+                spTenantDomain = authenticationContext.getParameter("serviceProviderTenantDomain").toString();
+            }
+            if (authenticationContext.getParameter("isAppShared") != null) {
+                isAppSharedStr = authenticationContext.getParameter("isAppShared").toString();
+            }
+            // If the application is not a shared application and the tenant is an organization, skip the
+            // request validation for the tenant.
+            if (!isSubOrganizationApp(spTenantDomain, isAppSharedStr)) {
+                if (!isRequestValidForTenant(authenticationContext, authorizationContext, request)) {
                 /*
                 Forbidden the /o/<org-id> path requests if the org level authz failed and
                 resource is not cross tenant allowed or authenticated user doesn't belong to the accessed resource's org.
                  */
-                if (requestURI.startsWith(ORGANIZATION_PATH_PARAM)) {
+                    if (requestURI.startsWith(ORGANIZATION_PATH_PARAM)) {
+                        APIErrorResponseHandler.handleErrorResponse(authenticationContext, response,
+                                HttpServletResponse.SC_FORBIDDEN, null);
+                        return;
+                    }
+                    if (log.isDebugEnabled()) {
+                        log.debug("Authorization to " + request.getRequestURI()
+                                + " is denied because the authenticated user belongs to different tenant domain: "
+                                + authenticationContext.getUser().getTenantDomain()
+                                + " and cross-domain access for the tenant is disabled.");
+                    }
                     APIErrorResponseHandler.handleErrorResponse(authenticationContext, response,
-                            HttpServletResponse.SC_FORBIDDEN, null);
+                            HttpServletResponse.SC_UNAUTHORIZED, null);
                     return;
                 }
-                if (log.isDebugEnabled()) {
-                    log.debug("Authorization to " + request.getRequestURI()
-                            + " is denied because the authenticated user belongs to different tenant domain: "
-                            + authenticationContext.getUser().getTenantDomain()
-                            + " and cross-domain access for the tenant is disabled.");
-                }
-                APIErrorResponseHandler.handleErrorResponse(authenticationContext, response,
-                        HttpServletResponse.SC_UNAUTHORIZED, null);
-                return;
             }
 
             if (!isUserEmpty(authenticationContext)) {
@@ -235,11 +248,7 @@ public class AuthorizationValve extends ValveBase {
     private boolean isRequestValidForTenant(AuthenticationContext authenticationContext,
                                             AuthorizationContext authorizationContext, Request request) {
 
-        boolean isSubOrgApp = false;
-        if (authenticationContext.getParameter("isSubOrgApp") != null) {
-            isSubOrgApp = Boolean.parseBoolean(authenticationContext.getParameter("isSubOrgApp").toString());
-        }
-        return (Utils.isUserBelongsToRequestedTenant(authenticationContext, request) || isSubOrgApp ||
+        return (Utils.isUserBelongsToRequestedTenant(authenticationContext, request) ||
                 (authorizationContext.isCrossTenantAllowed()) &&
                         Utils.isTenantBelongsToAllowedCrossTenant(authenticationContext, authorizationContext));
     }
@@ -302,5 +311,21 @@ public class AuthorizationValve extends ValveBase {
         } catch (OrganizationManagementException e) {
             throw new AuthRuntimeException("Error while resolving tenant domain by organization.", e);
         }
+    }
+
+    private boolean isSubOrganizationApp (String spTenantDomain, String isAppShared) {
+
+        try {
+            if (StringUtils.isNotEmpty(spTenantDomain) && StringUtils.isNotEmpty(isAppShared)) {
+                if (OrganizationManagementUtil.isOrganization(spTenantDomain) && !Boolean.parseBoolean(isAppShared)) {
+                    return true;
+                }
+            } else {
+                return false;
+            }
+        } catch (OrganizationManagementException e) {
+            throw new AuthRuntimeException("Error while checking the tenant is an organization.", e);
+        }
+        return false;
     }
 }
