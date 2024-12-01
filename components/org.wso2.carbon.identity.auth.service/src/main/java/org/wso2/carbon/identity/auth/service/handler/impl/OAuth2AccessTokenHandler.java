@@ -40,6 +40,7 @@ import org.wso2.carbon.identity.auth.service.AuthenticationRequest;
 import org.wso2.carbon.identity.auth.service.AuthenticationResult;
 import org.wso2.carbon.identity.auth.service.AuthenticationStatus;
 import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
+import org.wso2.carbon.identity.auth.service.internal.AuthenticationServiceHolder;
 import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
 import org.wso2.carbon.identity.auth.service.util.Constants;
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
@@ -55,8 +56,10 @@ import org.wso2.carbon.identity.oauth2.model.AccessTokenDO;
 import org.wso2.carbon.identity.oauth2.token.bindings.TokenBinding;
 import org.wso2.carbon.identity.oauth2.util.OAuth2Util;
 import org.wso2.carbon.identity.oauth2.validators.RefreshTokenValidator;
+import org.wso2.carbon.identity.organization.management.service.exception.OrganizationManagementException;
 
 import java.text.ParseException;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
 
@@ -173,8 +176,21 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
                 ServiceProvider serviceProvider = null;
                 String serviceProviderName = null;
                 String serviceProviderUUID = null;
+                String accessingTenantDomain = null;
                 try {
-                    serviceProvider = OAuth2Util.getServiceProvider(oAuth2IntrospectionResponseDTO.getClientId());
+                    // Getting the accessing tenant domain from the authenticated user through the introspection
+                    // response where the token is introspected.
+                    if (authorizedUser != null) {
+                        accessingTenantDomain = authorizedUser.getTenantDomain();
+                        serviceProvider = OAuth2Util.getServiceProvider(
+                                oAuth2IntrospectionResponseDTO.getClientId(), accessingTenantDomain);
+                        boolean isSharedApp = Arrays.stream(serviceProvider.getSpProperties()).anyMatch(
+                                property -> "isAppShared".equals(property.getName()) &&
+                                        Boolean.parseBoolean(property.getValue()));
+                        authenticationContext.addParameter("isAppShared", isSharedApp);
+                    } else {
+                        serviceProvider = OAuth2Util.getServiceProvider(oAuth2IntrospectionResponseDTO.getClientId());
+                    }
                     if (serviceProvider != null) {
                         serviceProviderName = serviceProvider.getApplicationName();
                         serviceProviderUUID = serviceProvider.getApplicationResourceId();
@@ -193,8 +209,14 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
 
                 String serviceProviderTenantDomain = null;
                 try {
-                    serviceProviderTenantDomain =
-                            OAuth2Util.getTenantDomainOfOauthApp(oAuth2IntrospectionResponseDTO.getClientId());
+                    if (StringUtils.isNotEmpty(accessingTenantDomain)) {
+                        serviceProviderTenantDomain =
+                                OAuth2Util.getTenantDomainOfOauthApp(oAuth2IntrospectionResponseDTO.getClientId(),
+                                        accessingTenantDomain);
+                    } else {
+                        serviceProviderTenantDomain =
+                                OAuth2Util.getTenantDomainOfOauthApp(oAuth2IntrospectionResponseDTO.getClientId());
+                    }
                 } catch (InvalidOAuthClientException | IdentityOAuth2Exception e) {
                     if (log.isDebugEnabled()) {
                         log.debug("Error occurred while getting the OAuth App tenantDomain by Consumer key: "
