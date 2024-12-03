@@ -57,6 +57,7 @@ import org.wso2.carbon.identity.oauth2.token.bindings.TokenBinding;
 import org.wso2.carbon.identity.oauth2.util.OAuth2Util;
 import org.wso2.carbon.identity.oauth2.validators.RefreshTokenValidator;
 import org.wso2.carbon.identity.organization.management.service.exception.OrganizationManagementException;
+import org.wso2.carbon.identity.organization.management.service.constant.OrganizationManagementConstants;
 
 import java.text.ParseException;
 import java.util.Arrays;
@@ -176,18 +177,18 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
                 ServiceProvider serviceProvider = null;
                 String serviceProviderName = null;
                 String serviceProviderUUID = null;
-                String accessingTenantDomain = null;
+                String applicationResidentTenantDomain = null;
                 try {
                     // Getting the accessing tenant domain from the authenticated user through the introspection
                     // response where the token is introspected.
                     if (authorizedUser != null) {
-                        accessingTenantDomain = authorizedUser.getTenantDomain();
+                        applicationResidentTenantDomain = authorizedUser.getTenantDomain();
                         serviceProvider = OAuth2Util.getServiceProvider(
-                                oAuth2IntrospectionResponseDTO.getClientId(), accessingTenantDomain);
-                        boolean isSharedApp = Arrays.stream(serviceProvider.getSpProperties()).anyMatch(
+                                oAuth2IntrospectionResponseDTO.getClientId(), applicationResidentTenantDomain);
+                        boolean isB2BSharedApp = Arrays.stream(serviceProvider.getSpProperties()).anyMatch(
                                 property -> "isAppShared".equals(property.getName()) &&
                                         Boolean.parseBoolean(property.getValue()));
-                        authenticationContext.addParameter("isAppShared", isSharedApp);
+                        authenticationContext.addParameter("isB2BAppShared", isB2BSharedApp);
                     } else {
                         serviceProvider = OAuth2Util.getServiceProvider(oAuth2IntrospectionResponseDTO.getClientId());
                     }
@@ -209,10 +210,10 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
 
                 String serviceProviderTenantDomain = null;
                 try {
-                    if (StringUtils.isNotEmpty(accessingTenantDomain)) {
+                    if (StringUtils.isNotEmpty(applicationResidentTenantDomain)) {
                         serviceProviderTenantDomain =
                                 OAuth2Util.getTenantDomainOfOauthApp(oAuth2IntrospectionResponseDTO.getClientId(),
-                                        accessingTenantDomain);
+                                        applicationResidentTenantDomain);
                     } else {
                         serviceProviderTenantDomain =
                                 OAuth2Util.getTenantDomainOfOauthApp(oAuth2IntrospectionResponseDTO.getClientId());

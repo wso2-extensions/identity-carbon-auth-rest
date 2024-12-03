@@ -20,7 +20,7 @@
         <groupId>org.wso2.carbon.identity.auth.rest</groupId>
         <artifactId>identity-carbon-auth-rest</artifactId>
         <relativePath>../../pom.xml</relativePath>
-        <version>1.9.15-SNAPSHOT</version>
+        <version>1.9.14</version>
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
@@ -100,6 +100,7 @@
                             org.wso2.carbon.identity.authz.service.*;version="${org.wso2.carbon.identity.authz.service.version.range}",
                             org.apache.catalina.*;version="1.7.0",
                             org.wso2.carbon.identity.organization.management.authz.service; version="${org.wso2.carbon.identity.organization.management.version.range}",
+                            org.wso2.carbon.identity.organization.management.authz.service.util; version="${org.wso2.carbon.identity.organization.management.version.range}",
                             org.wso2.carbon.identity.organization.management.service.constant; version="${org.wso2.carbon.identity.organization.management.core.version.range}"
                         </Import-Package>
                         <Export-Package>!org.wso2.carbon.identity.authz.valve.internal,

@@ -20,7 +20,7 @@
         <groupId>org.wso2.carbon.identity.auth.rest</groupId>
         <artifactId>identity-carbon-auth-rest</artifactId>
         <relativePath>../../pom.xml</relativePath>
-        <version>1.9.15-SNAPSHOT</version>
+        <version>1.9.14</version>
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
@@ -215,6 +215,7 @@
                             version="${org.wso2.carbon.identity.oauth.import.version.range}",
                             org.wso2.carbon.identity.organization.management.service; version="${org.wso2.carbon.identity.organization.management.core.version.range}",
                             org.wso2.carbon.identity.organization.management.service.exception; version="${org.wso2.carbon.identity.organization.management.core.version.range}",
+                            org.wso2.carbon.identity.organization.management.service.constant; version="${org.wso2.carbon.identity.organization.management.core.version.range}",
                             org.wso2.carbon.identity.handler.event.account.lock.exception;
                             version="${identity.event.handler.account.lock.version.range}",
                             com.nimbusds.jwt; version="${nimbusds.osgi.version.range}",
