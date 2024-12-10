@@ -37,11 +37,18 @@ import org.wso2.carbon.identity.core.handler.InitConfig;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.oauth2.IdentityOAuth2Exception;
 import org.wso2.carbon.identity.oauth2.util.AuthzUtil;
+import org.wso2.carbon.identity.organization.management.organization.user.sharing.OrganizationUserSharingService;
+import org.wso2.carbon.identity.organization.management.organization.user.sharing.OrganizationUserSharingServiceImpl;
+import org.wso2.carbon.identity.organization.management.organization.user.sharing.models.UserAssociation;
+import org.wso2.carbon.identity.organization.management.service.OrganizationManager;
+import org.wso2.carbon.identity.organization.management.service.exception.OrganizationManagementException;
 import org.wso2.carbon.user.api.AuthorizationManager;
 import org.wso2.carbon.user.api.UserRealm;
 import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.user.core.service.RealmService;
 import org.wso2.carbon.user.core.util.UserCoreUtil;
+
+import java.util.List;
 
 import static org.wso2.carbon.identity.auth.service.util.Constants.OAUTH2_ALLOWED_SCOPES;
 import static org.wso2.carbon.identity.auth.service.util.Constants.OAUTH2_VALIDATE_SCOPE;
@@ -104,6 +111,27 @@ public class AuthorizationHandler extends AbstractIdentityHandler {
             } else {
                 AuthenticatedUser authenticatedUser = new AuthenticatedUser(user);
                 String userId = PrivilegedCarbonContext.getThreadLocalCarbonContext().getUserId();
+                // Check whether the user is accessing a resource where the user has the access.
+                String resourceOrgId = (String) authorizationContext.getParameter("resourceOrgId");
+                if (StringUtils.isNotEmpty(resourceOrgId)) {
+                    String userResidentTenantDomain = user.getTenantDomain();
+                    OrganizationManager organizationManager = AuthorizationServiceHolder.getInstance().getOrganizationManager();
+                    String userResidentOrgId = organizationManager.resolveOrganizationId(userResidentTenantDomain);
+                    OrganizationUserSharingService organizationUserSharingService = new OrganizationUserSharingServiceImpl();
+                    List<UserAssociation> sharedAssociations = organizationUserSharingService.
+                            getUserAssociationsOfGivenUser(userId, userResidentOrgId);
+                    for (UserAssociation userAssociation : sharedAssociations) {
+                        if (resourceOrgId.equals(userAssociation.getOrganizationId())) {
+                            String sharedUserTenantDomain = organizationManager.resolveTenantDomain(
+                                    userAssociation.getOrganizationId());
+//                            authenticatedUser.setTenantDomain(sharedUserTenantDomain);
+                            authenticatedUser.setAccessingOrganization(userAssociation.getOrganizationId());
+//                            userId = userAssociation.getUserId();
+                            break;
+                        }
+                    }
+                }
+
                 if (userId != null) {
                     authenticatedUser.setUserId(userId);
                     boolean isAuthorized = AuthzUtil.isUserAuthorized(authenticatedUser,
@@ -113,7 +141,7 @@ public class AuthorizationHandler extends AbstractIdentityHandler {
                     }
                 }
             }
-        } catch (UserStoreException | IdentityOAuth2Exception e) {
+        } catch (UserStoreException | IdentityOAuth2Exception | OrganizationManagementException e) {
             String errorMessage = "Error occurred while trying to authorize, " + e.getMessage();
             log.error(errorMessage);
             throw new AuthzServiceServerException(errorMessage, e);

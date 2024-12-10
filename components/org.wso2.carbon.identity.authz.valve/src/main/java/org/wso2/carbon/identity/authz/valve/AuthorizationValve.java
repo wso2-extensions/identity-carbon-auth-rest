@@ -122,6 +122,13 @@ public class AuthorizationValve extends ValveBase {
                 authorizationContext.addParameter(OAUTH2_VALIDATE_SCOPE, authenticationContext.getParameter(OAUTH2_VALIDATE_SCOPE));
                 authorizationContext.addParameter(VALIDATE_LEGACY_PERMISSIONS,
                         authenticationContext.getParameter(VALIDATE_LEGACY_PERMISSIONS));
+                Pattern patternTenantPerspective = Pattern.compile("^/t/[^/]+/o/[a-f0-9\\-]+?");
+                if (patternTenantPerspective.matcher(requestURI).find()) {
+                    int startIndex = requestURI.indexOf("/o/") + 3;
+                    int endIndex = requestURI.indexOf("/", startIndex);
+                    String resourceOrgId = requestURI.substring(startIndex, endIndex);
+                    authorizationContext.addParameter("resourceOrgId", resourceOrgId);
+                }
 
                 String tenantDomainFromURLMapping = Utils.getTenantDomainFromURLMapping(request);
                 authorizationContext.setTenantDomainFromURLMapping(tenantDomainFromURLMapping);
