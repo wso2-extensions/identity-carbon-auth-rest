@@ -183,6 +183,11 @@
                 <version>${org.wso2.carbon.identity.organization.management.core.version}</version>
             </dependency>
             <dependency>
+                <groupId>org.wso2.carbon.identity.organization.management</groupId>
+                <artifactId>org.wso2.carbon.identity.organization.management.organization.user.sharing</artifactId>
+                <version>${org.wso2.carbon.identity.organization.management.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>org.wso2.carbon.identity.event.handler.accountlock</groupId>
                 <artifactId>org.wso2.carbon.identity.handler.event.account.lock</artifactId>
                 <version>${identity.event.handler.account.lock.version}</version>
@@ -437,7 +442,7 @@
         <nimbusds.version>7.9.0.wso2v1</nimbusds.version>
         <nimbusds.osgi.version.range>[7.3.0,8.0.0)</nimbusds.osgi.version.range>
 
-        <org.wso2.carbon.identity.organization.management.version>1.1.14
+        <org.wso2.carbon.identity.organization.management.version>1.4.59
         </org.wso2.carbon.identity.organization.management.version>
         <org.wso2.carbon.identity.organization.management.version.range>[1.0.0, 2.0.0)
         </org.wso2.carbon.identity.organization.management.version.range>

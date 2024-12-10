@@ -24,6 +24,7 @@ import org.wso2.carbon.identity.authz.service.AuthorizationManager;
 import org.wso2.carbon.identity.authz.service.handler.AuthorizationHandler;
 import org.wso2.carbon.identity.authz.service.handler.ResourceHandler;
 import org.wso2.carbon.identity.core.handler.HandlerComparator;
+import org.wso2.carbon.identity.organization.management.service.OrganizationManager;
 import org.wso2.carbon.user.core.service.RealmService;
 import java.util.Collections;
 import java.util.List;
@@ -114,6 +115,25 @@ public class AuthorizationServiceComponent {
 
     protected void unsetResourceHandler(ResourceHandler resourceHandler) {
         setResourceHandler(null);
+    }
+
+    @Reference(
+            name = "organization.service",
+            service = OrganizationManager.class,
+            cardinality = ReferenceCardinality.MANDATORY,
+            policy = ReferencePolicy.DYNAMIC,
+            unbind = "unsetOrganizationManager"
+    )
+    protected void setOrganizationManager(OrganizationManager organizationManager) {
+
+        log.debug("Setting the organization management service.");
+        AuthorizationServiceHolder.getInstance().setOrganizationManager(organizationManager);
+    }
+
+    protected void unsetOrganizationManager(OrganizationManager organizationManager) {
+
+        log.debug("Unset organization management service.");
+        AuthorizationServiceHolder.getInstance().setOrganizationManager(null);
     }
 }
 
