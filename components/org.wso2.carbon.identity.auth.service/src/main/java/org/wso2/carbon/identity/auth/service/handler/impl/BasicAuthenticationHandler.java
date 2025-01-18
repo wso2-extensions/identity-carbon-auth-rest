@@ -99,6 +99,8 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
         AuthenticationRequest authenticationRequest = authenticationContext.getAuthenticationRequest();
         String authorizationHeader = authenticationContext.getAuthenticationRequest().
                 getHeader(HttpHeaders.AUTHORIZATION);
+        log.info("========================== Basic Authentication Handler is handling the request:"
+                + authorizationHeader);
 
         String[] splitAuthorizationHeader = authorizationHeader.split(" ");
         if (splitAuthorizationHeader.length == 2) {
@@ -156,11 +158,27 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
                                 getTenantUserRealm(tenantId);
                         if (userRealm != null) {
                             userStoreManager = (AbstractUserStoreManager) userRealm.getUserStoreManager();
+                            log.info("========================== User store manager is set to: "
+                                    + userStoreManager.getClass().getName());
+                            log.info("========================== Authenticating user: " + userName
+                                    + " with tenant domain: " + tenantDomain);
+                            log.info("========================== Organization request: " + organizationRequest);
+                            log.info("========================== Preferred username value: " + (organizationRequest ?
+                                    user.getUserName() :
+                                    MultitenantUtils.getTenantAwareUsername(userName)));
                             org.wso2.carbon.user.core.common.AuthenticationResult authResult
                                     = userStoreManager.authenticateWithID(UserCoreClaimConstants.USERNAME_CLAIM_URI,
                                     organizationRequest ? user.getUserName() :
                                             MultitenantUtils.getTenantAwareUsername(userName),
                                     password, UserCoreConstants.DEFAULT_PROFILE);
+                            log.info("========================== Authentication result: "
+                                    + authResult.getAuthenticationStatus());
+                            if (authResult.getAuthenticatedUser().isPresent()) {
+                                log.info("========================== Authenticated user: "
+                                        + authResult.getAuthenticatedUser().get());
+                            } else {
+                                log.info("========================== Authenticated user not available.");
+                            }
                             if (org.wso2.carbon.user.core.common.AuthenticationResult.AuthenticationStatus.SUCCESS
                                     == authResult.getAuthenticationStatus()
                                     && authResult.getAuthenticatedUser().isPresent()) {
@@ -199,7 +217,7 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
                         } else {
                             String errorMessage = "Error occurred while trying to load the user realm for the tenant: " +
                                     tenantId;
-                            log.error(errorMessage);
+                            log.error("==========================" + errorMessage);
                             throw new AuthenticationFailException(errorMessage);
                         }
                     } finally {
@@ -207,7 +225,7 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
                     }
                 } catch (org.wso2.carbon.user.api.UserStoreException | OrganizationManagementException e) {
                     String errorMessage = "Error occurred while trying to authenticate. " + e.getMessage();
-                    log.error(errorMessage);
+                    log.error("==========================" + errorMessage);
 
                     Throwable cause = e.getCause();
                     if (cause instanceof AccountLockException) {
@@ -220,13 +238,17 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
             } else {
                 String errorMessage = "Error occurred while trying to authenticate. The auth user credentials " +
                         "are not defined correctly.";
+                log.error("==========================" + errorMessage);
                 throw new AuthenticationFailException(errorMessage);
             }
         } else {
             String errorMessage = "Error occurred while trying to authenticate. The " + HttpHeaders.AUTHORIZATION +
                     " header values are not defined correctly.";
+            log.error("==========================" + errorMessage);
             throw new AuthenticationFailException(errorMessage);
         }
+        log.info("========================== Basic Authentication Handler completed handling the request:"
+                + authorizationHeader);
         return authenticationResult;
     }
 
