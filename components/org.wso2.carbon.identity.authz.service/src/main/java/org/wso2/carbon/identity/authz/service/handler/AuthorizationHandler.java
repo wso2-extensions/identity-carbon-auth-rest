@@ -54,7 +54,7 @@ public class AuthorizationHandler extends AbstractIdentityHandler {
     private static final Log log = LogFactory.getLog(AuthorizationHandler.class);
 
     private static final String RESOURCE_PERMISSION_NONE = "none";
-
+    private static final String ACCESS_CONTROL_STATUS = "deny";
 
     /**
      * Handle Authorization.
@@ -65,7 +65,11 @@ public class AuthorizationHandler extends AbstractIdentityHandler {
      */
     public AuthorizationResult handleAuthorization(AuthorizationContext authorizationContext)
             throws AuthzServiceServerException {
+
         AuthorizationResult authorizationResult = new AuthorizationResult(AuthorizationStatus.DENY);
+        if (ACCESS_CONTROL_STATUS.equalsIgnoreCase(authorizationContext.getAccessControl())) {
+            return authorizationResult;
+        }
         try {
             User user = authorizationContext.getUser();
             String userDomain = user.getTenantDomain();

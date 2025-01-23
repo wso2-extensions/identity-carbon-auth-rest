@@ -113,6 +113,9 @@ public class AuthorizationValve extends ValveBase {
                 if (resourceConfig != null && CollectionUtils.isNotEmpty(resourceConfig.getScopes())) {
                     authorizationContext.setRequiredScopes(resourceConfig.getScopes());
                 }
+                if (resourceConfig != null && StringUtils.isNotEmpty(resourceConfig.getAccessControl())) {
+                    authorizationContext.setAccessControl(resourceConfig.getAccessControl());
+                }
                 String contextPath = request.getContextPath();
                 String httpMethod = request.getMethod();
                 authorizationContext.setContext(contextPath);
