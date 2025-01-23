@@ -59,6 +59,7 @@ import javax.servlet.http.HttpServletResponse;
 import static org.wso2.carbon.identity.auth.service.util.Constants.ENGAGED_AUTH_HANDLER;
 import static org.wso2.carbon.identity.auth.service.util.Constants.OAUTH2_ALLOWED_SCOPES;
 import static org.wso2.carbon.identity.auth.service.util.Constants.OAUTH2_VALIDATE_SCOPE;
+import static org.wso2.carbon.identity.auth.service.util.Constants.RESOURCE_ORGANIZATION_ID;
 import static org.wso2.carbon.identity.auth.service.util.Constants.VALIDATE_LEGACY_PERMISSIONS;
 
 /**
@@ -122,6 +123,13 @@ public class AuthorizationValve extends ValveBase {
                 authorizationContext.addParameter(OAUTH2_VALIDATE_SCOPE, authenticationContext.getParameter(OAUTH2_VALIDATE_SCOPE));
                 authorizationContext.addParameter(VALIDATE_LEGACY_PERMISSIONS,
                         authenticationContext.getParameter(VALIDATE_LEGACY_PERMISSIONS));
+                Pattern patternTenantPerspective = Pattern.compile("^/t/[^/]+/o/[a-f0-9\\-]+?");
+                if (patternTenantPerspective.matcher(requestURI).find()) {
+                    int startIndex = requestURI.indexOf("/o/") + 3;
+                    int endIndex = requestURI.indexOf("/", startIndex);
+                    String resourceOrgId = requestURI.substring(startIndex, endIndex);
+                    authorizationContext.addParameter(RESOURCE_ORGANIZATION_ID, resourceOrgId);
+                }
 
                 String tenantDomainFromURLMapping = Utils.getTenantDomainFromURLMapping(request);
                 authorizationContext.setTenantDomainFromURLMapping(tenantDomainFromURLMapping);
