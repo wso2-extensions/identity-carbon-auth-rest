@@ -31,6 +31,7 @@ import java.util.List;
 public class AuthorizationManager implements IdentityHandler {
 
     private static AuthorizationManager authorizationManager = new AuthorizationManager();
+    private static String ACCESS_CONTROL_STATUS_DENY = "deny";
 
     private AuthorizationManager() {
     }
@@ -43,6 +44,7 @@ public class AuthorizationManager implements IdentityHandler {
 
         AuthorizationResult authorizationResult = new AuthorizationResult(AuthorizationStatus.DENY);
         boolean isResourceHandlerAvailableToHandleAuthorization = false;
+
         if (StringUtils.isEmpty(authorizationContext.getPermissionString()) && authorizationContext.getRequiredScopes().size() == 0) {
             // If the permission string is empty or not scope is defined then we check the registered available
             // external resource handlers.
@@ -67,6 +69,8 @@ public class AuthorizationManager implements IdentityHandler {
                     .getFirstPriorityHandler(getAuthorizationHandlerList, true);
             authorizationResult = authorizationHandler.handleAuthorization(authorizationContext);
 
+        } else if (ACCESS_CONTROL_STATUS_DENY.equalsIgnoreCase(authorizationContext.getAccessControl())) {
+            authorizationResult.setAuthorizationStatus(AuthorizationStatus.DENY);
         } else {
             authorizationResult.setAuthorizationStatus(AuthorizationStatus.GRANT);
         }

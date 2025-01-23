@@ -28,6 +28,7 @@ public class AuthorizationContext extends MessageContext {
 
     private String context;
     private String httpMethods;
+    private String accessControl;
 
     private User user;
     private String permissionString;
@@ -106,5 +107,13 @@ public class AuthorizationContext extends MessageContext {
     public void setRequiredScopes(List<String> requiredScopes) {
 
         this.requiredScopes = requiredScopes;
+    }
+
+    public String getAccessControl() {
+        return accessControl;
+    }
+
+    public void setAccessControl(String accessControl) {
+        this.accessControl = accessControl;
     }
 }

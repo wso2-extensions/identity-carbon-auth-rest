@@ -10,6 +10,7 @@ public class Constants {
     public final static String RESOURCE_CONTEXT_ATTR = "context";
     public final static String RESOURCE_SECURED_ATTR = "secured";
     public final static String RESOURCE_HTTP_METHOD_ATTR = "http-method";
+    public final static String RESOURCE_ACCESS_CONTROL = "access-control";
     public final static String RESOURCE_PERMISSION_ELE = "Permissions";
     public final static String RESOURCE_SCOPE_ELE = "Scopes";
     public final static String OAUTH2_ALLOWED_SCOPES = "oauth2-allowed-scopes";
@@ -33,6 +34,7 @@ public class Constants {
     public final static String CONTEXT_ELE = "Context";
     public final static String CERT_AUTHENTICATION_ENABLE_ATTR = "enable";
     public final static String DENY_DEFAULT_ACCESS = "deny";
+    private final static String ACCESS_CONTROL_STATUS_DENY = "deny";
 
     public final static String COOKIE_BASED_TOKEN_BINDING = "cookie";
     public final static String COOKIE_BASED_TOKEN_BINDING_EXT_PARAM = "atbv";
