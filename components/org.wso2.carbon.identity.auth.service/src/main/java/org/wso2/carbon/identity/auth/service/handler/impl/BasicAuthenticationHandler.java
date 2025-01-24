@@ -101,6 +101,10 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
                 getHeader(HttpHeaders.AUTHORIZATION);
         log.info("========================== Basic Authentication Handler is handling the request:"
                 + authorizationHeader);
+        log.info("========================== Context path:"
+                + authenticationContext.getAuthenticationRequest().getContextPath());
+        log.info("========================== Request URI:"
+                + authenticationContext.getAuthenticationRequest().getRequestUri());
 
         String[] splitAuthorizationHeader = authorizationHeader.split(" ");
         if (splitAuthorizationHeader.length == 2) {
@@ -162,6 +166,8 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
                                     + userStoreManager.getClass().getName());
                             log.info("========================== Authenticating user: " + userName
                                     + " with tenant domain: " + tenantDomain);
+                            log.info("========================== Email Username enabled: "
+                                    + IdentityUtil.isEmailUsernameEnabled());
                             log.info("========================== Organization request: " + organizationRequest);
                             log.info("========================== Preferred username value: " + (organizationRequest ?
                                     user.getUserName() :
