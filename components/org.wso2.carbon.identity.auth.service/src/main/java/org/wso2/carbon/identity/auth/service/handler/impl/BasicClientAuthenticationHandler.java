@@ -30,6 +30,8 @@ import org.wso2.carbon.identity.auth.service.exception.AuthenticationFailExcepti
 import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
 import org.wso2.carbon.identity.auth.service.util.Constants;
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
+import org.wso2.carbon.identity.core.context.IdentityContext;
+import org.wso2.carbon.identity.core.context.model.ApplicationActor;
 import org.wso2.carbon.identity.core.handler.InitConfig;
 import org.wso2.carbon.identity.oauth.IdentityOAuthAdminException;
 import org.wso2.carbon.identity.oauth.common.exception.InvalidOAuthClientException;
@@ -128,6 +130,7 @@ public class BasicClientAuthenticationHandler extends AuthenticationHandler {
 
                         if (OAuth2Util.authenticateClient(clientId, clientSecret, appTenant)) {
                             authenticationResult.setAuthenticationStatus(AuthenticationStatus.SUCCESS);
+                            addAuthenticatedApplicationToIdentityContext(oAuthAppDO);
                         } else {
                             authenticationResult.setAuthenticationStatus(AuthenticationStatus.FAILED);
                         }
@@ -158,5 +161,15 @@ public class BasicClientAuthenticationHandler extends AuthenticationHandler {
             throw new AuthenticationFailException(errorMessage);
         }
         return authenticationResult;
+    }
+
+    private void addAuthenticatedApplicationToIdentityContext(OAuthAppDO oAuthAppDO) {
+
+        ApplicationActor applicationActor = new ApplicationActor.Builder()
+                .applicationName(oAuthAppDO.getApplicationName())
+                .authenticationType(ApplicationActor.AuthType.OAUTH2)
+                .entityId(oAuthAppDO.getOauthConsumerKey())
+                .build();
+        IdentityContext.getThreadLocalIdentityContext().setActor(applicationActor);
     }
 }

@@ -432,7 +432,7 @@
         <org.wso2.carbon.identity.cors.valve.version>${project.version}</org.wso2.carbon.identity.cors.valve.version>
 
         <!--Carbon identity version-->
-        <identity.framework.version>7.3.13</identity.framework.version>
+        <identity.framework.version>7.7.138</identity.framework.version>
         <carbon.identity.package.import.version.range>[5.17.8, 8.0.0)</carbon.identity.package.import.version.range>
 
         <org.wso2.carbon.identity.oauth.version>7.0.65</org.wso2.carbon.identity.oauth.version>
