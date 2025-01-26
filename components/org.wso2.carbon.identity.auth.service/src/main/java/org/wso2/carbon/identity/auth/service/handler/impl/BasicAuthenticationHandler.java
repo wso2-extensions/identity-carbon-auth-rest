@@ -36,6 +36,8 @@ import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
 import org.wso2.carbon.identity.auth.service.internal.AuthenticationServiceHolder;
 import org.wso2.carbon.identity.auth.service.util.Constants;
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
+import org.wso2.carbon.identity.core.context.IdentityContext;
+import org.wso2.carbon.identity.core.context.model.UserActor;
 import org.wso2.carbon.identity.core.handler.InitConfig;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
@@ -43,6 +45,7 @@ import org.wso2.carbon.identity.organization.management.service.exception.Organi
 import org.wso2.carbon.user.api.UserRealm;
 import org.wso2.carbon.user.core.UserCoreConstants;
 import org.wso2.carbon.user.core.common.AbstractUserStoreManager;
+import org.wso2.carbon.user.core.common.User;
 import org.wso2.carbon.user.core.constants.UserCoreClaimConstants;
 import org.wso2.carbon.user.core.util.UserCoreUtil;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
@@ -175,6 +178,7 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
                                     log.debug("Basic Authentication successful for the user: " + userName);
                                 }
                                 MDC.put(USER_NAME, userName);
+                                addAuthenticatedUserToIdentityContext(authResult.getAuthenticatedUser().get());
 
                                 /*
                                 If the request is coming to TOTP or FIDO2 endpoint, set AuthenticatedWithBasicAuth
@@ -256,5 +260,14 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
             username = username.substring(0, username.lastIndexOf(64));
         }
         return username;
+    }
+
+    private void addAuthenticatedUserToIdentityContext(User user) {
+
+        UserActor userActor = new UserActor.Builder()
+                .userId(user.getUserID())
+                .username(user.getUsername())
+                .build();
+        IdentityContext.getThreadLocalIdentityContext().setActor(userActor);
     }
 }

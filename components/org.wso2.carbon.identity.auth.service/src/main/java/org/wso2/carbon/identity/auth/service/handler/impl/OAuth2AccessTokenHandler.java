@@ -28,6 +28,7 @@ import org.apache.http.HttpHeaders;
 import org.json.JSONObject;
 import org.slf4j.MDC;
 import org.wso2.carbon.CarbonConstants;
+import org.wso2.carbon.identity.application.authentication.framework.exception.UserIdNotFoundException;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
 import org.wso2.carbon.identity.application.authentication.framework.util.FrameworkConstants;
 import org.wso2.carbon.identity.application.common.model.ProvisioningServiceProviderType;
@@ -43,6 +44,9 @@ import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
 import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
 import org.wso2.carbon.identity.auth.service.util.Constants;
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
+import org.wso2.carbon.identity.core.context.IdentityContext;
+import org.wso2.carbon.identity.core.context.model.ApplicationActor;
+import org.wso2.carbon.identity.core.context.model.UserActor;
 import org.wso2.carbon.identity.core.handler.InitConfig;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.identity.oauth.common.exception.InvalidOAuthClientException;
@@ -80,6 +84,8 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
     private final String SERVICE_PROVIDER_TENANT_DOMAIN = "serviceProviderTenantDomain";
     private final String SERVICE_PROVIDER_UUID = "serviceProviderUUID";
     private final String SCIM_ME_ENDPOINT_URI = "scim2/me";
+    private final String AUT_APPLICATION = "APPLICATION";
+    private final String AUT_APPLICATION_USER = "APPLICATION_USER";
 
     @Override
     protected AuthenticationResult doAuthenticate(MessageContext messageContext) {
@@ -147,6 +153,7 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
                 handleImpersonatedAccessToken(authenticationContext, accessToken, oAuth2IntrospectionResponseDTO);
 
                 authenticationResult.setAuthenticationStatus(AuthenticationStatus.SUCCESS);
+                setActorToIdentityContext(oAuth2IntrospectionResponseDTO);
 
                 User authorizedUser = oAuth2IntrospectionResponseDTO.getAuthorizedUser();
                 String authorizedUserTenantDomain = null;
@@ -283,6 +290,36 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
             }
         }
         return authenticationResult;
+    }
+
+    private void setActorToIdentityContext(OAuth2IntrospectionResponseDTO introspectionResponseDTO) {
+
+        String authenticatedEntity = introspectionResponseDTO.getAut();
+        if (authenticatedEntity == null) {
+            return;
+        }
+
+        switch (authenticatedEntity) {
+            case AUT_APPLICATION:
+                ApplicationActor actor = new ApplicationActor.Builder()
+                        .authenticationType(ApplicationActor.AuthType.OAUTH2)
+                        .entityId(introspectionResponseDTO.getClientId())
+                        .build();
+                IdentityContext.getThreadLocalIdentityContext().setActor(actor);
+                break;
+            case AUT_APPLICATION_USER:
+                UserActor.Builder userBuilder =  new UserActor.Builder()
+                        .username(introspectionResponseDTO.getAuthorizedUser().getUserName());
+                try {
+                    userBuilder.userId(introspectionResponseDTO.getAuthorizedUser().getUserId());
+                } catch (UserIdNotFoundException e) {
+                    log.warn("No userId found for the authenticated user.", e);
+                }
+                IdentityContext.getThreadLocalIdentityContext().setActor(userBuilder.build());
+                break;
+            default:
+                break;
+        }
     }
 
     /**

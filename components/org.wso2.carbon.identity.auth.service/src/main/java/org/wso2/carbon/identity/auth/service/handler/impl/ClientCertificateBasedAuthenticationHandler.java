@@ -33,6 +33,9 @@ import org.wso2.carbon.identity.auth.service.exception.AuthenticationFailExcepti
 import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
 import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
+import org.wso2.carbon.identity.core.context.IdentityContext;
+import org.wso2.carbon.identity.core.context.model.ApplicationActor;
+import org.wso2.carbon.identity.core.context.model.UserActor;
 import org.wso2.carbon.identity.core.handler.InitConfig;
 import org.wso2.carbon.user.core.util.UserCoreUtil;
 import org.wso2.carbon.utils.multitenancy.MultitenantConstants;
@@ -155,6 +158,7 @@ public class ClientCertificateBasedAuthenticationHandler extends AuthenticationH
                     authenticationContext.setUser(user);
 
                     authenticationResult.setAuthenticationStatus(AuthenticationStatus.SUCCESS);
+                    addActorToIdentityContext(user);
 
                     if (log.isDebugEnabled()) {
                         log.debug(String.format("Client certificate based authentication was successful. " +
@@ -208,4 +212,11 @@ public class ClientCertificateBasedAuthenticationHandler extends AuthenticationH
         return StringUtils.EMPTY;
     }
 
+    private void addActorToIdentityContext(User user) {
+
+        UserActor userActor = new UserActor.Builder()
+                .username(user.getUserName())
+                .build();
+        IdentityContext.getThreadLocalIdentityContext().setActor(userActor);
+    }
 }
