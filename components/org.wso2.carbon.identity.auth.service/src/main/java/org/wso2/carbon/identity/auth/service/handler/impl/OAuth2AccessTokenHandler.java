@@ -128,7 +128,8 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
                 OAuth2IntrospectionResponseDTO oAuth2IntrospectionResponseDTO =
                         oAuth2TokenValidationService.buildIntrospectionResponse(requestDTO);
 
-                setAuthenticatedEntityToThreadLocal(oAuth2IntrospectionResponseDTO);
+                IdentityUtil.threadLocalProperties.get()
+                        .put(Constants.AUTHENTICATION_TYPE, oAuth2IntrospectionResponseDTO.getAut());
 
                 if (!oAuth2IntrospectionResponseDTO.isActive() ||
                         RefreshTokenValidator.TOKEN_TYPE_NAME.equals(oAuth2IntrospectionResponseDTO.getTokenType())) {
@@ -152,6 +153,7 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
                 handleImpersonatedAccessToken(authenticationContext, accessToken, oAuth2IntrospectionResponseDTO);
 
                 authenticationResult.setAuthenticationStatus(AuthenticationStatus.SUCCESS);
+                setActorToIdentityContext(oAuth2IntrospectionResponseDTO);
 
                 User authorizedUser = oAuth2IntrospectionResponseDTO.getAuthorizedUser();
                 String authorizedUserTenantDomain = null;
@@ -290,26 +292,33 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
         return authenticationResult;
     }
 
-    private void setAuthenticatedEntityToThreadLocal(OAuth2IntrospectionResponseDTO introspectionResponseDTO) {
+    private void setActorToIdentityContext(OAuth2IntrospectionResponseDTO introspectionResponseDTO) {
 
         String authenticatedEntity = introspectionResponseDTO.getAut();
-        IdentityUtil.threadLocalProperties.get().put(Constants.AUTHENTICATION_TYPE, authenticatedEntity);
-        if (authenticatedEntity.equals(AUT_APPLICATION)) {
-            ApplicationActor actor = new ApplicationActor.Builder()
-                    .authenticationType(ApplicationActor.AuthType.OAUTH2)
-                    .entityId(introspectionResponseDTO.getClientId())
-                    .build();
-            IdentityContext.getThreadLocalIdentityContext().setActor(actor);
+        if (authenticatedEntity == null) {
+            return;
         }
-        if (authenticatedEntity.equals(AUT_APPLICATION_USER)) {
-            UserActor.Builder userBuilder =  new UserActor.Builder()
-                    .username(introspectionResponseDTO.getAuthorizedUser().getUserName());
-            try {
-                userBuilder.userId(introspectionResponseDTO.getAuthorizedUser().getUserId());
-            } catch (UserIdNotFoundException e) {
-                log.warn("No userId found for the authenticated user.", e);
-            }
-            IdentityContext.getThreadLocalIdentityContext().setActor(userBuilder.build());
+
+        switch (authenticatedEntity) {
+            case AUT_APPLICATION:
+                ApplicationActor actor = new ApplicationActor.Builder()
+                        .authenticationType(ApplicationActor.AuthType.OAUTH2)
+                        .entityId(introspectionResponseDTO.getClientId())
+                        .build();
+                IdentityContext.getThreadLocalIdentityContext().setActor(actor);
+                break;
+            case AUT_APPLICATION_USER:
+                UserActor.Builder userBuilder =  new UserActor.Builder()
+                        .username(introspectionResponseDTO.getAuthorizedUser().getUserName());
+                try {
+                    userBuilder.userId(introspectionResponseDTO.getAuthorizedUser().getUserId());
+                } catch (UserIdNotFoundException e) {
+                    log.warn("No userId found for the authenticated user.", e);
+                }
+                IdentityContext.getThreadLocalIdentityContext().setActor(userBuilder.build());
+                break;
+            default:
+                break;
         }
     }
 
