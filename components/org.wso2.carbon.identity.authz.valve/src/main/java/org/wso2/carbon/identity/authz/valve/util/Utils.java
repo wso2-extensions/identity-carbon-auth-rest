@@ -94,7 +94,14 @@ public class Utils {
         // Check request with organization qualified URL is allowed to access.
         String organizationID = getOrganizationIdFromURLMapping(request);
         if (user != null) {
-            return StringUtils.equals(organizationID, ((AuthenticatedUser) user).getAccessingOrganization());
+            if (StringUtils.equals(organizationID, ((AuthenticatedUser) user).getAccessingOrganization())) {
+                return true;
+            } else {
+                OAuthAppDO oAuthAppDO = (OAuthAppDO) authenticationContext.getParameter(
+                        Constants.AUTH_CONTEXT_OAUTH_APP_PROPERTY);
+                tenantDomain = OAuth2Util.getTenantDomainOfOauthApp(oAuthAppDO);
+                return StringUtils.equals(((AuthenticatedUser) user).getAccessingOrganization(), tenantDomain);
+            }
         }
         return false;
     }

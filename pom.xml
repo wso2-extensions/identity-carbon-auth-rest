@@ -27,7 +27,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.wso2.carbon.identity.auth.rest</groupId>
     <artifactId>identity-carbon-auth-rest</artifactId>
-    <version>1.9.17-SNAPSHOT</version>
+    <version>1.9.18-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>WSO2 Carbon - Auth/Authz Modules</name>
     <description>
@@ -435,7 +435,7 @@
         <identity.framework.version>7.7.138</identity.framework.version>
         <carbon.identity.package.import.version.range>[5.17.8, 8.0.0)</carbon.identity.package.import.version.range>
 
-        <org.wso2.carbon.identity.oauth.version>7.0.65</org.wso2.carbon.identity.oauth.version>
+        <org.wso2.carbon.identity.oauth.version>7.0.213</org.wso2.carbon.identity.oauth.version>
         <org.wso2.carbon.identity.oauth.import.version.range>[6.2.18, 8.0.0)
         </org.wso2.carbon.identity.oauth.import.version.range>
 
