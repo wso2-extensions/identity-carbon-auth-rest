@@ -58,6 +58,7 @@ public class Constants {
     public final static String RESOURCE_ORGANIZATION_ID = "resourceOrgId";
     public static final String AUTHENTICATION_TYPE = "authenticationType";
     public final static String VALIDATE_LEGACY_PERMISSIONS = "validateLegacyPermissions";
+    public final static String TENANT_PERSPECTIVE_REQUEST_REGEX = "^/t/[^/]+/o/[a-f0-9\\-]+?";
 
     // Audit Log Constants.
     public static final String INITIATOR = "Initiator";

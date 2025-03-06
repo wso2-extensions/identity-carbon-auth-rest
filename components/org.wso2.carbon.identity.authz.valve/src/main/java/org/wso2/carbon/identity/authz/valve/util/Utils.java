@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2024, WSO2 LLC. (http://www.wso2.com).
+ * Copyright (c) 2016-2025, WSO2 LLC. (http://www.wso2.com).
  *
  * WSO2 LLC. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -31,6 +31,8 @@ import org.wso2.carbon.identity.oauth2.util.OAuth2Util;
 import org.wso2.carbon.utils.multitenancy.MultitenantConstants;
 
 import java.util.List;
+
+import static org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil.getResourceResidentTenantForTenantPerspective;
 
 public class Utils {
 
@@ -89,6 +91,12 @@ public class Utils {
             tenantDomain = OAuth2Util.getTenantDomainOfOauthApp(oAuthAppDO);
         }
         if (tenantDomainFromURLMapping.equals(tenantDomain)) {
+            return true;
+        }
+
+        String appResidentTenant = getResourceResidentTenantForTenantPerspective(authenticationContext.
+                getAuthenticationRequest().getRequestUri());
+        if (StringUtils.isNotEmpty(appResidentTenant) && StringUtils.equals(appResidentTenant, tenantDomain)) {
             return true;
         }
         // Check request with organization qualified URL is allowed to access.
