@@ -35,6 +35,7 @@ import org.wso2.carbon.identity.auth.service.exception.AuthenticationFailServerE
 import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
 import org.wso2.carbon.identity.auth.service.internal.AuthenticationServiceHolder;
 import org.wso2.carbon.identity.auth.service.util.Constants;
+import org.wso2.carbon.identity.base.IdentityRuntimeException;
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
 import org.wso2.carbon.identity.core.context.IdentityContext;
 import org.wso2.carbon.identity.core.context.model.UserActor;
@@ -220,6 +221,8 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
                     }
 
                     throw new AuthenticationFailServerException(errorMessage);
+                } catch (IdentityRuntimeException e) {
+                    throw new AuthenticationFailException(e.getMessage(), e);
                 }
             } else {
                 String errorMessage = "Error occurred while trying to authenticate. The auth user credentials " +
