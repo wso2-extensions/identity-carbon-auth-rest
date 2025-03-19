@@ -35,6 +35,7 @@ import org.wso2.carbon.identity.auth.service.exception.AuthenticationFailServerE
 import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
 import org.wso2.carbon.identity.auth.service.internal.AuthenticationServiceHolder;
 import org.wso2.carbon.identity.auth.service.util.Constants;
+import org.wso2.carbon.identity.base.IdentityRuntimeException;
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
 import org.wso2.carbon.identity.core.context.IdentityContext;
 import org.wso2.carbon.identity.core.context.model.UserActor;
@@ -220,6 +221,13 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
                     }
 
                     throw new AuthenticationFailServerException(errorMessage);
+                } catch (IdentityRuntimeException e) {
+                    if (e.getMessage() != null && e.getMessage().contains("Invalid tenant domain")) {
+                        String errorMessage = "Error occurred while trying to authenticate. " +
+                                "The tenant domain specified in the username is invalid";
+                        throw new AuthenticationFailException(errorMessage, e);
+                    }
+                    throw e;
                 }
             } else {
                 String errorMessage = "Error occurred while trying to authenticate. The auth user credentials " +
