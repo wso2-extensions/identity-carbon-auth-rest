@@ -20,7 +20,7 @@
 
     <test name="IdentityFrameworkTests" preserve-order="true" parallel="false">
         <classes>
-
+            <class name="org.wso2.carbon.identity.auth.service.handler.impl.BasicAuthenticationHandlerTest"/>
         </classes>
     </test>
 

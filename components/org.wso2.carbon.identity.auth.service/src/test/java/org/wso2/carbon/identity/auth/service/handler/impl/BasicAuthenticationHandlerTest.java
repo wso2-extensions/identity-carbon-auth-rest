@@ -1,6 +1,5 @@
 package org.wso2.carbon.identity.auth.service.handler.impl;
 
-import org.apache.catalina.connector.Request;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.http.HttpHeaders;
 import org.mockito.Mock;
@@ -8,6 +7,7 @@ import org.mockito.MockedStatic;
 import org.mockito.MockitoAnnotations;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
+import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -18,7 +18,10 @@ import org.wso2.carbon.identity.auth.service.AuthenticationStatus;
 import org.wso2.carbon.identity.auth.service.exception.AuthenticationFailException;
 import org.wso2.carbon.identity.auth.service.internal.AuthenticationServiceHolder;
 import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
+import org.wso2.carbon.identity.auth.service.util.CommonTestUtils;
+import org.wso2.carbon.identity.base.IdentityRuntimeException;
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
+import org.wso2.carbon.identity.core.context.IdentityContext;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.identity.organization.management.service.OrganizationManager;
@@ -45,6 +48,9 @@ import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertTrue;
 
+/**
+ * Test class for BasicAuthenticationHandler.
+ */
 public class BasicAuthenticationHandlerTest {
 
     @Mock
@@ -76,12 +82,13 @@ public class BasicAuthenticationHandlerTest {
     private MockedStatic<IdentityTenantUtil> mockedIdentityTenantUtil;
     private MockedStatic<AuthenticationServiceHolder> mockedAuthenticationServiceHolder;
 
-    private static final String TEST_TENANT_ID = "1";
+    private static final int TEST_TENANT_ID = 1;
     private static final String TEST_TENANT_DOMAIN = "test.com";
 
     @BeforeClass
     public void init() {
 
+        CommonTestUtils.initPrivilegedCarbonContext();
         mockedAuthConfigurationUtil = mockStatic(AuthConfigurationUtil.class);
         mockedMultitenantUtils = mockStatic(MultitenantUtils.class);
         mockedUserCoreUtil = mockStatic(UserCoreUtil.class);
@@ -118,6 +125,11 @@ public class BasicAuthenticationHandlerTest {
         IdentityUtil.threadLocalProperties.set(threadLocalMap);
     }
 
+    @AfterMethod
+    public void tearDown() {
+
+        IdentityContext.destroyCurrentContext();
+    }
 
     @Test
     public void testGetName() {
@@ -147,34 +159,82 @@ public class BasicAuthenticationHandlerTest {
         assertFalse(basicAuthenticationHandler.canHandle(mockMessageContext));
     }
 
+    @Test
+    public void testDoAuthenticateSuccess() throws Exception {
+
+        String username = "alice@example.com";
+        String password = "temp123";
+        String usernameWithTenantDomain = username + "@" + TEST_TENANT_DOMAIN;
+        String apiResource = "/api/resource";
+        String authHeader = "Basic " +
+                Base64.encodeBase64String((usernameWithTenantDomain + ":" + password).getBytes(StandardCharsets.UTF_8));
+
+        when(mockAuthenticationRequest.getHeader(HttpHeaders.AUTHORIZATION)).thenReturn(authHeader);
+        when(mockAuthenticationRequest.getRequestUri()).thenReturn(apiResource);
+
+        mockedIdentityTenantUtil.when(() -> IdentityTenantUtil.getTenantIdOfUser(usernameWithTenantDomain))
+                .thenReturn(TEST_TENANT_ID);
+        mockedMultitenantUtils.when(() -> MultitenantUtils.getTenantDomain(usernameWithTenantDomain))
+                .thenReturn(TEST_TENANT_DOMAIN);
+        when(MultitenantUtils.getTenantAwareUsername(usernameWithTenantDomain)).thenReturn(username);
+        when(MultitenantUtils.isEmailUserName()).thenReturn(false);
+
+        when(mockRealmService.getTenantUserRealm(anyInt())).thenReturn(mockUserRealm);
+        when(mockUserRealm.getUserStoreManager()).thenReturn(mockUserStoreManager);
+
+        org.wso2.carbon.user.core.common.AuthenticationResult mockAuthResult =
+                mock(org.wso2.carbon.user.core.common.AuthenticationResult.class);
+        when(mockAuthResult.getAuthenticationStatus())
+                .thenReturn(org.wso2.carbon.user.core.common.AuthenticationResult.AuthenticationStatus.SUCCESS);
+
+        User mockUser = mock(User.class);
+        when(mockUser.getUserID()).thenReturn("user-123");
+        when(mockUser.getUsername()).thenReturn(username);
+        Optional<User> optionalUser = Optional.of(mockUser);
+        when(mockAuthResult.getAuthenticatedUser()).thenReturn(optionalUser);
+
+        when(mockUserStoreManager.authenticateWithID(
+                eq(UserCoreClaimConstants.USERNAME_CLAIM_URI),
+                eq(username),
+                eq(password),
+                any(String.class)))
+                .thenReturn(mockAuthResult);
+
+        mockedUserCoreUtil.when(() -> UserCoreUtil.getDomainFromThreadLocal()).thenReturn("PRIMARY");
+        AuthenticationResult result = basicAuthenticationHandler.doAuthenticate(mockAuthenticationContext);
+        Assert.assertEquals(result.getAuthenticationStatus(), AuthenticationStatus.SUCCESS);
+    }
+
     @Test(expectedExceptions = AuthenticationFailException.class)
-    public void testDoAuthenticate_InvalidHeaderFormat() throws AuthenticationFailException {
+    public void testDoAuthenticateWithoutTenantDomainInUsername() throws Exception {
+
+        String username = "alice@example.com";
+        String password = "temp123";
+        String apiResource = "/api/resource";
+        String authHeader = "Basic " +
+                Base64.encodeBase64String((username + ":" + password).getBytes(StandardCharsets.UTF_8));
+
+        when(mockAuthenticationRequest.getHeader(HttpHeaders.AUTHORIZATION)).thenReturn(authHeader);
+        when(mockAuthenticationRequest.getRequestUri()).thenReturn(apiResource);
+
+        mockedIdentityTenantUtil.when(() -> IdentityTenantUtil.getTenantIdOfUser(username))
+                .thenThrow(IdentityRuntimeException.error("Invalid tenant domain"));
+
+        basicAuthenticationHandler.doAuthenticate(mockAuthenticationContext);
+    }
+
+    @Test(expectedExceptions = AuthenticationFailException.class)
+    public void testDoAuthenticateInvalidHeaderFormat() throws Exception {
 
         when(mockAuthenticationRequest.getHeader(HttpHeaders.AUTHORIZATION)).thenReturn("InvalidHeader");
         basicAuthenticationHandler.doAuthenticate(mockAuthenticationContext);
     }
 
     @Test(expectedExceptions = AuthenticationFailException.class)
-    public void testDoAuthenticate_InvalidCredentialsFormat() throws AuthenticationFailException {
+    public void testDoAuthenticateInvalidCredentialsFormat() throws Exception {
 
         String authHeader = "Basic " + Base64.encodeBase64String("alice".getBytes(StandardCharsets.UTF_8));
         when(mockAuthenticationRequest.getHeader(HttpHeaders.AUTHORIZATION)).thenReturn(authHeader);
         basicAuthenticationHandler.doAuthenticate(mockAuthenticationContext);
-    }
-
-    private static class DummyRequest extends Request {
-
-        private final String requestURI;
-
-        public DummyRequest(String requestURI) {
-
-            super(null);
-            this.requestURI = requestURI;
-        }
-
-        @Override
-        public String getRequestURI() {
-            return requestURI;
-        }
     }
 }
