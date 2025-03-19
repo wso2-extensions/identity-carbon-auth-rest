@@ -241,6 +241,24 @@ public class BasicAuthenticationHandlerTest {
         basicAuthenticationHandler.doAuthenticate(mockAuthenticationContext);
     }
 
+    @Test(expectedExceptions = IdentityRuntimeException.class)
+    public void testDoAuthenticateIdentityRuntimeException() throws Exception {
+
+        String username = "alice@example.com";
+        String password = "temp123";
+        String apiResource = "/api/resource";
+        String authHeader = "Basic " +
+                Base64.encodeBase64String((username + ":" + password).getBytes(StandardCharsets.UTF_8));
+
+        when(mockAuthenticationRequest.getHeader(HttpHeaders.AUTHORIZATION)).thenReturn(authHeader);
+        when(mockAuthenticationRequest.getRequestUri()).thenReturn(apiResource);
+
+        mockedIdentityTenantUtil.when(() -> IdentityTenantUtil.getTenantIdOfUser(username))
+                .thenThrow(IdentityRuntimeException.error("Other error"));
+
+        basicAuthenticationHandler.doAuthenticate(mockAuthenticationContext);
+    }
+
     @Test(expectedExceptions = AuthenticationFailException.class)
     public void testDoAuthenticateInvalidHeaderFormat() throws Exception {
 
