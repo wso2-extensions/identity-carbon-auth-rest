@@ -16,6 +16,7 @@ import org.wso2.carbon.identity.core.bean.context.MessageContext;
 import org.wso2.carbon.identity.core.util.IdentityConfigParser;
 import org.wso2.carbon.identity.core.util.IdentityCoreConstants;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
+import org.wso2.carbon.identity.oauth.dto.ScopeDTO;
 import org.wso2.securevault.SecretResolver;
 import org.wso2.securevault.SecretResolverFactory;
 import org.wso2.securevault.commons.MiscellaneousUtil;
@@ -362,8 +363,25 @@ public class AuthConfigurationUtil {
      * @param messageContext       Authentication message context.
      * @param authHeaderIdentifier Specific header identifier to be matched.
      * @return True if matched, false otherwise.
+     * @deprecated use {@link #isAuthHeaderMatch(MessageContext, String, boolean)} instead.
      */
+    @Deprecated
     public static boolean isAuthHeaderMatch(MessageContext messageContext, String authHeaderIdentifier) {
+
+        return isAuthHeaderMatch(messageContext, authHeaderIdentifier, true);
+    }
+
+    /**
+     * Check if the authorization header is matching to the provided auth header identifier.
+     *
+     * @param messageContext       Authentication message context.
+     * @param authHeaderIdentifier Specific header identifier to be matched.
+     * @param isCaseSensitive      Whether the comparison of the authHeaderIdentifier and the header in the request
+     *                             should be case sensitive.
+     * @return True if matched, false otherwise.
+     */
+    public static boolean isAuthHeaderMatch(MessageContext messageContext, String authHeaderIdentifier,
+                                            boolean isCaseSensitive) {
 
         if (messageContext instanceof AuthenticationContext) {
             AuthenticationContext authenticationContext = (AuthenticationContext) messageContext;
@@ -374,14 +392,21 @@ public class AuthConfigurationUtil {
                     return false;
                 }
                 String[] splitAuthorizationHeader = authorizationHeader.split(" ");
-                return splitAuthorizationHeader.length > 0 &&
-                        StringUtils.isNotEmpty(splitAuthorizationHeader[0]) &&
-                        authHeaderIdentifier.equals(splitAuthorizationHeader[0]);
+                if (isCaseSensitive) {
+                    return splitAuthorizationHeader.length > 0 &&
+                            StringUtils.isNotEmpty(splitAuthorizationHeader[0]) &&
+                            authHeaderIdentifier.equals(splitAuthorizationHeader[0]);
+                } else {
+                    // Case insensitive comparison.
+                    authHeaderIdentifier = authHeaderIdentifier.toLowerCase();
+                    if (splitAuthorizationHeader.length > 0 && StringUtils.isNotEmpty(splitAuthorizationHeader[0])) {
+                        return authHeaderIdentifier.equalsIgnoreCase(splitAuthorizationHeader[0]);
+                    }
+                }
             }
         }
         return false;
     }
-
     /**
      * Build configurations of endpoints which are allowed to skip authorization with particular auth handler.
      */
