@@ -1,3 +1,21 @@
+/*
+ * Copyright (c) 2016-2025, WSO2 LLC. (http://www.wso2.com).
+ *
+ * WSO2 LLC. licenses this file to you under the Apache License,
+ * Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
 package org.wso2.carbon.identity.auth.service.util;
 
 import org.apache.axiom.om.OMElement;
@@ -16,6 +34,7 @@ import org.wso2.carbon.identity.core.bean.context.MessageContext;
 import org.wso2.carbon.identity.core.util.IdentityConfigParser;
 import org.wso2.carbon.identity.core.util.IdentityCoreConstants;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
+import org.wso2.carbon.identity.organization.management.service.exception.OrganizationManagementException;
 import org.wso2.securevault.SecretResolver;
 import org.wso2.securevault.SecretResolverFactory;
 import org.wso2.securevault.commons.MiscellaneousUtil;
@@ -37,6 +56,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import javax.xml.namespace.QName;
 import javax.xml.stream.XMLStreamException;
@@ -60,6 +80,7 @@ public class AuthConfigurationUtil {
     private static final String SECRET_ALIAS_NAMESPACE_URI = "http://org.wso2.securevault/configuration";
     private static final String SECRET_ALIAS_PREFIX = "svns";
     private static final String regex = "\\s*,\\s*";
+    private static final String TENANT_PERSPECTIVE_REQUEST_REGEX = "^/t/[^/]+/o/[a-f0-9\\-]+?";
     private String defaultAccess;
     private boolean isScopeValidationEnabled = true;
 
@@ -411,5 +432,31 @@ public class AuthConfigurationUtil {
      */
     public Map<String, String[]> getSkipAuthorizationAllowedEndpoints() {
         return skipAuthorizationAllowedEndpoints;
+    }
+
+    /**
+     * Retrieve the resource resident tenant domain from the tenant perspective request.
+     *
+     * @param requestURI tenant perspective request.
+     * @return tenant domain of the resource resident tenant.
+     */
+    public static String getResourceResidentTenantForTenantPerspective(String requestURI) {
+
+        Pattern patternTenantPerspective = Pattern.compile(TENANT_PERSPECTIVE_REQUEST_REGEX);
+        if (patternTenantPerspective.matcher(requestURI).find()) {
+            int startIndex = requestURI.indexOf("/o/") + 3;
+            int endIndex = requestURI.indexOf("/", startIndex);
+            String resourceOrgId = requestURI.substring(startIndex, endIndex);
+            try {
+                return AuthenticationServiceHolder.getInstance().getOrganizationManager().
+                        resolveTenantDomain(resourceOrgId);
+            } catch (OrganizationManagementException e) {
+                if(log.isDebugEnabled())
+                {
+                    log.debug("Failed to resolve tenant for resourceOrgId: " + resourceOrgId);
+                }
+            }
+        }
+        return null;
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2021-2025, WSO2 LLC. (http://www.wso2.org).
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -41,6 +41,7 @@ import org.wso2.carbon.identity.oauth2.util.OAuth2Util;
 
 import java.nio.charset.Charset;
 
+import static org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil.getResourceResidentTenantForTenantPerspective;
 import static org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil.isAuthHeaderMatch;
 
 /**
@@ -111,6 +112,15 @@ public class BasicClientAuthenticationHandler extends AuthenticationHandler {
 
                         String appTenant = ((AuthenticationContext) messageContext).getAuthenticationRequest()
                                 .getRequest().getParameter(APP_TENANT_QUERY_PARAM);
+
+                        /*
+                         If the app tenant is null, then check whether the request comes from a tenant perspective
+                         request and if so, get the app tenant domain from the request path.
+                        */
+                        if (StringUtils.isEmpty(appTenant)) {
+                            String requestURI = authenticationContext.getAuthenticationRequest().getRequestUri();
+                            appTenant = getResourceResidentTenantForTenantPerspective(requestURI);
+                        }
                         OAuthAppDO oAuthAppDO;
 
                         /*
