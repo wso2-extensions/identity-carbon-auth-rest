@@ -52,6 +52,7 @@ import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.identity.oauth.common.exception.InvalidOAuthClientException;
 import org.wso2.carbon.identity.oauth.dao.OAuthAppDO;
 import org.wso2.carbon.identity.oauth2.IdentityOAuth2Exception;
+import org.wso2.carbon.identity.oauth2.OAuth2Constants;
 import org.wso2.carbon.identity.oauth2.OAuth2TokenValidationService;
 import org.wso2.carbon.identity.oauth2.dto.OAuth2IntrospectionResponseDTO;
 import org.wso2.carbon.identity.oauth2.dto.OAuth2TokenValidationRequestDTO;
@@ -64,9 +65,11 @@ import org.wso2.carbon.identity.organization.management.service.util.Organizatio
 
 import java.text.ParseException;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 import static org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil.isAuthHeaderMatch;
+import static org.wso2.carbon.identity.oauth.common.OAuthConstants.IMPERSONATING_ACTOR;
 import static org.wso2.carbon.identity.oauth2.OAuth2Constants.TokenBinderType.SSO_SESSION_BASED_TOKEN_BINDER;
 
 /**
@@ -336,51 +339,62 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
                                                String accessToken,
                                                OAuth2IntrospectionResponseDTO introspectionResponseDTO) {
 
+        String subject = null;
+        String impersonator = null;
         try {
-            // Extract claims from the access token
-            SignedJWT signedJWT = getSignedJWT(accessToken);
-            JWTClaimsSet claimsSet = getClaimSet(signedJWT);
-            if (claimsSet != null) {
-                String subject = resolveSubject(claimsSet);
-                String impersonator = resolveImpersonator(claimsSet);
-                // Check if the token represents an impersonation request
-                if (impersonator != null) {
-                    MDC.put(Constants.IMPERSONATOR, impersonator);
-                    String scope = introspectionResponseDTO.getScope();
-                    String clientId = introspectionResponseDTO.getClientId();
-                    String requestUri = authenticationContext.getAuthenticationRequest().getRequestUri();
-                    String httpMethod = authenticationContext.getAuthenticationRequest().getMethod();
+            if (Objects.equals(introspectionResponseDTO.getTokenType(), OAuth2Constants.TokenTypes.JWT)) {
+                // Extract claims from the access token
+                SignedJWT signedJWT = getSignedJWT(accessToken);
+                JWTClaimsSet claimsSet = getClaimSet(signedJWT);
+                if (claimsSet != null) {
+                    subject = resolveSubject(claimsSet);
+                    impersonator = resolveImpersonator(claimsSet);
+                }
+            } else {
+                // Extract claims from the introspection response.
+                if (introspectionResponseDTO.getProperties().containsKey(IMPERSONATING_ACTOR)) {
+                    subject = introspectionResponseDTO.getAuthorizedUser().getAuthenticatedSubjectIdentifier();
+                    impersonator = (String) introspectionResponseDTO.getProperties().get(IMPERSONATING_ACTOR);
+                }
+            }
 
-                    // Ensure it's not a GET request before logging
-                    if (!Constants.GET.equals(httpMethod)) {
-                        // Prepare data for audit log
-                        JSONObject data = new JSONObject();
-                        data.put(Constants.SUBJECT, subject);
-                        data.put(Constants.IMPERSONATOR, impersonator);
-                        data.put(Constants.RESOURCE_PATH, requestUri);
-                        data.put(Constants.HTTP_METHOD, httpMethod);
-                        data.put(Constants.CLIENT_ID, clientId);
-                        data.put(Constants.SCOPE, scope);
+            // Check if the token represents an impersonation request
+            if (impersonator != null) {
+                MDC.put(Constants.IMPERSONATOR, impersonator);
+                String scope = introspectionResponseDTO.getScope();
+                String clientId = introspectionResponseDTO.getClientId();
+                String requestUri = authenticationContext.getAuthenticationRequest().getRequestUri();
+                String httpMethod = authenticationContext.getAuthenticationRequest().getMethod();
 
-                        String action;
+                // Ensure it's not a GET request before logging
+                if (!Constants.GET.equals(httpMethod)) {
+                    // Prepare data for audit log
+                    JSONObject data = new JSONObject();
+                    data.put(Constants.SUBJECT, subject);
+                    data.put(Constants.IMPERSONATOR, impersonator);
+                    data.put(Constants.RESOURCE_PATH, requestUri);
+                    data.put(Constants.HTTP_METHOD, httpMethod);
+                    data.put(Constants.CLIENT_ID, clientId);
+                    data.put(Constants.SCOPE, scope);
 
-                        switch (httpMethod) {
-                            case Constants.PATCH:
-                                action = Constants.IMPERSONATION_RESOURCE_MODIFICATION;
-                                break;
-                            case Constants.POST:
-                                action = Constants.IMPERSONATION_RESOURCE_CREATION;
-                                break;
-                            case Constants.DELETE:
-                                action = Constants.IMPERSONATION_RESOURCE_DELETION;
-                                break;
-                            default:
-                                action = Constants.IMPERSONATION_RESOURCE_ACCESS;
-                                break;
-                        }
-                        // Log the audit event
-                        AUDIT.info(createAuditMessage(impersonator, action, subject, data, Constants.AUTHORIZED));
+                    String action;
+
+                    switch (httpMethod) {
+                        case Constants.PATCH:
+                            action = Constants.IMPERSONATION_RESOURCE_MODIFICATION;
+                            break;
+                        case Constants.POST:
+                            action = Constants.IMPERSONATION_RESOURCE_CREATION;
+                            break;
+                        case Constants.DELETE:
+                            action = Constants.IMPERSONATION_RESOURCE_DELETION;
+                            break;
+                        default:
+                            action = Constants.IMPERSONATION_RESOURCE_ACCESS;
+                            break;
                     }
+                    // Log the audit event
+                    AUDIT.info(createAuditMessage(impersonator, action, subject, data, Constants.AUTHORIZED));
                 }
             }
         } catch (IdentityOAuth2Exception e) {
