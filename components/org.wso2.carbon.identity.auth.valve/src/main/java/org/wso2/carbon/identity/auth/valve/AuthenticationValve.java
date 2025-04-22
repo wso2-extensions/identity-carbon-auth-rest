@@ -54,6 +54,7 @@ import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.identity.oauth.dcr.exception.DCRMException;
 import org.wso2.carbon.identity.oauth.dcr.model.DCRConfiguration;
+import org.wso2.carbon.identity.oauth2.OAuth2Constants;
 import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.user.core.tenant.TenantManager;
 
@@ -208,9 +209,9 @@ public class AuthenticationValve extends ValveBase {
             unsetAuthenticatedWithBasicAuth();
             // Clear thread local authentication type.
             unsetThreadLocalAuthenticationType();
+            // Clear thread local AUTHORIZED_SCOPES.
+            unsetAuthorizedScopesThreadLocal();
         }
-
-
     }
 
     /**
@@ -365,6 +366,13 @@ public class AuthenticationValve extends ValveBase {
                         + IdentityUtil.threadLocalProperties.get().get(FrameworkConstants.CURRENT_TOKEN_IDENTIFIER));
             }
             IdentityUtil.threadLocalProperties.get().remove(FrameworkConstants.CURRENT_TOKEN_IDENTIFIER);
+        }
+    }
+
+    private void unsetAuthorizedScopesThreadLocal() {
+
+        if (IdentityUtil.threadLocalProperties.get().get(OAuth2Constants.AUTHORIZED_SCOPES) != null) {
+            IdentityUtil.threadLocalProperties.get().remove(OAuth2Constants.AUTHORIZED_SCOPES);
         }
     }
 
