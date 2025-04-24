@@ -342,7 +342,7 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
         String subject = null;
         String impersonator = null;
         try {
-            if (Objects.equals(introspectionResponseDTO.getTokenType(), OAuth2Constants.TokenTypes.JWT)) {
+            if (OAuth2Constants.TokenTypes.JWT.equalsIgnoreCase(introspectionResponseDTO.getTokenType())) {
                 // Extract claims from the access token
                 SignedJWT signedJWT = getSignedJWT(accessToken);
                 JWTClaimsSet claimsSet = getClaimSet(signedJWT);
