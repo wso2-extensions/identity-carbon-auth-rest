@@ -41,6 +41,7 @@ import org.wso2.carbon.identity.auth.service.AuthenticationRequest;
 import org.wso2.carbon.identity.auth.service.AuthenticationResult;
 import org.wso2.carbon.identity.auth.service.AuthenticationStatus;
 import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
+import org.wso2.carbon.identity.auth.service.module.ResourceConfig;
 import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
 import org.wso2.carbon.identity.auth.service.util.Constants;
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
@@ -48,6 +49,7 @@ import org.wso2.carbon.identity.core.context.IdentityContext;
 import org.wso2.carbon.identity.core.context.model.ApplicationActor;
 import org.wso2.carbon.identity.core.context.model.UserActor;
 import org.wso2.carbon.identity.core.handler.InitConfig;
+import org.wso2.carbon.identity.core.util.IdentityConfigParser;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.identity.oauth.common.exception.InvalidOAuthClientException;
 import org.wso2.carbon.identity.oauth.dao.OAuthAppDO;
@@ -64,13 +66,17 @@ import org.wso2.carbon.identity.organization.management.service.exception.Organi
 import org.wso2.carbon.identity.organization.management.service.util.OrganizationManagementUtil;
 
 import java.text.ParseException;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 
+import static org.wso2.carbon.identity.application.mgt.ApplicationConstants.MY_ACCOUNT_APPLICATION_CLIENT_ID;
 import static org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil.isAuthHeaderMatch;
+import static org.wso2.carbon.identity.auth.service.util.Constants.GET;
 import static org.wso2.carbon.identity.oauth.common.OAuthConstants.IMPERSONATING_ACTOR;
 import static org.wso2.carbon.identity.oauth2.OAuth2Constants.TokenBinderType.SSO_SESSION_BASED_TOKEN_BINDER;
+import static org.wso2.carbon.identity.oauth2.impersonation.utils.Constants.IMPERSONATION_SCOPE_NAME;
 
 /**
  * OAuth2AccessTokenHandler is for authenticate the request based on Token.
@@ -89,6 +95,13 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
     private final String SCIM_ME_ENDPOINT_URI = "scim2/me";
     private final String AUT_APPLICATION = "APPLICATION";
     private final String AUT_APPLICATION_USER = "APPLICATION_USER";
+    private List<String> impersonateMyAccountResourceConfigs;
+
+    @Override
+    public void init(InitConfig initConfig) {
+
+        impersonateMyAccountResourceConfigs = IdentityConfigParser.getImpersonateMyAccountResourceConfigs();
+    }
 
     @Override
     protected AuthenticationResult doAuthenticate(MessageContext messageContext) {
@@ -136,6 +149,18 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
 
                 if (!oAuth2IntrospectionResponseDTO.isActive() ||
                         RefreshTokenValidator.TOKEN_TYPE_NAME.equals(oAuth2IntrospectionResponseDTO.getTokenType())) {
+                    return authenticationResult;
+                }
+
+                /* If the token is impersonated access token issued for MY_ACCOUNT, block all the actions excepts
+                for discoverable actions. */
+                boolean isValidOperation = validateAllowedDuringImpersonation(authenticationContext.getResourceConfig(),
+                        oAuth2IntrospectionResponseDTO.getScope(),
+                        oAuth2IntrospectionResponseDTO.getClientId());
+                if (!isValidOperation) {
+                    if (log.isDebugEnabled()) {
+                        log.debug("Not an allowed operation during impersonation.");
+                    }
                     return authenticationResult;
                 }
 
@@ -295,6 +320,26 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
         return authenticationResult;
     }
 
+    /**
+     * If the application is MY_ACCOUNT and the token is impersonated allow only
+     * allowed operations during impersonation.
+     *
+     * @param resourceConfig Resource Config.
+     * @param allowedScopes  Allowed scopes in the token.
+     * @param clientId       Client id.
+     * @return Whether operation or not.
+     */
+    private boolean validateAllowedDuringImpersonation(ResourceConfig resourceConfig, String allowedScopes,
+                                                       String clientId) {
+
+        List<String> scopes = Arrays.asList(OAuth2Util.buildScopeArray(allowedScopes));
+        return !(MY_ACCOUNT_APPLICATION_CLIENT_ID.equals(clientId)
+                && scopes.contains(IMPERSONATION_SCOPE_NAME)
+                && !GET.equals(resourceConfig.getHttpMethod())
+                && impersonateMyAccountResourceConfigs.stream()
+                    .noneMatch(resource -> resourceConfig.getContext().contains(resource)));
+    }
+
     private void setActorToIdentityContext(OAuth2IntrospectionResponseDTO introspectionResponseDTO) {
 
         String authenticatedEntity = introspectionResponseDTO.getAut();
@@ -367,7 +412,7 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
                 String httpMethod = authenticationContext.getAuthenticationRequest().getMethod();
 
                 // Ensure it's not a GET request before logging
-                if (!Constants.GET.equals(httpMethod)) {
+                if (!GET.equals(httpMethod)) {
                     // Prepare data for audit log
                     JSONObject data = new JSONObject();
                     data.put(Constants.SUBJECT, subject);
@@ -417,11 +462,6 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
                 Constants.INITIATOR + "=%s " + Constants.ACTION + "=%s " + Constants.TARGET + "=%s "
                         + Constants.DATA + "=%s " + Constants.OUTCOME + "=%s";
         return String.format(auditMessage, subject, action, target, data, resultField);
-    }
-
-    @Override
-    public void init(InitConfig initConfig) {
-
     }
 
     @Override
