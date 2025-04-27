@@ -25,6 +25,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpHeaders;
+import org.apache.logging.log4j.ThreadContext;
 import org.json.JSONObject;
 import org.slf4j.MDC;
 import org.wso2.carbon.CarbonConstants;
@@ -60,10 +61,13 @@ import org.wso2.carbon.identity.oauth2.model.AccessTokenDO;
 import org.wso2.carbon.identity.oauth2.token.bindings.TokenBinding;
 import org.wso2.carbon.identity.oauth2.util.OAuth2Util;
 import org.wso2.carbon.identity.oauth2.validators.RefreshTokenValidator;
+import org.wso2.carbon.identity.auth.service.ScopeThreadLocal;
 import org.wso2.carbon.identity.organization.management.service.exception.OrganizationManagementException;
 import org.wso2.carbon.identity.organization.management.service.util.OrganizationManagementUtil;
 
 import java.text.ParseException;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -183,6 +187,10 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
                         OAuth2Util.buildScopeArray(oAuth2IntrospectionResponseDTO.getScope()));
                 authenticationContext.addParameter(Constants.OAUTH2_VALIDATE_SCOPE,
                         AuthConfigurationUtil.getInstance().isScopeValidationEnabled());
+
+                // Set the allowed scopes to the thread local to be used down the flow.
+                IdentityUtil.threadLocalProperties.get().put(OAuth2Constants.AUTHORIZED_SCOPES,
+                        Arrays.asList(OAuth2Util.buildScopeArray(oAuth2IntrospectionResponseDTO.getScope())));
 
                 ServiceProvider serviceProvider = null;
                 String serviceProviderName = null;
