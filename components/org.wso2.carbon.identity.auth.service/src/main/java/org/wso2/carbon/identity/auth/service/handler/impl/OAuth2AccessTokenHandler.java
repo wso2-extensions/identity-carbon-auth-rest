@@ -52,6 +52,7 @@ import org.wso2.carbon.identity.core.handler.InitConfig;
 import org.wso2.carbon.identity.core.util.IdentityConfigParser;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.identity.oauth.common.exception.InvalidOAuthClientException;
+import org.wso2.carbon.identity.oauth.config.OAuthServerConfiguration;
 import org.wso2.carbon.identity.oauth.dao.OAuthAppDO;
 import org.wso2.carbon.identity.oauth2.IdentityOAuth2Exception;
 import org.wso2.carbon.identity.oauth2.OAuth2Constants;
@@ -152,16 +153,20 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
                     return authenticationResult;
                 }
 
-                /* If the token is impersonated access token issued for MY_ACCOUNT, block all the actions excepts
-                for discoverable actions. */
-                boolean isValidOperation = validateAllowedDuringImpersonation(authenticationContext.getResourceConfig(),
-                        oAuth2IntrospectionResponseDTO.getScope(),
-                        oAuth2IntrospectionResponseDTO.getClientId());
-                if (!isValidOperation) {
-                    if (log.isDebugEnabled()) {
-                        log.debug("Not an allowed operation during impersonation.");
+                boolean isUserSessionImpersonationEnabled = OAuthServerConfiguration.getInstance()
+                        .isUserSessionImpersonationEnabled();
+                if (isUserSessionImpersonationEnabled) {
+                    /* If the token is impersonated access token issued for MY_ACCOUNT, block all the actions excepts
+                    for discoverable actions. */
+                    boolean isValidOperation = validateAllowedDuringImpersonation(authenticationContext.getResourceConfig(),
+                            oAuth2IntrospectionResponseDTO.getScope(),
+                            oAuth2IntrospectionResponseDTO.getClientId());
+                    if (!isValidOperation) {
+                        if (log.isDebugEnabled()) {
+                            log.debug("Not an allowed operation during impersonation.");
+                        }
+                        return authenticationResult;
                     }
-                    return authenticationResult;
                 }
 
                 // If the request is coming to me endpoint, store the token id to the thread local.
