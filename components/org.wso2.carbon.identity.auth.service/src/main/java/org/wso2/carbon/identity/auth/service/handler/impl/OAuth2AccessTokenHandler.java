@@ -332,7 +332,7 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
      * @param resourceConfig Resource Config.
      * @param allowedScopes  Allowed scopes in the token.
      * @param clientId       Client id.
-     * @return Whether operation or not.
+     * @return Whether the operation is allowed or not.
      */
     private boolean validateAllowedDuringImpersonation(ResourceConfig resourceConfig, String allowedScopes,
                                                        String clientId) {
