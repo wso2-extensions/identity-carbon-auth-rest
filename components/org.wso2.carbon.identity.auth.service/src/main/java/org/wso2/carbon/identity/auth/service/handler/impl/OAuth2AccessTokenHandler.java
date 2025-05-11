@@ -96,12 +96,10 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
     private final String SCIM_ME_ENDPOINT_URI = "scim2/me";
     private final String AUT_APPLICATION = "APPLICATION";
     private final String AUT_APPLICATION_USER = "APPLICATION_USER";
-    private List<String> impersonateMyAccountResourceConfigs;
 
     @Override
     public void init(InitConfig initConfig) {
 
-        impersonateMyAccountResourceConfigs = IdentityConfigParser.getImpersonateMyAccountResourceConfigs();
     }
 
     @Override
@@ -338,6 +336,8 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
                                                        String clientId) {
 
         List<String> scopes = Arrays.asList(OAuth2Util.buildScopeArray(allowedScopes));
+        List<String> impersonateMyAccountResourceConfigs = IdentityConfigParser
+                .getImpersonateMyAccountResourceConfigs();
         return !(MY_ACCOUNT_APPLICATION_CLIENT_ID.equals(clientId)
                 && scopes.contains(IMPERSONATION_SCOPE_NAME)
                 && !GET.equals(resourceConfig.getHttpMethod())
