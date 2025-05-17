@@ -208,6 +208,8 @@ public class AuthenticationValve extends ValveBase {
             unsetAuthenticatedWithBasicAuth();
             // Clear thread local authentication type.
             unsetThreadLocalAuthenticationType();
+            // Clear thread local AUTHORIZED_SCOPES.
+            unsetAuthorizedScopesThreadLocal();
         }
 
 
@@ -365,6 +367,13 @@ public class AuthenticationValve extends ValveBase {
                         + IdentityUtil.threadLocalProperties.get().get(FrameworkConstants.CURRENT_TOKEN_IDENTIFIER));
             }
             IdentityUtil.threadLocalProperties.get().remove(FrameworkConstants.CURRENT_TOKEN_IDENTIFIER);
+        }
+    }
+
+    private void unsetAuthorizedScopesThreadLocal() {
+
+        if (IdentityUtil.threadLocalProperties.get().get(Constants.AUTHORIZED_SCOPES) != null) {
+            IdentityUtil.threadLocalProperties.get().remove(Constants.AUTHORIZED_SCOPES);
         }
     }
 

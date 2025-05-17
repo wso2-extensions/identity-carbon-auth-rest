@@ -212,6 +212,10 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
                 authenticationContext.addParameter(Constants.OAUTH2_VALIDATE_SCOPE,
                         AuthConfigurationUtil.getInstance().isScopeValidationEnabled());
 
+                // Set the allowed scopes to the thread local to be used down the flow.
+                IdentityUtil.threadLocalProperties.get().put(Constants.AUTHORIZED_SCOPES,
+                        Arrays.asList(OAuth2Util.buildScopeArray(oAuth2IntrospectionResponseDTO.getScope())));
+
                 ServiceProvider serviceProvider = null;
                 String serviceProviderName = null;
                 String serviceProviderUUID = null;
