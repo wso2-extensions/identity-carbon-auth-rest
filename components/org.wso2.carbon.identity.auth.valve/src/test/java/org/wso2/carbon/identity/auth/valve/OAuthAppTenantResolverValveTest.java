@@ -30,8 +30,11 @@ import org.powermock.reflect.Whitebox;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
+import org.wso2.carbon.context.PrivilegedCarbonContext;
+import org.wso2.carbon.context.internal.CarbonContextDataHolder;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
 import org.wso2.carbon.identity.central.log.mgt.utils.LoggerUtils;
+import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.identity.oauth.config.OAuthServerConfiguration;
 import org.wso2.carbon.identity.oauth.dao.OAuthAppDO;
@@ -56,7 +59,7 @@ import static org.wso2.carbon.identity.oauth.common.OAuthConstants.OAuth20Params
 import static org.wso2.carbon.identity.oauth.common.OAuthConstants.TENANT_NAME_FROM_CONTEXT;
 
 @PrepareForTest({OAuthAppTenantResolverValve.class, OAuth2Util.class, LoggerUtils.class,
-        OAuthServerConfiguration.class, IdentityUtil.class})
+        OAuthServerConfiguration.class, IdentityUtil.class, PrivilegedCarbonContext.class, IdentityTenantUtil.class})
 public class OAuthAppTenantResolverValveTest extends PowerMockTestCase {
 
     private static final String DUMMY_RESOURCE_OAUTH_2 = "https://localhost:9443/oauth2/test/resource";
@@ -91,6 +94,12 @@ public class OAuthAppTenantResolverValveTest extends PowerMockTestCase {
         user.setUserName("user1");
         oAuthAppDO = new OAuthAppDO();
         oAuthAppDO.setAppOwner(user);
+
+        mockStatic(PrivilegedCarbonContext.class);
+        when(PrivilegedCarbonContext.getThreadLocalCarbonContext()).thenReturn(mock(PrivilegedCarbonContext.class));
+
+        mockStatic(IdentityTenantUtil.class);
+        when(IdentityTenantUtil.getTenantId(TENANT_DOMAIN)).thenReturn(1);
 
         OAuthServerConfiguration oAuthServerConfigurationMock = mock(OAuthServerConfiguration.class);
         mockStatic(OAuthServerConfiguration.class);

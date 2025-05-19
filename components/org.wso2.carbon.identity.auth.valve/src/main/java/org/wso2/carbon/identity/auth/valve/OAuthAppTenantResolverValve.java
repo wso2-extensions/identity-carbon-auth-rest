@@ -18,20 +18,29 @@
 
 package org.wso2.carbon.identity.auth.valve;
 
+import com.nimbusds.jwt.JWT;
+import com.nimbusds.jwt.JWTParser;
 import org.apache.catalina.connector.Request;
 import org.apache.catalina.connector.Response;
 import org.apache.catalina.valves.ValveBase;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.wso2.carbon.context.PrivilegedCarbonContext;
+import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.identity.oauth.common.exception.InvalidOAuthClientException;
 import org.wso2.carbon.identity.oauth.dao.OAuthAppDO;
 import org.wso2.carbon.identity.oauth2.IdentityOAuth2Exception;
+import org.wso2.carbon.identity.oauth2.OAuth2TokenValidationService;
 import org.wso2.carbon.identity.oauth2.client.authentication.OAuthClientAuthnException;
+import org.wso2.carbon.identity.oauth2.dto.OAuth2ClientApplicationDTO;
+import org.wso2.carbon.identity.oauth2.dto.OAuth2TokenValidationRequestDTO;
 import org.wso2.carbon.identity.oauth2.util.OAuth2Util;
 
 import java.io.IOException;
+import java.text.ParseException;
+import java.util.Optional;
 
 import javax.servlet.ServletException;
 
@@ -57,53 +66,194 @@ public class OAuthAppTenantResolverValve extends ValveBase {
     public void invoke(Request request, Response response) throws IOException, ServletException {
 
         try {
-            if (isOAuthRequest(request)) {
-                String appTenant = "";
-                String clientId = request.getParameter(CLIENT_ID);
+            String clientId = isOAuthRequest(request) ? extractClientIDFromOauthRequest(request)
+                    : extractClientIDFromAuthzHeader(request);
 
-                if (StringUtils.isEmpty(clientId) && isOAuth10ARequest(request)) {
-                    clientId = request.getParameter(OAUTH_CONSUMER_KEY);
-                }
-
-                // If empty, try to get the client id from the authorization header.
-                if (StringUtils.isEmpty(clientId)) {
-                    if (OAuth2Util.isBasicAuthorizationHeaderExists(request)) {
-                        try {
-                            String[] credentials = OAuth2Util.extractCredentialsFromAuthzHeader(request);
-                            if (credentials != null) {
-                                clientId = credentials[0];
-                            }
-                        } catch (OAuthClientAuthnException e) {
-                            if (LOG.isDebugEnabled()) {
-                                LOG.debug("Error while extracting credentials from authorization header.", e);
-                            }
-                        }
+            String appTenant = "";
+            OAuthAppDO oAuthAppDO = null;
+            if (StringUtils.isNotEmpty(clientId)) {
+                try {
+                    oAuthAppDO = OAuth2Util.getAppInformationByClientIdOnly(clientId);
+                } catch (IdentityOAuth2Exception e) {
+                    if (LOG.isDebugEnabled()) {
+                        LOG.debug("Error while getting oauth app for client Id: " + clientId, e);
+                    }
+                } catch (InvalidOAuthClientException e) {
+                    if (LOG.isDebugEnabled()) {
+                        LOG.debug("Could not find an application with given client Id: " + clientId, e);
                     }
                 }
-
-                if (StringUtils.isNotEmpty(clientId)) {
-                    try {
-                        OAuthAppDO oAuthAppDO = OAuth2Util.getAppInformationByClientIdOnly(clientId);
-                        appTenant = OAuth2Util.getTenantDomainOfOauthApp(oAuthAppDO);
-                    } catch (IdentityOAuth2Exception e) {
-                        LOG.error("Error while getting oauth app for client Id: " + clientId, e);
-                    } catch (InvalidOAuthClientException e) {
-                        if (LOG.isDebugEnabled()) {
-                            LOG.debug("Error while getting oauth app for client Id: " + clientId, e);
-                        }
-                    }
-                }
-
-                // Set the tenant name to thread local properties.
-                if (StringUtils.isNotEmpty(appTenant)) {
-                    IdentityUtil.threadLocalProperties.get().put(TENANT_NAME_FROM_CONTEXT, appTenant);
-                }
+                appTenant = OAuth2Util.getTenantDomainOfOauthApp(oAuthAppDO);
             }
+
+            // If no client application is found for the given client ID and a basic auth header with
+            // resource-owner credentials exists, extract the tenant domain from the username.
+            if (oAuthAppDO == null && OAuth2Util.isBasicAuthorizationHeaderExists(request)) {
+                appTenant = extractTenantDomainFromUserName(request);
+            }
+
+            if (StringUtils.isNotEmpty(appTenant)) {
+                IdentityUtil.threadLocalProperties.get().put(TENANT_NAME_FROM_CONTEXT, appTenant);
+                PrivilegedCarbonContext carbonContext = PrivilegedCarbonContext.getThreadLocalCarbonContext();
+                carbonContext.setTenantDomain(appTenant);
+                carbonContext.setTenantId(IdentityTenantUtil.getTenantId(appTenant));
+                startTenantFlow(appTenant);
+            }
+
             getNext().invoke(request, response);
         } finally {
             // Clear thread local tenant name.
             unsetThreadLocalContextTenantName();
         }
+    }
+
+    /**
+     * Starts a tenant flow after resolving the current tenant domain when tenant qualified URLs are disabled.
+     *
+     * @param tenantDomain Tenant Domain.
+     */
+    private void startTenantFlow(String tenantDomain) {
+
+        String userId = PrivilegedCarbonContext.getThreadLocalCarbonContext().getUserId();
+        int tenantId = IdentityTenantUtil.getTenantId(tenantDomain);
+
+        PrivilegedCarbonContext.startTenantFlow();
+        PrivilegedCarbonContext.getThreadLocalCarbonContext().setTenantDomain(tenantDomain);
+        PrivilegedCarbonContext.getThreadLocalCarbonContext().setTenantId(tenantId);
+        PrivilegedCarbonContext.getThreadLocalCarbonContext().setUserId(userId);
+    }
+
+    /**
+     * Extracts the client ID from oauth request.
+     *
+     * @param request Request.
+     * @return client ID.
+     */
+    private String extractClientIDFromOauthRequest(Request request) {
+
+        String clientId = "";
+        clientId = request.getParameter(CLIENT_ID);
+
+        if (StringUtils.isEmpty(clientId) && isOAuth10ARequest(request)) {
+            clientId = request.getParameter(OAUTH_CONSUMER_KEY);
+        }
+
+        // If empty, try to get the client id from the authorization header.
+        if (StringUtils.isEmpty(clientId)) {
+            if (OAuth2Util.isBasicAuthorizationHeaderExists(request)) {
+                try {
+                    String[] credentials = OAuth2Util.extractCredentialsFromAuthzHeader(request);
+                    if (credentials != null) {
+                        clientId = credentials[0];
+                    }
+                } catch (OAuthClientAuthnException e) {
+                    if (LOG.isDebugEnabled()) {
+                        LOG.debug("Error while extracting credentials from authorization header.", e);
+                    }
+                }
+            }
+        }
+
+        return clientId;
+    }
+
+    /**
+     * Extracts the client ID from non oauth request.
+     * This method validates the opaque token or the JWT in the authorization header and extracts the client ID
+     * of the application owning the token.
+     *
+     * @param request Request.
+     * @return Client ID.
+     */
+    private String extractClientIDFromAuthzHeader(Request request) {
+
+        String bearerToken = null;
+        String clientId = "";
+        try {
+            bearerToken = OAuth2Util.extractBearerTokenFromAuthzHeader(request);
+        } catch (OAuthClientAuthnException e) {
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Error while extracting token from authorization header.", e);
+            }
+        }
+
+        if (StringUtils.isNotBlank(bearerToken)) {
+            if (OAuth2Util.isJWT(bearerToken)) {
+                clientId =  resolveClientIdFromJWT(bearerToken);
+            } else {
+                clientId = resolveClientIdFromOpaqueToken(bearerToken);
+            }
+        }
+
+        return clientId;
+    }
+
+    /**
+     * Resolves client ID from the JWT in authorization header.
+     *
+     * @param bearerToken Bearer token.
+     * @return Client ID.
+     */
+    private String resolveClientIdFromJWT(String bearerToken) {
+
+        String clientId = "";
+        try {
+            JWT decodedToken = JWTParser.parse(bearerToken);
+            clientId = decodedToken.getJWTClaimsSet().getStringClaim("client_id");
+        } catch (ParseException e) {
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Error while extracting client id from JWT.", e);
+            }
+        }
+
+        return clientId;
+    }
+
+    /**
+     * Resolves client ID from the opaque token in authorization header.
+     *
+     * @param bearerToken Bearer token.
+     * @return Client ID.
+     */
+    private String resolveClientIdFromOpaqueToken(String bearerToken) {
+
+        OAuth2TokenValidationRequestDTO validationRequest = new OAuth2TokenValidationRequestDTO();
+
+        OAuth2TokenValidationRequestDTO.OAuth2AccessToken accessToken = validationRequest.new OAuth2AccessToken();
+        accessToken.setIdentifier(bearerToken);
+        accessToken.setTokenType("Bearer");
+        validationRequest.setAccessToken(accessToken);
+
+        // If opaque token is valid, retrieve the client application.
+        OAuth2ClientApplicationDTO clientApplication = new OAuth2TokenValidationService().
+                findOAuthConsumerIfTokenIsValid(validationRequest);
+
+        return Optional.ofNullable(clientApplication)
+                .map(OAuth2ClientApplicationDTO::getConsumerKey)
+                .orElse(null);
+    }
+
+    /**
+     * Extract tenant domain from username of basic authz header.
+     *
+     * @param request Request.
+     * @return Tenant domain.
+     */
+    private String extractTenantDomainFromUserName(Request request) {
+
+        String tenantQualifiedUsername = "";
+        try {
+            String[] credentials = OAuth2Util.extractCredentialsFromAuthzHeader(request);
+            if (credentials != null) {
+                tenantQualifiedUsername = credentials[0];
+            }
+        } catch (OAuthClientAuthnException e) {
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Error while extracting credentials from authorization header.", e);
+            }
+        }
+
+        return StringUtils.substringAfter(tenantQualifiedUsername, "@");
     }
 
     /**
