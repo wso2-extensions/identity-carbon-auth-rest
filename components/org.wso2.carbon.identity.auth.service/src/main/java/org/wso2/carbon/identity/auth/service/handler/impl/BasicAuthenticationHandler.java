@@ -42,6 +42,7 @@ import org.wso2.carbon.identity.core.context.model.UserActor;
 import org.wso2.carbon.identity.core.handler.InitConfig;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
+import org.wso2.carbon.identity.handler.event.account.lock.exception.AccountLockException;
 import org.wso2.carbon.identity.organization.management.service.exception.OrganizationManagementException;
 import org.wso2.carbon.user.api.UserRealm;
 import org.wso2.carbon.user.core.UserCoreConstants;
@@ -53,7 +54,6 @@ import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
 import java.nio.charset.Charset;
 
-import org.wso2.carbon.identity.handler.event.account.lock.exception.AccountLockException;
 import static org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil.isAuthHeaderMatch;
 
 /**
@@ -122,10 +122,12 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
                 try {
                     String requestUri = authenticationRequest.getRequestUri();
                     AuthenticatedUser user = new AuthenticatedUser();
+
+                    tenantId = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantId();
+                    tenantDomain = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain();
+
                     if (StringUtils.startsWith(requestUri, ORGANIZATION_PATH_PARAM)) {
                         organizationRequest = true;
-                        tenantId = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantId();
-                        tenantDomain = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain();
                         String organizationIdFromUsername = getOrganizationIdFromUsername(userName);
                         if (StringUtils.isNotBlank(organizationIdFromUsername)) {
                             String tenantDomainFromUsername = AuthenticationServiceHolder.getInstance()
@@ -138,14 +140,10 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
                         } else {
                             user.setUserName(userName);
                         }
-                        user.setTenantDomain(tenantDomain);
                     } else {
-                        tenantId = IdentityTenantUtil.getTenantIdOfUser(userName);
-                        tenantDomain = MultitenantUtils.getTenantDomain(userName);
                         user.setUserName(MultitenantUtils.getTenantAwareUsername(userName));
-                        user.setTenantDomain(tenantDomain);
                     }
-
+                    user.setTenantDomain(tenantDomain);
                     authenticationContext.setUser(user);
 
                     //TODO: Related to this https://wso2.org/jira/browse/IDENTITY-4752 - Class IdentityMgtEventListener

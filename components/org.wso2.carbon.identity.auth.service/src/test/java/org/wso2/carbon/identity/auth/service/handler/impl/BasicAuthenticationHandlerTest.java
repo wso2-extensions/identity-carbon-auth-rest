@@ -28,6 +28,7 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
 import org.wso2.carbon.identity.auth.service.AuthenticationRequest;
@@ -65,6 +66,7 @@ import static org.mockito.Mockito.when;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertTrue;
+import static org.wso2.carbon.identity.auth.service.util.CommonTestUtils.initPrivilegedCarbonContext;
 
 /**
  * Test class for BasicAuthenticationHandler.
@@ -177,24 +179,18 @@ public class BasicAuthenticationHandlerTest {
         assertFalse(basicAuthenticationHandler.canHandle(mockMessageContext));
     }
 
-    @Test
-    public void testDoAuthenticateSuccess() throws Exception {
+    @Test(dataProvider = "invokeDataProvider")
+    public void testDoAuthenticateSuccess(String username, String tenantAwareUsername, String password) throws Exception {
 
-        String username = "alice@example.com";
-        String password = "temp123";
-        String usernameWithTenantDomain = username + "@" + TEST_TENANT_DOMAIN;
         String apiResource = "/api/resource";
         String authHeader = "Basic " +
-                Base64.encodeBase64String((usernameWithTenantDomain + ":" + password).getBytes(StandardCharsets.UTF_8));
+                Base64.encodeBase64String((username + ":" + password).getBytes(StandardCharsets.UTF_8));
 
         when(mockAuthenticationRequest.getHeader(HttpHeaders.AUTHORIZATION)).thenReturn(authHeader);
         when(mockAuthenticationRequest.getRequestUri()).thenReturn(apiResource);
 
-        mockedIdentityTenantUtil.when(() -> IdentityTenantUtil.getTenantIdOfUser(usernameWithTenantDomain))
-                .thenReturn(TEST_TENANT_ID);
-        mockedMultitenantUtils.when(() -> MultitenantUtils.getTenantDomain(usernameWithTenantDomain))
-                .thenReturn(TEST_TENANT_DOMAIN);
-        when(MultitenantUtils.getTenantAwareUsername(usernameWithTenantDomain)).thenReturn(username);
+        mockedMultitenantUtils.when(() -> MultitenantUtils.getTenantAwareUsername(username))
+                .thenReturn(tenantAwareUsername);
         when(MultitenantUtils.isEmailUserName()).thenReturn(false);
 
         when(mockRealmService.getTenantUserRealm(anyInt())).thenReturn(mockUserRealm);
@@ -213,7 +209,7 @@ public class BasicAuthenticationHandlerTest {
 
         when(mockUserStoreManager.authenticateWithID(
                 eq(UserCoreClaimConstants.USERNAME_CLAIM_URI),
-                eq(username),
+                eq(tenantAwareUsername),
                 eq(password),
                 any(String.class)))
                 .thenReturn(mockAuthResult);
@@ -223,22 +219,14 @@ public class BasicAuthenticationHandlerTest {
         Assert.assertEquals(result.getAuthenticationStatus(), AuthenticationStatus.SUCCESS);
     }
 
-    @Test(expectedExceptions = AuthenticationFailException.class)
-    public void testDoAuthenticateWithoutTenantDomainInUsername() throws Exception {
+    @DataProvider
+    public Object[][] invokeDataProvider() {
 
-        String username = "alice@example.com";
-        String password = "temp123";
-        String apiResource = "/api/resource";
-        String authHeader = "Basic " +
-                Base64.encodeBase64String((username + ":" + password).getBytes(StandardCharsets.UTF_8));
-
-        when(mockAuthenticationRequest.getHeader(HttpHeaders.AUTHORIZATION)).thenReturn(authHeader);
-        when(mockAuthenticationRequest.getRequestUri()).thenReturn(apiResource);
-
-        mockedIdentityTenantUtil.when(() -> IdentityTenantUtil.getTenantIdOfUser(username))
-                .thenThrow(IdentityRuntimeException.error("Invalid tenant domain"));
-
-        basicAuthenticationHandler.doAuthenticate(mockAuthenticationContext);
+        return new Object[][]{
+                // username, password
+                {"alice@example.com", "alice@example.com", "temp123"},
+                {"alice@example.com" + "@" + TEST_TENANT_DOMAIN, "alice@example.com", "temp123"}
+        };
     }
 
     @Test(expectedExceptions = IdentityRuntimeException.class)
@@ -247,13 +235,17 @@ public class BasicAuthenticationHandlerTest {
         String username = "alice@example.com";
         String password = "temp123";
         String apiResource = "/api/resource";
+        String tenantDomain = "example.com";
+        int tenantId = 1;
         String authHeader = "Basic " +
                 Base64.encodeBase64String((username + ":" + password).getBytes(StandardCharsets.UTF_8));
+
+        initPrivilegedCarbonContext(tenantDomain, tenantId);
 
         when(mockAuthenticationRequest.getHeader(HttpHeaders.AUTHORIZATION)).thenReturn(authHeader);
         when(mockAuthenticationRequest.getRequestUri()).thenReturn(apiResource);
 
-        mockedIdentityTenantUtil.when(() -> IdentityTenantUtil.getTenantIdOfUser(username))
+        mockedMultitenantUtils.when(() -> MultitenantUtils.getTenantAwareUsername(username))
                 .thenThrow(IdentityRuntimeException.error("Other error"));
 
         basicAuthenticationHandler.doAuthenticate(mockAuthenticationContext);
