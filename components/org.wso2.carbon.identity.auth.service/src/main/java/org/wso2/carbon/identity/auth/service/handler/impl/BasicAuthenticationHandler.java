@@ -116,16 +116,12 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
                 String password = splitCredentials[1];
 
                 AbstractUserStoreManager userStoreManager;
-                int tenantId;
-                String tenantDomain;
+                int tenantId = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantId();
+                String tenantDomain = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain();
                 boolean organizationRequest = false;
                 try {
                     String requestUri = authenticationRequest.getRequestUri();
                     AuthenticatedUser user = new AuthenticatedUser();
-
-                    tenantId = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantId();
-                    tenantDomain = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain();
-
                     if (StringUtils.startsWith(requestUri, ORGANIZATION_PATH_PARAM)) {
                         organizationRequest = true;
                         String organizationIdFromUsername = getOrganizationIdFromUsername(userName);
