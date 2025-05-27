@@ -26,6 +26,7 @@ import org.wso2.carbon.identity.application.common.model.User;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
 import org.wso2.carbon.identity.auth.service.util.Constants;
 import org.wso2.carbon.identity.authz.service.AuthorizationContext;
+import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.oauth.dao.OAuthAppDO;
 import org.wso2.carbon.identity.oauth2.util.OAuth2Util;
 import org.wso2.carbon.utils.multitenancy.MultitenantConstants;
@@ -90,6 +91,14 @@ public class Utils {
                     Constants.AUTH_CONTEXT_OAUTH_APP_PROPERTY);
             tenantDomain = OAuth2Util.getTenantDomainOfOauthApp(oAuthAppDO);
         }
+
+        // If tenant qualified URls are disabled get the requested tenant domain from carbon context
+        if (!IdentityTenantUtil.isTenantQualifiedUrlsEnabled()) {
+            String tenantDomainFromCarbonContext = PrivilegedCarbonContext.getThreadLocalCarbonContext()
+                    .getTenantDomain();
+            return tenantDomainFromCarbonContext.equals(tenantDomain);
+        }
+
         if (tenantDomainFromURLMapping.equals(tenantDomain)) {
             return true;
         }
