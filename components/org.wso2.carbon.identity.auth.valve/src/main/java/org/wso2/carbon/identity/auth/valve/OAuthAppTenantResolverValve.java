@@ -27,6 +27,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
+import org.wso2.carbon.identity.application.authentication.framework.util.FrameworkUtils;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.identity.oauth.common.exception.InvalidOAuthClientException;
@@ -97,7 +98,7 @@ public class OAuthAppTenantResolverValve extends ValveBase {
                 PrivilegedCarbonContext carbonContext = PrivilegedCarbonContext.getThreadLocalCarbonContext();
                 carbonContext.setTenantDomain(appTenant);
                 carbonContext.setTenantId(IdentityTenantUtil.getTenantId(appTenant));
-                startTenantFlow(appTenant);
+                FrameworkUtils.startTenantFlow(appTenant);
             }
 
             getNext().invoke(request, response);
@@ -105,22 +106,6 @@ public class OAuthAppTenantResolverValve extends ValveBase {
             // Clear thread local tenant name.
             unsetThreadLocalContextTenantName();
         }
-    }
-
-    /**
-     * Starts a tenant flow after resolving the current tenant domain when tenant qualified URLs are disabled.
-     *
-     * @param tenantDomain Tenant Domain.
-     */
-    private void startTenantFlow(String tenantDomain) {
-
-        String userId = PrivilegedCarbonContext.getThreadLocalCarbonContext().getUserId();
-        int tenantId = IdentityTenantUtil.getTenantId(tenantDomain);
-
-        PrivilegedCarbonContext.startTenantFlow();
-        PrivilegedCarbonContext.getThreadLocalCarbonContext().setTenantDomain(tenantDomain);
-        PrivilegedCarbonContext.getThreadLocalCarbonContext().setTenantId(tenantId);
-        PrivilegedCarbonContext.getThreadLocalCarbonContext().setUserId(userId);
     }
 
     /**
