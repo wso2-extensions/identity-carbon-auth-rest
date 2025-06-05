@@ -77,6 +77,7 @@ import static org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil.i
 import static org.wso2.carbon.identity.auth.service.util.Constants.GET;
 import static org.wso2.carbon.identity.oauth.common.OAuthConstants.IMPERSONATING_ACTOR;
 import static org.wso2.carbon.identity.oauth2.OAuth2Constants.TokenBinderType.SSO_SESSION_BASED_TOKEN_BINDER;
+import static org.wso2.carbon.identity.oauth2.impersonation.utils.Constants.IMPERSONATION_ORG_SCOPE_NAME;
 import static org.wso2.carbon.identity.oauth2.impersonation.utils.Constants.IMPERSONATION_SCOPE_NAME;
 
 /**
@@ -339,7 +340,7 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
         List<String> impersonateMyAccountResourceConfigs = IdentityConfigParser
                 .getImpersonateMyAccountResourceConfigs();
         return !(MY_ACCOUNT_APPLICATION_CLIENT_ID.equals(clientId)
-                && scopes.contains(IMPERSONATION_SCOPE_NAME)
+                && (scopes.contains(IMPERSONATION_SCOPE_NAME) || scopes.contains(IMPERSONATION_ORG_SCOPE_NAME))
                 && !GET.equals(resourceConfig.getHttpMethod())
                 && impersonateMyAccountResourceConfigs.stream()
                     .noneMatch(resource -> resourceConfig.getContext().contains(resource)));
