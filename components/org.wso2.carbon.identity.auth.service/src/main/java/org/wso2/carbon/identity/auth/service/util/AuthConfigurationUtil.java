@@ -418,7 +418,6 @@ public class AuthConfigurationUtil {
                             authHeaderIdentifier.equals(splitAuthorizationHeader[0]);
                 } else {
                     // Case insensitive comparison.
-                    authHeaderIdentifier = authHeaderIdentifier.toLowerCase();
                     if (splitAuthorizationHeader.length > 0 && StringUtils.isNotEmpty(splitAuthorizationHeader[0])) {
                         return authHeaderIdentifier.equalsIgnoreCase(splitAuthorizationHeader[0]);
                     }
