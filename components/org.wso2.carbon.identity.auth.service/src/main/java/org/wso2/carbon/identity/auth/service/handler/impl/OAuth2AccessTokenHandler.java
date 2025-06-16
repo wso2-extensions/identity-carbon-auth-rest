@@ -112,7 +112,8 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
         if (authenticationRequest != null) {
 
             String authorizationHeader = authenticationRequest.getHeader(HttpHeaders.AUTHORIZATION);
-            if (StringUtils.isNotEmpty(authorizationHeader) && authorizationHeader.startsWith(OAUTH_HEADER)) {
+            if (StringUtils.isNotEmpty(authorizationHeader) && authorizationHeader.toLowerCase().
+                    startsWith(OAUTH_HEADER.toLowerCase())) {
                 String accessToken = null;
                 String[] bearerToken = authorizationHeader.split(" ");
 
@@ -491,7 +492,7 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
     @Override
     public boolean canHandle(MessageContext messageContext) {
 
-        return isAuthHeaderMatch(messageContext, OAUTH_HEADER);
+        return isAuthHeaderMatch(messageContext, OAUTH_HEADER, false );
     }
 
     /**
