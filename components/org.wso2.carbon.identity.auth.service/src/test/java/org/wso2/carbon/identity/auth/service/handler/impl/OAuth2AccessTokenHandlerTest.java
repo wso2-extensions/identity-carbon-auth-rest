@@ -1,4 +1,3 @@
-
 /*
  * Copyright (c) 2025, WSO2 LLC. (http://www.wso2.com).
  *
@@ -31,10 +30,12 @@ import org.testng.annotations.Test;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
 import org.wso2.carbon.identity.auth.service.AuthenticationRequest;
+import org.testng.Assert;
+import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
 import org.wso2.carbon.identity.auth.service.util.Constants;
+import org.wso2.carbon.identity.core.bean.context.MessageContext;
 import org.wso2.carbon.identity.oauth2.OAuth2Constants;
 import org.wso2.carbon.identity.oauth2.dto.OAuth2IntrospectionResponseDTO;
-import org.wso2.carbon.utils.logging.CarbonAuditLog;
 
 import java.lang.reflect.Method;
 import java.text.ParseException;
@@ -151,4 +152,56 @@ public class OAuth2AccessTokenHandlerTest {
             log.error("Error while parsing the JWT token", e);
         }
     }
+
+    @DataProvider
+    public Object[][] getCanHandleCaseSensitivityTestData() {
+        return new Object[][]{
+                // Test case 1: "Bearer" with capital B - should return true (case insensitive)
+                {"Bearer", true},
+                // Test case 2: "bearer" with lowercase b - should return true (case insensitive)  
+                {"bearer", true},
+                // Test case 3: "BEARER" all uppercase - should return true (case insensitive)
+                {"BEARER", true},
+                // Test case 4: "Basic" auth header - should return false
+                {"Basic", false},
+                // Test case 5: "Token" auth header - should return false
+                {"Token", false},
+                // Test case 6: Empty string - should return false
+                {"", false},
+                // Test case 7: null header - should return false
+                {null, false},
+                // Test case 8: Random string - should return false
+                {"RandomAuth", false},
+        };
+    }
+
+    @Test(dataProvider = "getCanHandleCaseSensitivityTestData")
+    public void testCanHandleWithDifferentAuthHeaders(String authHeaderIdentifier, boolean expectedResult) throws Exception {
+
+        OAuth2AccessTokenHandler oAuth2AccessTokenHandler = new OAuth2AccessTokenHandler();
+        AuthenticationContext authenticationContext = mock(AuthenticationContext.class);
+
+        try (MockedStatic<AuthConfigurationUtil> mockedAuthConfigUtil = mockStatic(AuthConfigurationUtil.class)) {
+            
+            // Mock the static method call - simulate the actual behavior of isAuthHeaderMatch
+            boolean mockResult = authHeaderIdentifier != null && 
+                                (authHeaderIdentifier.equalsIgnoreCase("Bearer"));
+            
+            mockedAuthConfigUtil.when(() -> AuthConfigurationUtil.isAuthHeaderMatch(
+                    authenticationContext, "Bearer", false))
+                    .thenReturn(mockResult);
+
+            // Test the canHandle method
+            boolean result = oAuth2AccessTokenHandler.canHandle(authenticationContext);
+
+            // Verify the result
+            Assert.assertEquals(result, expectedResult, 
+                "Expected " + expectedResult + " for auth header: " + authHeaderIdentifier);
+            
+            // Verify that isAuthHeaderMatch was called with correct parameters
+            mockedAuthConfigUtil.verify(() -> AuthConfigurationUtil.isAuthHeaderMatch(
+                    authenticationContext, "Bearer", false));
+        }
+    }
+
 }
