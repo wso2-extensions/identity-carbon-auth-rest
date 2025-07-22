@@ -54,7 +54,9 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
@@ -116,6 +118,11 @@ public class AuthorizationValve extends ValveBase {
                 }
                 if (resourceConfig != null && CollectionUtils.isNotEmpty(resourceConfig.getScopes())) {
                     authorizationContext.setRequiredScopes(resourceConfig.getScopes());
+                }
+                if (resourceConfig != null && resourceConfig.getOperationScopeMap() != null) {
+                    Map<String, String> operationScopeMap = new HashMap<>();
+                    operationScopeMap = resourceConfig.getOperationScopeMap();
+                    authorizationContext.setOperationScopeMap(operationScopeMap);
                 }
                 String contextPath = request.getContextPath();
                 String httpMethod = request.getMethod();
