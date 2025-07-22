@@ -41,17 +41,27 @@ import org.wso2.carbon.identity.authz.service.AuthorizationStatus;
 import org.wso2.carbon.identity.authz.service.exception.AuthzServiceServerException;
 import org.wso2.carbon.identity.authz.valve.internal.AuthorizationValveServiceHolder;
 import org.wso2.carbon.identity.authz.valve.util.Utils;
+import org.wso2.carbon.identity.core.context.IdentityContext;
+import org.wso2.carbon.identity.core.context.model.Organization;
+import org.wso2.carbon.identity.core.context.model.RootOrganization;
+import org.wso2.carbon.identity.core.internal.IdentityCoreServiceDataHolder;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.identity.organization.management.authz.service.OrganizationManagementAuthorizationContext;
+import org.wso2.carbon.identity.organization.management.service.OrganizationManager;
 import org.wso2.carbon.identity.organization.management.service.constant.OrganizationManagementConstants;
 import org.wso2.carbon.identity.organization.management.service.exception.OrganizationManagementException;
+import org.wso2.carbon.identity.organization.management.service.model.BasicOrganization;
+import org.wso2.carbon.user.api.Tenant;
+import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.utils.multitenancy.MultitenantConstants;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
@@ -76,6 +86,7 @@ public class AuthorizationValve extends ValveBase {
     public void invoke(Request request, Response response) throws IOException, ServletException {
 
         AuthenticationContext authenticationContext = (AuthenticationContext) request.getAttribute(AUTH_CONTEXT);
+        populateRootOrganizationInIdentityContext();
         if (authenticationContext != null &&
                 !(isUserEmpty(authenticationContext) && isClientEmpty(authenticationContext))) {
             ResourceConfig resourceConfig = authenticationContext.getResourceConfig();
@@ -300,11 +311,77 @@ public class AuthorizationValve extends ValveBase {
                 .setUserResidentOrganizationId(userResidentOrganizationId);
         PrivilegedCarbonContext.getThreadLocalCarbonContext().setOrganizationId(authorizedOrganization);
         try {
-            String authorizedTenantDomain = AuthorizationValveServiceHolder.getInstance().getOrganizationManager()
-                    .resolveTenantDomain(authorizedOrganization);
+            String authorizedTenantDomain = getOrganizationManager().resolveTenantDomain(authorizedOrganization);
             PrivilegedCarbonContext.getThreadLocalCarbonContext().setTenantDomain(authorizedTenantDomain, true);
+            populateOrganizationInIdentityContext(authorizedOrganization);
         } catch (OrganizationManagementException e) {
             throw new AuthRuntimeException("Error while resolving tenant domain by organization.", e);
         }
+    }
+
+    private void populateRootOrganizationInIdentityContext() {
+
+        int tenantId = IdentityContext.getThreadLocalIdentityContext().getTenantId();
+        if (MultitenantConstants.SUPER_TENANT_ID == tenantId) {
+            IdentityContext.getThreadLocalIdentityContext().setRootOrganization(new RootOrganization.Builder()
+                    .id(MultitenantConstants.SUPER_TENANT_ID)
+                    .name(MultitenantConstants.SUPER_TENANT_DOMAIN_NAME)
+                    .organizationId(OrganizationManagementConstants.SUPER_ORG_ID)
+                    .build());
+            return;
+        }
+
+        try {
+            Tenant tenant = IdentityCoreServiceDataHolder.getInstance().getRealmService().getTenantManager()
+                    .getTenant(tenantId);
+            if (tenant == null) {
+                log.debug("Tenant with id: " + tenantId + " does not exist. Cannot initialize root organization.");
+                return;
+            }
+
+            IdentityContext.getThreadLocalIdentityContext().setRootOrganization(new RootOrganization.Builder()
+                    .id(tenantId)
+                    .name(IdentityContext.getThreadLocalIdentityContext().getTenantDomain())
+                    .organizationId(tenant.getAssociatedOrganizationUUID())
+                    .build());
+        } catch (UserStoreException e) {
+            log.error("Error while retrieving tenant with id: " + tenantId, e);
+        }
+    }
+
+    private void populateOrganizationInIdentityContext(String organizationId) {
+
+        try {
+            int organizationDepth = getOrganizationManager().getOrganizationDepthInHierarchy(organizationId);
+            if (organizationDepth <
+                    org.wso2.carbon.identity.organization.management.service.util.Utils.getSubOrgStartLevel()) {
+                log.debug("Organization with id: " + organizationId + " is not a sub organization. " +
+                        "Skipping initialization of organization.");
+                return;
+            }
+
+            Map<String, BasicOrganization> organizationsMap = getOrganizationManager()
+                    .getBasicOrganizationDetailsByOrgIDs(Collections.singletonList(organizationId));
+            if (organizationsMap == null || organizationsMap.get(organizationId) == null) {
+                log.debug("No organization found for the organization id: " + organizationId +
+                        ". Cannot initialize organization.");
+                return;
+            }
+
+            BasicOrganization basicOrganizationInfo = organizationsMap.get(organizationId);
+            IdentityContext.getThreadLocalIdentityContext().setOrganization(new Organization.Builder()
+                    .id(basicOrganizationInfo.getId())
+                    .name(basicOrganizationInfo.getName())
+                    .organizationHandle(basicOrganizationInfo.getOrganizationHandle())
+                    .depth(organizationDepth)
+                    .build());
+        } catch (OrganizationManagementException e) {
+            log.error("Error while retrieving organization with id: " + organizationId, e);
+        }
+    }
+
+    private OrganizationManager getOrganizationManager() {
+
+        return AuthorizationValveServiceHolder.getInstance().getOrganizationManager();
     }
 }
