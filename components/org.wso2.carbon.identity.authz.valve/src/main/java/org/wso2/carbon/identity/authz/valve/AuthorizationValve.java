@@ -48,15 +48,13 @@ import org.wso2.carbon.identity.organization.management.authz.service.Organizati
 import org.wso2.carbon.identity.organization.management.service.OrganizationManager;
 import org.wso2.carbon.identity.organization.management.service.constant.OrganizationManagementConstants;
 import org.wso2.carbon.identity.organization.management.service.exception.OrganizationManagementException;
-import org.wso2.carbon.identity.organization.management.service.model.BasicOrganization;
+import org.wso2.carbon.identity.organization.management.service.model.MinimalOrganization;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.regex.Pattern;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
@@ -322,28 +320,27 @@ public class AuthorizationValve extends ValveBase {
         }
 
         try {
-            int organizationDepth = getOrganizationManager().getOrganizationDepthInHierarchy(organizationId);
-            if (organizationDepth <
+            MinimalOrganization minimalOrganization = getOrganizationManager().getMinimalOrganization(organizationId,
+                    null);
+
+            if (minimalOrganization == null) {
+                log.debug("No organization found for the organization id: " + organizationId +
+                        ". Cannot initialize organization.");
+                return;
+            }
+            if (minimalOrganization.getDepth() <
                     org.wso2.carbon.identity.organization.management.service.util.Utils.getSubOrgStartLevel()) {
                 log.debug("Organization with id: " + organizationId + " is not a sub organization. " +
                         "Skipping initialization of organization.");
                 return;
             }
 
-            Map<String, BasicOrganization> organizationsMap = getOrganizationManager()
-                    .getBasicOrganizationDetailsByOrgIDs(Collections.singletonList(organizationId));
-            if (organizationsMap.get(organizationId) == null) {
-                log.debug("No organization found for the organization id: " + organizationId +
-                        ". Cannot initialize organization.");
-                return;
-            }
-
-            BasicOrganization basicOrganizationInfo = organizationsMap.get(organizationId);
             IdentityContext.getThreadLocalIdentityContext().setOrganization(new Organization.Builder()
-                    .id(basicOrganizationInfo.getId())
-                    .name(basicOrganizationInfo.getName())
-                    .organizationHandle(basicOrganizationInfo.getOrganizationHandle())
-                    .depth(organizationDepth)
+                    .id(minimalOrganization.getId())
+                    .name(minimalOrganization.getName())
+                    .organizationHandle(minimalOrganization.getOrganizationHandle())
+                    .parentOrganizationId(minimalOrganization.getParentOrganizationId())
+                    .depth(minimalOrganization.getDepth())
                     .build());
         } catch (OrganizationManagementException e) {
             log.error("Error while retrieving organization with id: " + organizationId, e);
