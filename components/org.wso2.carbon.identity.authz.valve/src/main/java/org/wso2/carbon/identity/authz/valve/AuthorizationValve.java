@@ -147,6 +147,9 @@ public class AuthorizationValve extends ValveBase {
                 try {
                     AuthorizationResult authorizationResult = authorizationManager.authorize(authorizationContext);
                     if (authorizationResult.getAuthorizationStatus().equals(AuthorizationStatus.GRANT)) {
+                        String[] allowedScopes = authorizationContext.getParameter(OAUTH2_ALLOWED_SCOPES) == null ? null :
+                                (String[]) authorizationContext.getParameter(OAUTH2_ALLOWED_SCOPES);
+                        PrivilegedCarbonContext.getThreadLocalCarbonContext().setAllowedScopes(List.of(allowedScopes));
                         if (authorizationContext.getUser() instanceof AuthenticatedUser) {
                             String authorizedOrganization = ((AuthenticatedUser)authorizationContext.getUser())
                                     .getAccessingOrganization();

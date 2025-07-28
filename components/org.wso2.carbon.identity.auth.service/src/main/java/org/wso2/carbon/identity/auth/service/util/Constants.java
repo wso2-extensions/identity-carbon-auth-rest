@@ -19,6 +19,9 @@ public class Constants {
     public final static String RESOURCE_ALLOWED_AUTH_HANDLERS = "allowed-auth-handlers";
     public final static String RESOURCE_ALLOWED_AUTH_HANDLERS_ALL = "all";
 
+    public final static String AND = "AND";
+    public final static String OR = "OR";
+
     public final static String CLIENT_APP_AUTHENTICATION_ELE = "ClientAppAuthentication";
     public final static String APPLICATION_NAME_ATTR = "name";
     public final static String APPLICATION_HASH_ATTR = "hash";
