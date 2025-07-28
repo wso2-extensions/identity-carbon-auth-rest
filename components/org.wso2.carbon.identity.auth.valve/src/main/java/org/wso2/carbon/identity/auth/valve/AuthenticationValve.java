@@ -81,6 +81,7 @@ public class AuthenticationValve extends ValveBase {
     private static final String AUTH_CONTEXT = "auth-context";
     private static final String USER_AGENT = "User-Agent";
     private static final String REMOTE_ADDRESS = "remoteAddress";
+    private static final String NORMALIZED_REQUEST_URI = "normalizedRequestURI";
     private static final String SERVICE_PROVIDER_NAME = "serviceProvider";
     private static final String IMPERSONATOR = "impersonator";
     private static final String SERVICE_PROVIDER_UUID= "serviceProviderUUID";
@@ -112,6 +113,8 @@ public class AuthenticationValve extends ValveBase {
         try {
             validateRequestURI(request.getRequestURI());
             String normalizedRequestURI = AuthConfigurationUtil.getInstance().getNormalizedRequestURI(request.getRequestURI());
+            //add normalized request URI to thread local property
+            setThreadLocalNormalizedRequestURI(normalizedRequestURI);
             ResourceConfig securedResource = authenticationManager.getSecuredResource(
                     new ResourceConfigKey(normalizedRequestURI, request.getMethod()));
 
@@ -208,8 +211,11 @@ public class AuthenticationValve extends ValveBase {
             unsetAuthenticatedWithBasicAuth();
             // Clear thread local authentication type.
             unsetThreadLocalAuthenticationType();
+            // Clear thread local AUTHORIZED_SCOPES.
+            unsetAuthorizedScopesThreadLocal();
+            // Clear thread local NORMALIZED_REQUEST_URI.
+            unsetThreadLocalNormalizedRequestURI();
         }
-
 
     }
 
@@ -281,6 +287,22 @@ public class AuthenticationValve extends ValveBase {
         IdentityUtil.threadLocalProperties.get().remove(SERVICE_PROVIDER_NAME);
         IdentityUtil.threadLocalProperties.get().remove(SERVICE_PROVIDER_TENANT_DOMAIN);
         IdentityUtil.threadLocalProperties.get().remove(SERVICE_PROVIDER_UUID);
+    }
+
+    private void setThreadLocalNormalizedRequestURI(String normalizedRequestURI) {
+
+        if (StringUtils.isNotBlank(normalizedRequestURI)) {
+            IdentityUtil.threadLocalProperties.get().put(NORMALIZED_REQUEST_URI, normalizedRequestURI);
+        } else if (log.isDebugEnabled()) {
+            log.debug("Normalized request URI is not available to add to thread local property " + NORMALIZED_REQUEST_URI);
+        }
+    }
+
+    private void unsetThreadLocalNormalizedRequestURI() {
+
+        if (IdentityUtil.threadLocalProperties.get().get(NORMALIZED_REQUEST_URI) != null) {
+            IdentityUtil.threadLocalProperties.get().remove(NORMALIZED_REQUEST_URI);
+        }
     }
 
     private void unsetThreadLocalAuthenticationType() {
@@ -365,6 +387,13 @@ public class AuthenticationValve extends ValveBase {
                         + IdentityUtil.threadLocalProperties.get().get(FrameworkConstants.CURRENT_TOKEN_IDENTIFIER));
             }
             IdentityUtil.threadLocalProperties.get().remove(FrameworkConstants.CURRENT_TOKEN_IDENTIFIER);
+        }
+    }
+
+    private void unsetAuthorizedScopesThreadLocal() {
+
+        if (IdentityUtil.threadLocalProperties.get().get(Constants.AUTHORIZED_SCOPES) != null) {
+            IdentityUtil.threadLocalProperties.get().remove(Constants.AUTHORIZED_SCOPES);
         }
     }
 
