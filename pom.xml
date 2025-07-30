@@ -438,7 +438,7 @@
         <org.wso2.carbon.identity.cors.valve.version>${project.version}</org.wso2.carbon.identity.cors.valve.version>
 
         <!--Carbon identity version-->
-        <identity.framework.version>7.8.350</identity.framework.version>
+        <identity.framework.version>7.8.355</identity.framework.version>
         <carbon.identity.package.import.version.range>[5.17.8, 8.0.0)</carbon.identity.package.import.version.range>
 
         <org.wso2.carbon.identity.oauth.version>7.0.305</org.wso2.carbon.identity.oauth.version>
@@ -452,7 +452,7 @@
         </org.wso2.carbon.identity.organization.management.version>
         <org.wso2.carbon.identity.organization.management.version.range>[1.0.0, 3.0.0)
         </org.wso2.carbon.identity.organization.management.version.range>
-        <org.wso2.carbon.identity.organization.management.core.version>1.1.44
+        <org.wso2.carbon.identity.organization.management.core.version>1.1.45
         </org.wso2.carbon.identity.organization.management.core.version>
         <org.wso2.carbon.identity.organization.management.core.version.range>[1.0.0, 2.0.0)
         </org.wso2.carbon.identity.organization.management.core.version.range>
