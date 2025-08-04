@@ -47,6 +47,11 @@ import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.user.core.service.RealmService;
 import org.wso2.carbon.user.core.util.UserCoreUtil;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+
 import static org.wso2.carbon.identity.auth.service.util.Constants.OAUTH2_ALLOWED_SCOPES;
 import static org.wso2.carbon.identity.auth.service.util.Constants.OAUTH2_VALIDATE_SCOPE;
 import static org.wso2.carbon.identity.auth.service.util.Constants.RESOURCE_ORGANIZATION_ID;
@@ -171,6 +176,8 @@ public class AuthorizationHandler extends AbstractIdentityHandler {
     private void validateScopes(AuthorizationContext authorizationContext, AuthorizationResult authorizationResult, String[] allowedScopes) {
 
         boolean granted = true;
+        boolean operationScopesGranted = false;
+
         if (allowedScopes != null) {
             for (String scope : authorizationContext.getRequiredScopes()) {
                 if (!ArrayUtils.contains(allowedScopes, scope)) {
@@ -178,7 +185,19 @@ public class AuthorizationHandler extends AbstractIdentityHandler {
                     break;
                 }
             }
-            if (granted) {
+
+            // Check if at least one operation scope is satisfied
+            Map<String, String> operationScopeMap = authorizationContext.getOperationScopeMap();
+            if (operationScopeMap != null && !operationScopeMap.isEmpty()) {
+                for (String opScope : operationScopeMap.values()) {
+                    if (ArrayUtils.contains(allowedScopes, opScope)) {
+                        operationScopesGranted = true;
+                        break;
+                    }
+                }
+            }
+
+            if (granted || operationScopesGranted) {
                 authorizationResult.setAuthorizationStatus(AuthorizationStatus.GRANT);
             }
         }
