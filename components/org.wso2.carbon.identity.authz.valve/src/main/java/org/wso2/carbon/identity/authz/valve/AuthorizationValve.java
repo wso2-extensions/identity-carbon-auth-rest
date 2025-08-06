@@ -328,12 +328,6 @@ public class AuthorizationValve extends ValveBase {
                         ". Cannot initialize organization.");
                 return;
             }
-            if (minimalOrganization.getDepth() <
-                    org.wso2.carbon.identity.organization.management.service.util.Utils.getSubOrgStartLevel()) {
-                log.debug("Organization with id: " + organizationId + " is not a sub organization. " +
-                        "Skipping initialization of organization.");
-                return;
-            }
 
             IdentityContext.getThreadLocalIdentityContext().setOrganization(new Organization.Builder()
                     .id(minimalOrganization.getId())
