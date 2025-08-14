@@ -170,16 +170,12 @@ public class AuthorizationHandler extends AbstractIdentityHandler {
 
     private void validateScopes(AuthorizationContext authorizationContext, AuthorizationResult authorizationResult, String[] allowedScopes) {
 
-        boolean granted = true;
         if (allowedScopes != null) {
-            for (String scope : authorizationContext.getRequiredScopes()) {
-                if (!ArrayUtils.contains(allowedScopes, scope)) {
-                    granted = false;
-                    break;
+            for (String requiredScope : authorizationContext.getRequiredScopes()) {
+                if (ArrayUtils.contains(allowedScopes, requiredScope)) {
+                    authorizationResult.setAuthorizationStatus(AuthorizationStatus.GRANT);
+                    return;
                 }
-            }
-            if (granted) {
-                authorizationResult.setAuthorizationStatus(AuthorizationStatus.GRANT);
             }
         }
     }
