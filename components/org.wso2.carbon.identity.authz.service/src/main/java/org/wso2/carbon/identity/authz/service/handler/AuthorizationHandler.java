@@ -185,6 +185,7 @@ public class AuthorizationHandler extends AbstractIdentityHandler {
                     break;
                 }
             }
+            authorizationResult.setOperationScopeAuthorizationRequired(!granted);
 
             // Check if at least one operation scope is satisfied
             Map<String, String> operationScopeMap = authorizationContext.getOperationScopeMap();
