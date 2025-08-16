@@ -378,11 +378,11 @@
         <imp.pkg.version.javax.servlet>[2.6.0, 3.0.0)</imp.pkg.version.javax.servlet>
 
         <!-- Axis2 Version -->
-        <axis2.wso2.version>1.6.1-wso2v38</axis2.wso2.version>
-        <axis2.osgi.version.range>[1.6.1-wso2v38, 2.0.0)</axis2.osgi.version.range>
+        <axis2.wso2.version>1.6.1-wso2v105</axis2.wso2.version>
+        <axis2.osgi.version.range>[1.6.1-wso2v105, 2.0.0)</axis2.osgi.version.range>
 
         <!-- Axiom Version -->
-        <axiom.wso2.version>1.2.11-wso2v16</axiom.wso2.version>
+        <axiom.wso2.version>1.2.11-wso2v29</axiom.wso2.version>
         <axiom.osgi.version.range>[1.2.11, 2.0.0)</axiom.osgi.version.range>
 
         <!-- Commons Version -->
