@@ -391,7 +391,7 @@
 
         <commons-lang.wso2.version>2.6.0.wso2v1</commons-lang.wso2.version>
         <commons-lang.wso2.osgi.version.range>[2.6.0,3.0.0)</commons-lang.wso2.osgi.version.range>
-        <json.wso2.version>3.0.0.wso2v1</json.wso2.version>
+        <json.wso2.version>3.0.0.wso2v7</json.wso2.version>
         <com.google.code.gson.osgi.version.range>[2.3.1,3.0.0)</com.google.code.gson.osgi.version.range>
 
         <!-- Maven Plugin Version -->
