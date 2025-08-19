@@ -25,6 +25,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.wso2.carbon.context.OperationScopeValidationContext;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
@@ -54,9 +55,9 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.regex.Pattern;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
@@ -120,8 +121,7 @@ public class AuthorizationValve extends ValveBase {
                     authorizationContext.setRequiredScopes(resourceConfig.getScopes());
                 }
                 if (resourceConfig != null && resourceConfig.getOperationScopeMap() != null) {
-                    Map<String, String> operationScopeMap = new HashMap<>();
-                    operationScopeMap = resourceConfig.getOperationScopeMap();
+                    Map<String, String> operationScopeMap = resourceConfig.getOperationScopeMap();
                     authorizationContext.setOperationScopeMap(operationScopeMap);
                 }
                 String contextPath = request.getContextPath();
@@ -150,9 +150,21 @@ public class AuthorizationValve extends ValveBase {
                 try {
                     AuthorizationResult authorizationResult = authorizationManager.authorize(authorizationContext);
                     if (authorizationResult.getAuthorizationStatus().equals(AuthorizationStatus.GRANT)) {
-                        String[] allowedScopes = authorizationContext.getParameter(OAUTH2_ALLOWED_SCOPES) == null ? null :
-                                (String[]) authorizationContext.getParameter(OAUTH2_ALLOWED_SCOPES);
-                        PrivilegedCarbonContext.getThreadLocalCarbonContext().setAllowedScopes(List.of(allowedScopes));
+                        String[] validatedScopes = authorizationContext.getParameter(OAUTH2_ALLOWED_SCOPES) == null ?
+                                new String[0] : (String[]) authorizationContext.getParameter(OAUTH2_ALLOWED_SCOPES);
+                        String normalizedRequestURI = AuthConfigurationUtil.getInstance().getNormalizedRequestURI(
+                                request.getRequestURI());
+
+                        OperationScopeValidationContext operationScopeValidationContext =
+                                new OperationScopeValidationContext();
+                        operationScopeValidationContext.setNormalizedResourceURI(normalizedRequestURI);
+                        operationScopeValidationContext.setValidationRequired(
+                                authorizationResult.isOperationScopeAuthorizationRequired());
+                        operationScopeValidationContext.setValidatedScopes(
+                                Arrays.asList(Objects.requireNonNull(validatedScopes)));
+                        operationScopeValidationContext.setOperationScopeMap(authorizationContext.getOperationScopeMap());
+                        PrivilegedCarbonContext.getThreadLocalCarbonContext().setOperationScopeValidationContext(
+                                operationScopeValidationContext);
                         if (authorizationContext.getUser() instanceof AuthenticatedUser) {
                             String authorizedOrganization = ((AuthenticatedUser)authorizationContext.getUser())
                                     .getAccessingOrganization();
@@ -179,6 +191,8 @@ public class AuthorizationValve extends ValveBase {
                 } catch (AuthzServiceServerException e) {
                     APIErrorResponseHandler.handleErrorResponse(authenticationContext, response,
                             HttpServletResponse.SC_BAD_REQUEST, null);
+                } catch (URISyntaxException e) {
+                    throw new AuthRuntimeException("Error normalizing URL path: " + request.getRequestURI(), e);
                 }
             } else {
                 getNext().invoke(request, response);
