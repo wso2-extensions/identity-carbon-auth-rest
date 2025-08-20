@@ -47,8 +47,7 @@ import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.user.core.service.RealmService;
 import org.wso2.carbon.user.core.util.UserCoreUtil;
 
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -127,11 +126,13 @@ public class AuthorizationHandler extends AbstractIdentityHandler {
 
                 if (userId != null) {
                     authenticatedUser.setUserId(userId);
-                    boolean isAuthorized = AuthzUtil.isUserAuthorized(authenticatedUser,
-                            authorizationContext.getRequiredScopes());
-                    if (isAuthorized) {
-                        authorizationResult.setAuthorizationStatus(AuthorizationStatus.GRANT);
+                    List<String> allowedScopesByUserRole = AuthzUtil.getAuthorizedPermissions(authenticatedUser);
+                    if (authorizationContext.getParameter(OAUTH2_ALLOWED_SCOPES) == null) {
+                        authorizationContext.addParameter(OAUTH2_ALLOWED_SCOPES, allowedScopesByUserRole
+                                .toArray(new String[0]));
                     }
+                    authorizeUser(authorizationContext.getRequiredScopes(), authorizationContext.getOperationScopeMap(),
+                            authorizationResult, allowedScopesByUserRole);
                 }
             }
         } catch (UserStoreException | IdentityOAuth2Exception | OrganizationManagementException e) {
@@ -140,6 +141,34 @@ public class AuthorizationHandler extends AbstractIdentityHandler {
             throw new AuthzServiceServerException(errorMessage, e);
         }
         return authorizationResult;
+    }
+
+    private void authorizeUser(List<String> requiredScopes, Map<String, String> operationScopeMap,
+                               AuthorizationResult authorizationResult, List<String> allowedScopes)
+            throws IdentityOAuth2Exception {
+
+        // Required scope validation.
+        boolean isRequiredScopesGranted = new HashSet<>(allowedScopes).containsAll(requiredScopes);
+
+        // Operation scope validation.
+        // If operation scopes are not provided, we assume that the operation scope validation is not required.
+        boolean isOperationScopesGranted = false;
+        if (!isRequiredScopesGranted) {
+            if (operationScopeMap != null && !operationScopeMap.isEmpty()) {
+                for (String opScope : operationScopeMap.values()) {
+                    if (allowedScopes.contains(opScope)) {
+                        isOperationScopesGranted = true;
+                        authorizationResult.setOperationScopeAuthorizationRequired(false);
+                        break;
+                    }
+                }
+            }
+        }
+
+        authorizationResult.setOperationScopeAuthorizationRequired(!isRequiredScopesGranted);
+        if (isRequiredScopesGranted || isOperationScopesGranted) {
+            authorizationResult.setAuthorizationStatus(AuthorizationStatus.GRANT);
+        }
     }
 
     @Override

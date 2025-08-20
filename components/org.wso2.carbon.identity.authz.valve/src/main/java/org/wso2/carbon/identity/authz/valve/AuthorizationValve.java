@@ -129,7 +129,10 @@ public class AuthorizationValve extends ValveBase {
                 authorizationContext.setContext(contextPath);
                 authorizationContext.setHttpMethods(httpMethod);
                 authorizationContext.setUser(authenticationContext.getUser());
-                authorizationContext.addParameter(OAUTH2_ALLOWED_SCOPES, authenticationContext.getParameter(OAUTH2_ALLOWED_SCOPES));
+                if (authenticationContext.getParameter(OAUTH2_ALLOWED_SCOPES) != null) {
+                    authorizationContext.addParameter(OAUTH2_ALLOWED_SCOPES,
+                            authenticationContext.getParameter(OAUTH2_ALLOWED_SCOPES));
+                }
                 authorizationContext.addParameter(OAUTH2_VALIDATE_SCOPE, authenticationContext.getParameter(OAUTH2_VALIDATE_SCOPE));
                 authorizationContext.addParameter(VALIDATE_LEGACY_PERMISSIONS,
                         authenticationContext.getParameter(VALIDATE_LEGACY_PERMISSIONS));
@@ -152,12 +155,8 @@ public class AuthorizationValve extends ValveBase {
                     if (authorizationResult.getAuthorizationStatus().equals(AuthorizationStatus.GRANT)) {
                         String[] validatedScopes = authorizationContext.getParameter(OAUTH2_ALLOWED_SCOPES) == null ?
                                 new String[0] : (String[]) authorizationContext.getParameter(OAUTH2_ALLOWED_SCOPES);
-                        String normalizedRequestURI = AuthConfigurationUtil.getInstance().getNormalizedRequestURI(
-                                request.getRequestURI());
-
                         OperationScopeValidationContext operationScopeValidationContext =
                                 new OperationScopeValidationContext();
-                        operationScopeValidationContext.setNormalizedResourceURI(normalizedRequestURI);
                         operationScopeValidationContext.setValidationRequired(
                                 authorizationResult.isOperationScopeAuthorizationRequired());
                         operationScopeValidationContext.setValidatedScopes(
@@ -191,8 +190,6 @@ public class AuthorizationValve extends ValveBase {
                 } catch (AuthzServiceServerException e) {
                     APIErrorResponseHandler.handleErrorResponse(authenticationContext, response,
                             HttpServletResponse.SC_BAD_REQUEST, null);
-                } catch (URISyntaxException e) {
-                    throw new AuthRuntimeException("Error normalizing URL path: " + request.getRequestURI(), e);
                 }
             } else {
                 getNext().invoke(request, response);
