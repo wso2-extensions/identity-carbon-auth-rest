@@ -64,6 +64,10 @@ import javax.xml.stream.XMLStreamException;
 import static org.wso2.carbon.identity.auth.service.util.Constants.AUTHORIZATION_CONTROL_ELE;
 import static org.wso2.carbon.identity.auth.service.util.Constants.AUTH_HANDLER_ELE;
 import static org.wso2.carbon.identity.auth.service.util.Constants.ENDPOINT_LIST_ELE;
+import static org.wso2.carbon.identity.auth.service.util.Constants.RESOURCE_OPERATIONS_ELE;
+import static org.wso2.carbon.identity.auth.service.util.Constants.RESOURCE_OPERATION_ELE;
+import static org.wso2.carbon.identity.auth.service.util.Constants.RESOURCE_OPERATION_ELE_NAME_ATTR;
+import static org.wso2.carbon.identity.auth.service.util.Constants.RESOURCE_OPERATION_ELE_SCOPE_ATTR;
 import static org.wso2.carbon.identity.auth.service.util.Constants.SKIP_AUTHORIZATION_ELE;
 
 public class AuthConfigurationUtil {
@@ -186,19 +190,21 @@ public class AuthConfigurationUtil {
 
                     // Parse <Operations> if present
                     Iterator<OMElement> operationsElementItr = resource.getChildrenWithName(
-                            new QName(IdentityCoreConstants.IDENTITY_DEFAULT_NAMESPACE, "Operations"));
+                            new QName(IdentityCoreConstants.IDENTITY_DEFAULT_NAMESPACE, RESOURCE_OPERATIONS_ELE));
 
                     if (operationsElementItr != null && operationsElementItr.hasNext()) {
                         OMElement operationsElement = operationsElementItr.next();  // There should be only one <Operations> per <Resource>
                         Iterator<OMElement> operationElements = operationsElement.getChildrenWithName(
-                                new QName(IdentityCoreConstants.IDENTITY_DEFAULT_NAMESPACE, "Operation"));
+                                new QName(IdentityCoreConstants.IDENTITY_DEFAULT_NAMESPACE, RESOURCE_OPERATION_ELE));
 
                         Map<String, String> operationScopeMap = new HashMap<>();
                         while (operationElements.hasNext()) {
                             OMElement operationElement = operationElements.next();
-                            String operationName = operationElement.getAttributeValue(new QName("name"));
-                            OMElement scopeElement = operationElement.getFirstChildWithName(
-                                    new QName(IdentityCoreConstants.IDENTITY_DEFAULT_NAMESPACE, "scope"));
+                            String operationName = operationElement.getAttributeValue(new QName(
+                                    RESOURCE_OPERATION_ELE_NAME_ATTR));
+                            OMElement scopeElement = operationElement.getFirstChildWithName(new QName(
+                                    IdentityCoreConstants.IDENTITY_DEFAULT_NAMESPACE,
+                                    RESOURCE_OPERATION_ELE_SCOPE_ATTR));
 
                             if (StringUtils.isNotBlank(operationName) && scopeElement != null &&
                                     StringUtils.isNotBlank(scopeElement.getText())) {
@@ -510,47 +516,4 @@ public class AuthConfigurationUtil {
         }
         return null;
     }
-
-    /**
-     * Retrieve the scope associated with a specific operation by searching through all resource configurations.
-     *
-     * @param operationName The name of the operation to lookup.
-     * @return The scope associated with the operation, or null if not found.
-     * @throws IllegalArgumentException if operationName is null or empty.
-     */
-    public String getScopeForOperation(String operationName) {
-
-        if (StringUtils.isBlank(operationName)) {
-            throw new IllegalArgumentException("Operation name cannot be null or empty");
-        }
-
-        if (resourceConfigMap == null || resourceConfigMap.isEmpty()) {
-            log.debug("No resource configurations available to search for operation: " + operationName);
-            return null;
-        }
-
-        for (ResourceConfig resourceConfig : resourceConfigMap.values()) {
-            if (resourceConfig == null) {
-                continue;
-            }
-            
-            Map<String, String> operationScopeMap = resourceConfig.getOperationScopeMap();
-            if (operationScopeMap == null || operationScopeMap.isEmpty()) {
-                continue;
-            }
-            
-            String scope = operationScopeMap.get(operationName);
-            if (scope != null) {
-                if (log.isDebugEnabled()) {
-                    log.debug("Found scope '" + scope + "' for operation '" + operationName + "'");
-                }
-                return scope;
-            }
-        }
-
-        log.debug("No scope found for operation: " + operationName);
-        return null;
-    }
-
-
 }

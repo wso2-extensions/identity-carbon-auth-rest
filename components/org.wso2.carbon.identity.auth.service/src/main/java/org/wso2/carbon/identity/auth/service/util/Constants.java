@@ -12,15 +12,16 @@ public class Constants {
     public final static String RESOURCE_HTTP_METHOD_ATTR = "http-method";
     public final static String RESOURCE_PERMISSION_ELE = "Permissions";
     public final static String RESOURCE_SCOPE_ELE = "Scopes";
+    public final static String RESOURCE_OPERATIONS_ELE = "Operations";
+    public final static String RESOURCE_OPERATION_ELE = "Operation";
+    public final static String RESOURCE_OPERATION_ELE_NAME_ATTR = "name";
+    public final static String RESOURCE_OPERATION_ELE_SCOPE_ATTR = "scope";
     public final static String OAUTH2_ALLOWED_SCOPES = "oauth2-allowed-scopes";
     public final static String OAUTH2_VALIDATE_SCOPE = "oauth2-validate-scopes";
     public final static String RESOURCE_CROSS_TENANT_ATTR = "cross-tenant";
     public final static String RESOURCE_CROSS_ACCESS_ALLOWED_TENANTS = "cross-access-allowed-tenants";
     public final static String RESOURCE_ALLOWED_AUTH_HANDLERS = "allowed-auth-handlers";
     public final static String RESOURCE_ALLOWED_AUTH_HANDLERS_ALL = "all";
-
-    public final static String AND = "AND";
-    public final static String OR = "OR";
 
     public final static String CLIENT_APP_AUTHENTICATION_ELE = "ClientAppAuthentication";
     public final static String APPLICATION_NAME_ATTR = "name";
