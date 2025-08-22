@@ -64,6 +64,10 @@ import javax.xml.stream.XMLStreamException;
 import static org.wso2.carbon.identity.auth.service.util.Constants.AUTHORIZATION_CONTROL_ELE;
 import static org.wso2.carbon.identity.auth.service.util.Constants.AUTH_HANDLER_ELE;
 import static org.wso2.carbon.identity.auth.service.util.Constants.ENDPOINT_LIST_ELE;
+import static org.wso2.carbon.identity.auth.service.util.Constants.RESOURCE_OPERATIONS_ELE;
+import static org.wso2.carbon.identity.auth.service.util.Constants.RESOURCE_OPERATION_ELE;
+import static org.wso2.carbon.identity.auth.service.util.Constants.RESOURCE_OPERATION_ELE_NAME_ATTR;
+import static org.wso2.carbon.identity.auth.service.util.Constants.RESOURCE_OPERATION_ELE_SCOPE_ATTR;
 import static org.wso2.carbon.identity.auth.service.util.Constants.SKIP_AUTHORIZATION_ELE;
 
 public class AuthConfigurationUtil {
@@ -95,8 +99,8 @@ public class AuthConfigurationUtil {
 
     public ResourceConfig getSecuredConfig(ResourceConfigKey resourceConfigKey) {
         ResourceConfig resourceConfig = null;
-        for ( Map.Entry<ResourceConfigKey, ResourceConfig> entry : resourceConfigMap.entrySet() ) {
-            if ( entry.getKey().equals(resourceConfigKey) ) {
+        for (Map.Entry<ResourceConfigKey, ResourceConfig> entry : resourceConfigMap.entrySet()) {
+            if (entry.getKey().equals(resourceConfigKey)) {
                 resourceConfig = entry.getValue();
                 break;
             }
@@ -110,7 +114,7 @@ public class AuthConfigurationUtil {
     public void buildResourceAccessControlData() {
 
         OMElement resourceAccessControl = getResourceAccessControlConfigs();
-        if ( resourceAccessControl != null ) {
+        if (resourceAccessControl != null) {
             defaultAccess = resourceAccessControl.getAttributeValue(new QName(Constants.RESOURCE_DEFAULT_ACCESS));
             isScopeValidationEnabled = !Boolean.parseBoolean(resourceAccessControl
                     .getAttributeValue(new QName(Constants.RESOURCE_DISABLE_SCOPE_VALIDATION)));
@@ -118,7 +122,7 @@ public class AuthConfigurationUtil {
                     new QName(IdentityCoreConstants.IDENTITY_DEFAULT_NAMESPACE, Constants.RESOURCE_ELE));
             if ( resources != null ) {
 
-                while ( resources.hasNext() ) {
+                while (resources.hasNext()) {
                     OMElement resource = resources.next();
                     ResourceConfig resourceConfig = new ResourceConfig();
                     String httpMethod = resource.getAttributeValue(
@@ -183,6 +187,35 @@ public class AuthConfigurationUtil {
                     resourceConfig.setAllowedAuthHandlers(allowedAuthHandlers);
                     resourceConfig.setPermissions(permissionBuilder.toString());
                     resourceConfig.setScopes(scopes);
+
+                    // Parse <Operations> if present
+                    Iterator<OMElement> operationsElementItr = resource.getChildrenWithName(
+                            new QName(IdentityCoreConstants.IDENTITY_DEFAULT_NAMESPACE, RESOURCE_OPERATIONS_ELE));
+
+                    if (operationsElementItr != null && operationsElementItr.hasNext()) {
+                        OMElement operationsElement = operationsElementItr.next();  // There should be only one <Operations> per <Resource>
+                        Iterator<OMElement> operationElements = operationsElement.getChildrenWithName(
+                                new QName(IdentityCoreConstants.IDENTITY_DEFAULT_NAMESPACE, RESOURCE_OPERATION_ELE));
+
+                        Map<String, String> operationScopeMap = new HashMap<>();
+                        while (operationElements.hasNext()) {
+                            OMElement operationElement = operationElements.next();
+                            String operationName = operationElement.getAttributeValue(new QName(
+                                    RESOURCE_OPERATION_ELE_NAME_ATTR));
+                            OMElement scopeElement = operationElement.getFirstChildWithName(new QName(
+                                    IdentityCoreConstants.IDENTITY_DEFAULT_NAMESPACE,
+                                    RESOURCE_OPERATION_ELE_SCOPE_ATTR));
+
+                            if (StringUtils.isNotBlank(operationName) && scopeElement != null &&
+                                    StringUtils.isNotBlank(scopeElement.getText())) {
+                                operationScopeMap.put(operationName, scopeElement.getText());
+                            }
+                        }
+                        if (!operationScopeMap.isEmpty()) {
+                            resourceConfig.setOperationScopeMap(operationScopeMap);
+                        }
+                    }
+
                     ResourceConfigKey resourceConfigKey = new ResourceConfigKey(context, httpMethod);
                     if (!resourceConfigMap.containsKey(resourceConfigKey)) {
                         resourceConfigMap.put(resourceConfigKey, resourceConfig);
@@ -426,6 +459,7 @@ public class AuthConfigurationUtil {
         }
         return false;
     }
+
     /**
      * Build configurations of endpoints which are allowed to skip authorization with particular auth handler.
      */

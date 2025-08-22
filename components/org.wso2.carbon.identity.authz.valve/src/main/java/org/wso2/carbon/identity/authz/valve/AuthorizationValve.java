@@ -25,6 +25,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.wso2.carbon.context.OperationScopeValidationContext;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
@@ -55,6 +56,8 @@ import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.regex.Pattern;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
@@ -117,12 +120,19 @@ public class AuthorizationValve extends ValveBase {
                 if (resourceConfig != null && CollectionUtils.isNotEmpty(resourceConfig.getScopes())) {
                     authorizationContext.setRequiredScopes(resourceConfig.getScopes());
                 }
+                if (resourceConfig != null && resourceConfig.getOperationScopeMap() != null) {
+                    Map<String, String> operationScopeMap = resourceConfig.getOperationScopeMap();
+                    authorizationContext.setOperationScopeMap(operationScopeMap);
+                }
                 String contextPath = request.getContextPath();
                 String httpMethod = request.getMethod();
                 authorizationContext.setContext(contextPath);
                 authorizationContext.setHttpMethods(httpMethod);
                 authorizationContext.setUser(authenticationContext.getUser());
-                authorizationContext.addParameter(OAUTH2_ALLOWED_SCOPES, authenticationContext.getParameter(OAUTH2_ALLOWED_SCOPES));
+                if (authenticationContext.getParameter(OAUTH2_ALLOWED_SCOPES) != null) {
+                    authorizationContext.addParameter(OAUTH2_ALLOWED_SCOPES,
+                            authenticationContext.getParameter(OAUTH2_ALLOWED_SCOPES));
+                }
                 authorizationContext.addParameter(OAUTH2_VALIDATE_SCOPE, authenticationContext.getParameter(OAUTH2_VALIDATE_SCOPE));
                 authorizationContext.addParameter(VALIDATE_LEGACY_PERMISSIONS,
                         authenticationContext.getParameter(VALIDATE_LEGACY_PERMISSIONS));
@@ -143,6 +153,17 @@ public class AuthorizationValve extends ValveBase {
                 try {
                     AuthorizationResult authorizationResult = authorizationManager.authorize(authorizationContext);
                     if (authorizationResult.getAuthorizationStatus().equals(AuthorizationStatus.GRANT)) {
+                        String[] validatedScopes = authorizationContext.getParameter(OAUTH2_ALLOWED_SCOPES) == null ?
+                                new String[0] : (String[]) authorizationContext.getParameter(OAUTH2_ALLOWED_SCOPES);
+                        OperationScopeValidationContext operationScopeValidationContext =
+                                new OperationScopeValidationContext();
+                        operationScopeValidationContext.setValidationRequired(
+                                authorizationResult.isOperationScopeAuthorizationRequired());
+                        operationScopeValidationContext.setValidatedScopes(
+                                Arrays.asList(Objects.requireNonNull(validatedScopes)));
+                        operationScopeValidationContext.setOperationScopeMap(authorizationContext.getOperationScopeMap());
+                        PrivilegedCarbonContext.getThreadLocalCarbonContext().setOperationScopeValidationContext(
+                                operationScopeValidationContext);
                         if (authorizationContext.getUser() instanceof AuthenticatedUser) {
                             String authorizedOrganization = ((AuthenticatedUser)authorizationContext.getUser())
                                     .getAccessingOrganization();

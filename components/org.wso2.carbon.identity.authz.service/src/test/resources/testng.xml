@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd">
+<suite name="identity-authz-service-test-suite">
+    <test name="AuthorizationHandlerTest">
+        <classes>
+            <class name="org.wso2.carbon.identity.authz.service.handler.AuthorizationHandlerTest"/>
+        </classes>
+    </test>
+</suite>
