@@ -393,12 +393,12 @@ public class AuthConfigurationUtil {
 
                 String trustedIssuer = getChildText(m, Constants.TRUSTED_ISSUER_ELE);
                 if (StringUtils.isEmpty(trustedIssuer)) {
-                    log.warn("Skipping user mapping: missing <TrustedIssuer>.");
+                    log.warn("Skipping user mapping. Missing 'trusted_issuer'.");
                     continue;
                 }
 
                 if (Constants.WILDCARD.equals(trustedIssuer)) {
-                    log.warn("Skipping user mapping: <TrustedIssuer> cannot be '*'.");
+                    log.warn("Skipping user thumbprint mapping. 'trusted_issuer' cannot be '*'.");
                     continue;
                 }
 
@@ -434,12 +434,12 @@ public class AuthConfigurationUtil {
 
                 String trustedIssuer = getChildText(m, Constants.TRUSTED_ISSUER_ELE);
                 if (StringUtils.isEmpty(trustedIssuer)) {
-                    log.warn("Skipping system mapping: missing <TrustedIssuer>.");
+                    log.warn("Skipping system thumbprint mapping. Missing 'trusted_issuer'.");
                     continue;
                 }
 
                 if (Constants.WILDCARD.equals(trustedIssuer)) {
-                    log.warn("Skipping sysem mapping: <TrustedIssuer> cannot be '*'.");
+                    log.warn("Skipping system thumbprint mapping. 'trusted_issuer' cannot be '*'.");
                     continue;
                 }
 

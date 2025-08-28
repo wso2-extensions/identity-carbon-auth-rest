@@ -272,7 +272,7 @@ public class ClientCertificateBasedAuthenticationHandler extends AuthenticationH
                             if (wildcardMap.isPresent()) {
                                 String allowedUser = wildcardMap.get().getAllowedSystemUser();
                                 if (Constants.WILDCARD.equals(allowedUser)) {
-                                    // To preserver the backward compatible behaviour.
+                                    // To preserve the backward compatibility.
                                     authenticationResult.setAuthenticationStatus(AuthenticationStatus.SUCCESS);
                                     return authenticationResult;
                                 }
@@ -430,9 +430,6 @@ public class ClientCertificateBasedAuthenticationHandler extends AuthenticationH
         if (StringUtils.isEmpty(trustedDN) || StringUtils.isEmpty(certDN)) {
             return false;
         }
-        if (StringUtils.isEmpty(trustedDN) && StringUtils.isEmpty(certDN)) {
-            return false;
-        }
 
         if (certDN.equals(trustedDN)) {
             return true;
@@ -441,7 +438,6 @@ public class ClientCertificateBasedAuthenticationHandler extends AuthenticationH
         // Normalize and compare DN components.
         String normalizedDN1 = normalizeDN(certDN);
         String normalizedDN2 = normalizeDN(trustedDN);
-
         return normalizedDN1.equals(normalizedDN2);
     }
 
