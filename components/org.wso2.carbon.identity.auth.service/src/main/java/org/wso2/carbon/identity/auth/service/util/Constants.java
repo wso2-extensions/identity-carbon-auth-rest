@@ -1,5 +1,22 @@
-package org.wso2.carbon.identity.auth.service.util;
+/*
+ * Copyright (c) 2016-2025, WSO2 LLC. (https://www.wso2.com).
+ *
+ * WSO2 LLC. licenses this file to you under the Apache License,
+ * Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 
+package org.wso2.carbon.identity.auth.service.util;
 
 public class Constants {
 
@@ -32,10 +49,19 @@ public class Constants {
 
     public static final String INTERMEDIATE_CERT_VALIDATION_ELE = "IntermediateCertValidation";
     public static final String INTERMEDIATE_CERTS_ELE = "IntermediateCerts";
+    public static final String TRUSTED_ISSUER_ELE = "TrustedIssuer";
     public static final String EXEMPT_CONTEXT_ELE = "ExemptContext";
     public static final String CERT_CN_ELE = "CertCN";
+    public static final String USER_THUMBPRINT_MAPPINGS = "UserThumbprintMappings";
+    public static final String LOG_CLIENT_CERT_INFO_ENABLED = "LogClientCertInfoEnabled";
+    public static final String CERT_THUMBPRINT = "CertThumbprint";
+    public static final String MAPPING = "Mapping";
+    public static final String SYSTEM_THUMBPRINT_MAPPINGS = "SystemThumbprintMappings";
+    public static final String ALLOWED_USERNAME = "AllowedUsername";
+    public static final String ALLOWED_SYSTEM_USER = "AllowedSystemUser";
     public final static String CONTEXT_ELE = "Context";
     public final static String CERT_AUTHENTICATION_ENABLE_ATTR = "enable";
+    public final static String CERT_BASED_AUTHENTICATION_ELE = "ClientCertBasedAuthentication";
     public final static String DENY_DEFAULT_ACCESS = "deny";
 
     public final static String COOKIE_BASED_TOKEN_BINDING = "cookie";
@@ -88,4 +114,5 @@ public class Constants {
     public static final String HTTP_METHOD = "httpMethod";
     public static final String CLIENT_ID = "clientId";
     public static final String SCOPE = "scope";
+    public static final String WILDCARD = "*";
 }
