@@ -189,7 +189,7 @@ public class ClientCertificateBasedAuthenticationHandler extends AuthenticationH
                         Optional<AuthConfigurationUtil.CertUserMapping> exactMatch =
                                 certUserMapping.stream()
                                         .filter(m -> isDNEqual(certIssuer, m.getAllowedIssuer()) &&
-                                                thumbprint.equals(m.getAllowedThumbprint()))
+                                                thumbprint.equalsIgnoreCase(m.getAllowedThumbprint()))
                                         .findFirst();
 
                         if (exactMatch.isPresent()) {
