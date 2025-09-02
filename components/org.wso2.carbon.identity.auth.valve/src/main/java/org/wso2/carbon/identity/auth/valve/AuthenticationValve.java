@@ -194,6 +194,8 @@ public class AuthenticationValve extends ValveBase {
 
             // Clear thread local service provider info.
             unsetThreadLocalServiceProvider();
+            // Clear thread local authenticated user.
+            IdentityUtil.threadLocalProperties.get().remove(Constants.AUTHENTICATED_USER);
             // Clear thread local current session id.
             unsetCurrentSessionIdThreadLocal();
             // Clear thread local authenticated user tenant domain.
