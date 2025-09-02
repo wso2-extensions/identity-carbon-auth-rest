@@ -32,6 +32,7 @@ import org.wso2.carbon.identity.auth.service.exception.AuthClientException;
 import org.wso2.carbon.identity.auth.service.exception.AuthServerException;
 import org.wso2.carbon.identity.auth.service.exception.AuthenticationFailException;
 import org.wso2.carbon.identity.auth.service.internal.AuthenticationServiceHolder;
+import org.wso2.carbon.identity.auth.service.util.Constants;
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
 import org.wso2.carbon.identity.core.handler.AbstractIdentityMessageHandler;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
@@ -119,6 +120,7 @@ public abstract class AuthenticationHandler extends AbstractIdentityMessageHandl
                     if (user instanceof AuthenticatedUser) {
                         PrivilegedCarbonContext.getThreadLocalCarbonContext()
                                 .setUserId(((AuthenticatedUser) user).getUserId());
+                        IdentityUtil.threadLocalProperties.get().put(Constants.AUTHENTICATED_USER, user);
                     } else {
                         AuthenticatedUser authenticatedUser = new AuthenticatedUser(user);
                         PrivilegedCarbonContext.getThreadLocalCarbonContext()
