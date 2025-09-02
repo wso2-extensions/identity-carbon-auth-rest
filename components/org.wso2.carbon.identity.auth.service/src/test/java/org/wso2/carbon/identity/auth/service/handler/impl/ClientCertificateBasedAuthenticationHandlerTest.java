@@ -106,7 +106,6 @@ public class ClientCertificateBasedAuthenticationHandlerTest {
         staticAuthConfig.when(AuthConfigurationUtil::getInstance).thenReturn(cfg);
 
         when(cfg.IsClientCertBasedAuthnEnabled()).thenReturn(true);
-        when(cfg.IsLogEnabled()).thenReturn(false);
         when(cfg.isIntermediateCertValidationEnabled()).thenReturn(false);
         when(cfg.getExemptedContextList()).thenReturn(Collections.emptyList());
         when(cfg.getIntermediateCertCNList()).thenReturn(Collections.emptyList());

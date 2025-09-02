@@ -83,7 +83,6 @@ public class AuthConfigurationUtil {
     private List<String> exemptedContextList = new ArrayList<>();
     private Map<String, String[]> skipAuthorizationAllowedEndpoints = new HashMap<>();
     private boolean isIntermediateCertValidationEnabled = false;
-    private boolean clientCertBasedAuthnLogEnabled = false;
     private boolean isClientCertBasedAuthnEnabled = false;
     private static final String SECRET_ALIAS = "secretAlias";
     private static final String SECRET_ALIAS_NAMESPACE_URI = "http://org.wso2.securevault/configuration";
@@ -376,13 +375,6 @@ public class AuthConfigurationUtil {
             return;
         }
 
-        OMElement logEnabledEle = root.getFirstChildWithName(
-                new QName(IdentityCoreConstants.IDENTITY_DEFAULT_NAMESPACE, Constants.LOG_CLIENT_CERT_INFO_ENABLED));
-        if (logEnabledEle == null) {
-            logEnabledEle = root.getFirstChildWithName(new QName(Constants.LOG_CLIENT_CERT_INFO_ENABLED));
-        }
-        clientCertBasedAuthnLogEnabled = logEnabledEle != null && Boolean.parseBoolean(logEnabledEle.getText());
-
         OMElement userMappingsEle = root.getFirstChildWithName(
                 new QName(IdentityCoreConstants.IDENTITY_DEFAULT_NAMESPACE, Constants.USER_THUMBPRINT_MAPPINGS));
         if (userMappingsEle != null) {
@@ -542,11 +534,6 @@ public class AuthConfigurationUtil {
     public boolean IsClientCertBasedAuthnEnabled() {
 
         return isClientCertBasedAuthnEnabled;
-    }
-
-    public boolean IsLogEnabled() {
-
-        return clientCertBasedAuthnLogEnabled;
     }
 
     public List<CertUserMapping> getCertUserMappings() {

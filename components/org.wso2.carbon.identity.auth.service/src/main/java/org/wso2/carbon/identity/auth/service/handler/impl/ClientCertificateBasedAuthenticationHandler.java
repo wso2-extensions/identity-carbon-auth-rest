@@ -31,6 +31,7 @@ import org.wso2.carbon.identity.auth.service.exception.AuthClientException;
 import org.wso2.carbon.identity.auth.service.exception.AuthServerException;
 import org.wso2.carbon.identity.auth.service.exception.AuthenticationFailException;
 import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
+import org.wso2.carbon.identity.auth.service.internal.AuthenticationServiceHolder;
 import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
 import org.wso2.carbon.identity.auth.service.util.Constants;
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
@@ -38,6 +39,10 @@ import org.wso2.carbon.identity.core.context.IdentityContext;
 import org.wso2.carbon.identity.core.context.model.ApplicationActor;
 import org.wso2.carbon.identity.core.context.model.UserActor;
 import org.wso2.carbon.identity.core.handler.InitConfig;
+import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
+import org.wso2.carbon.user.api.UserRealm;
+import org.wso2.carbon.user.core.UserStoreException;
+import org.wso2.carbon.user.core.common.AbstractUserStoreManager;
 import org.wso2.carbon.user.core.util.UserCoreUtil;
 import org.wso2.carbon.utils.multitenancy.MultitenantConstants;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
@@ -163,11 +168,6 @@ public class ClientCertificateBasedAuthenticationHandler extends AuthenticationH
                         throw new AuthenticationFailException("Error occurred while retrieving certificate " +
                                 "thumbprint.", e);
                     }
-
-                    if (AuthConfigurationUtil.getInstance().IsLogEnabled()) {
-                        log.info("mTLS Certificate Thumbprint : " + thumbprint + ", Issuer : " + certIssuer +
-                                " for the request made by user: " + username);
-                    }
                     if (StringUtils.isNotEmpty(username)) {
                         //  USER-BASED AUTH
                         List<AuthConfigurationUtil.CertUserMapping> certUserMapping =
@@ -286,33 +286,60 @@ public class ClientCertificateBasedAuthenticationHandler extends AuthenticationH
                 }
 
                 if (StringUtils.isNotEmpty(username)) {
-                    String tenantDomain = MultitenantUtils.getTenantDomain(username);
+                    try {
+                        // username is expected to be fully qualified. Eg: <UserStoreDomain>/<Username>@<TenantDomain>
+                        String tenantDomain = MultitenantUtils.getTenantDomain(username);
+                        int tenantId = IdentityTenantUtil.getTenantIdOfUser(username);
 
-                    // Get rid of the tenant domain name suffix, if the user belongs to the super tenant.
-                    if (MultitenantConstants.SUPER_TENANT_DOMAIN_NAME.equals(tenantDomain)) {
+                        // Get rid of the tenant domain name suffix, if the user belongs to the super tenant.
+                        if (MultitenantConstants.SUPER_TENANT_DOMAIN_NAME.equals(tenantDomain)) {
 
-                        String superTenantSuffix = "@" + MultitenantConstants.SUPER_TENANT_DOMAIN_NAME;
+                            String superTenantSuffix = "@" + MultitenantConstants.SUPER_TENANT_DOMAIN_NAME;
 
-                        if (username.endsWith(superTenantSuffix)) {
-                            username = username.substring(0, username.length() - superTenantSuffix.length());
+                            if (username.endsWith(superTenantSuffix)) {
+                                username = username.substring(0, username.length() - superTenantSuffix.length());
+                            }
+                        } else {
+                            int lastAtIndex = username.lastIndexOf('@');
+                            if (lastAtIndex != -1) {
+                                username = username.substring(0, lastAtIndex);
+                            }
                         }
-                    }
-                    String userStoreDomain = UserCoreUtil.extractDomainFromName(username);
-                    username = UserCoreUtil.removeDomainFromName(username);
+                        String userStoreDomain = UserCoreUtil.extractDomainFromName(username);
+                        username = UserCoreUtil.removeDomainFromName(username);
 
-                    AuthenticatedUser user = new AuthenticatedUser();
-                    user.setUserName(MultitenantUtils.getTenantAwareUsername(username));
-                    user.setTenantDomain(tenantDomain);
-                    user.setUserStoreDomain(userStoreDomain);
+                        // Check if user exists in the user store.
+                        AbstractUserStoreManager userStoreManager;
+                        UserRealm userRealm = AuthenticationServiceHolder.getInstance().getRealmService().
+                                getTenantUserRealm(tenantId);
+                        if (userRealm != null) {
+                            userStoreManager = (AbstractUserStoreManager) userRealm.getUserStoreManager();
+                            boolean userExists = userStoreManager.isExistingUser(username);
 
-                    authenticationContext.setUser(user);
+                            if (!userExists) {
+                                if (log.isDebugEnabled()) {
+                                    log.debug("Authentication failed. User: " + username + " does not exist.");
+                                }
+                                return authenticationResult;
+                            }
+                        }
 
-                    authenticationResult.setAuthenticationStatus(AuthenticationStatus.SUCCESS);
-                    addActorToIdentityContext(user);
+                        AuthenticatedUser user = new AuthenticatedUser();
+                        user.setUserName(MultitenantUtils.getTenantAwareUsername(username));
+                        user.setTenantDomain(tenantDomain);
+                        user.setUserStoreDomain(userStoreDomain);
 
-                    if (log.isDebugEnabled()) {
-                        log.debug(String.format("Client certificate based authentication was successful. " +
-                                "Set '%s' as the user", username));
+                        authenticationContext.setUser(user);
+
+                        authenticationResult.setAuthenticationStatus(AuthenticationStatus.SUCCESS);
+                        addActorToIdentityContext(user);
+
+                        if (log.isDebugEnabled()) {
+                            log.debug(String.format("Client certificate based authentication was successful. " +
+                                    "Set '%s' as the user", username));
+                        }
+                    } catch (Exception e) {
+                        throw new AuthenticationFailException("Error occurred while validating the user");
                     }
                 } else {
                     //Server to server authentication. No user involves
