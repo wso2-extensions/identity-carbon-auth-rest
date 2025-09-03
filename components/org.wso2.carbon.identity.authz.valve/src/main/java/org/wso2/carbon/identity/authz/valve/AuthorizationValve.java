@@ -157,6 +157,7 @@ public class AuthorizationValve extends ValveBase {
                                 new String[0] : (String[]) authorizationContext.getParameter(OAUTH2_ALLOWED_SCOPES);
                         OperationScopeValidationContext operationScopeValidationContext =
                                 new OperationScopeValidationContext();
+                        operationScopeValidationContext.setApiIdentifier(authorizationContext.getContext());
                         operationScopeValidationContext.setValidationRequired(
                                 authorizationResult.isOperationScopeAuthorizationRequired());
                         operationScopeValidationContext.setValidatedScopes(
