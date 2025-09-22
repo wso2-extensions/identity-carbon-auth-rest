@@ -27,8 +27,10 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+
 import javax.xml.namespace.QName;
 
 public class AuthConfigurationUtil {
@@ -38,8 +40,12 @@ public class AuthConfigurationUtil {
     private Map<ResourceConfigKey, ResourceConfig> resourceConfigMap = new LinkedHashMap<>();
     private Map<String, String> applicationConfigMap = new HashMap<>();
     private List<String> intermediateCertCNList = new ArrayList<>();
+    private final List<CertUserMapping> userThumbPrintMappings = new ArrayList<>();
+    private final List<SystemThumbprintMapping> systemThumbprintMappings = new ArrayList<>();
     private List<String> exemptedContextList = new ArrayList<>();
     private boolean isIntermediateCertValidationEnabled = false;
+    private boolean clientCertBasedAuthnLogEnabled = false;
+    private boolean isClientCertBasedAuthnEnabled = true;
     private static final String SECRET_ALIAS = "secretAlias";
     private static final String SECRET_ALIAS_NAMESPACE_URI = "http://org.wso2.securevault/configuration";
     private static final String SECRET_ALIAS_PREFIX = "svns";
@@ -47,6 +53,66 @@ public class AuthConfigurationUtil {
     private boolean isScopeValidationEnabled = true;
 
     private static final Log log = LogFactory.getLog(AuthConfigurationUtil.class);
+
+    public static class CertUserMapping {
+
+        private final String certifiedIssuer;
+        private final String certThumbprint;
+        private final ArrayList<String> allowedUsernames;
+
+        public CertUserMapping(String certifiedIssuer, String certFingerPrint,
+                               ArrayList<String> allowedUsernames) {
+
+            this.certifiedIssuer = certifiedIssuer;
+            this.certThumbprint = certFingerPrint;
+            this.allowedUsernames = allowedUsernames;
+        }
+
+        public String getAllowedThumbprint() {
+
+            return certThumbprint;
+        }
+
+        public ArrayList<String> getAllowedUsernames() {
+
+            return allowedUsernames;
+        }
+
+        public String getAllowedIssuer() {
+
+            return certifiedIssuer;
+        }
+    }
+
+    public static class SystemThumbprintMapping {
+
+        private final String certThumbprint;
+        private final String allowedSystemUser;
+        private final String certifiedIssuer;
+
+        public SystemThumbprintMapping(String certifiedIssuer, String certThumbprint, String allowedSystemUser) {
+
+            this.certThumbprint = certThumbprint;
+            this.allowedSystemUser = allowedSystemUser;
+            this.certifiedIssuer = certifiedIssuer;
+        }
+
+        public String getAllowedThumbprint() {
+
+            return certThumbprint;
+        }
+
+        public String getAllowedSystemUser() {
+
+            return allowedSystemUser;
+        }
+
+        public String getAllowedIssuer() {
+
+            return certifiedIssuer;
+        }
+
+    }
 
     private AuthConfigurationUtil() {
     }
@@ -207,6 +273,105 @@ public class AuthConfigurationUtil {
     }
 
     /**
+     * Build cert based authentication enabled config.
+     */
+    public void buildClientCertBasedAuthnEnabled() {
+
+        OMElement root = IdentityConfigParser.getInstance()
+                .getConfigElement(Constants.CERT_BASED_AUTHENTICATION_ELE);
+
+        if (root != null) {
+            isClientCertBasedAuthnEnabled = Boolean.parseBoolean(
+                    root.getAttributeValue(new QName(Constants.CERT_AUTHENTICATION_ENABLE_ATTR)));
+        }
+        if (!isClientCertBasedAuthnEnabled) {
+            return;
+        }
+
+        OMElement logEnabledEle = root.getFirstChildWithName(
+                new QName(IdentityCoreConstants.IDENTITY_DEFAULT_NAMESPACE, Constants.LOG_CLIENT_CERT_INFO_ENABLED));
+        if (logEnabledEle == null) {
+            logEnabledEle = root.getFirstChildWithName(new QName(Constants.LOG_CLIENT_CERT_INFO_ENABLED));
+        }
+        clientCertBasedAuthnLogEnabled = logEnabledEle != null && Boolean.parseBoolean(logEnabledEle.getText());
+
+        OMElement userMappingsEle = root.getFirstChildWithName(
+                new QName(IdentityCoreConstants.IDENTITY_DEFAULT_NAMESPACE, Constants.USER_THUMBPRINT_MAPPINGS));
+        if (userMappingsEle != null) {
+            Iterator<OMElement> items = userMappingsEle.getChildrenWithName(
+                    new QName(IdentityCoreConstants.IDENTITY_DEFAULT_NAMESPACE, Constants.MAPPING));
+            while (items != null && items.hasNext()) {
+                OMElement m = items.next();
+
+                String trustedIssuer = getChildText(m, Constants.TRUSTED_ISSUER_ELE);
+                if (StringUtils.isEmpty(trustedIssuer)) {
+                    log.warn("Skipping user mapping: missing <TrustedIssuer>.");
+                    continue;
+                }
+
+                if (Constants.WILDCARD.equals(trustedIssuer)) {
+                    log.warn("Skipping user mapping: <TrustedIssuer> cannot be '*'.");
+                    continue;
+                }
+
+                String certThumbprint = getChildText(m, Constants.CERT_THUMBPRINT);
+                if (StringUtils.isEmpty(certThumbprint)) {
+                    certThumbprint = Constants.WILDCARD;
+                }
+
+                ArrayList<String> allowedUsers = new ArrayList<>(
+                        getChildrenTextList(m, Constants.ALLOWED_USERNAME, true)
+                );
+                if (allowedUsers.isEmpty()) {
+                    allowedUsers.add(Constants.WILDCARD);
+                }
+
+                userThumbPrintMappings.add(
+                        new CertUserMapping(
+                                trustedIssuer,
+                                certThumbprint,
+                                allowedUsers
+                        )
+                                          );
+            }
+        }
+
+        OMElement systemMappingsEle = root.getFirstChildWithName(
+                new QName(IdentityCoreConstants.IDENTITY_DEFAULT_NAMESPACE, Constants.SYSTEM_THUMBPRINT_MAPPINGS));
+        if (systemMappingsEle != null) {
+            Iterator<OMElement> items = systemMappingsEle.getChildrenWithName(
+                    new QName(IdentityCoreConstants.IDENTITY_DEFAULT_NAMESPACE, Constants.MAPPING));
+            while (items != null && items.hasNext()) {
+                OMElement m = items.next();
+
+                String trustedIssuer = getChildText(m, Constants.TRUSTED_ISSUER_ELE);
+                if (StringUtils.isEmpty(trustedIssuer)) {
+                    log.warn("Skipping system mapping: missing <TrustedIssuer>.");
+                    continue;
+                }
+
+                String certThumbPrint = getChildText(m, Constants.CERT_THUMBPRINT);
+                if (StringUtils.isEmpty(certThumbPrint)) {
+                    certThumbPrint = Constants.WILDCARD;
+                }
+
+                String sysUser = getChildText(m, Constants.ALLOWED_SYSTEM_USER);
+                if (StringUtils.isEmpty(sysUser)) {
+                    sysUser = Constants.WILDCARD;
+                }
+
+                systemThumbprintMappings.add(
+                        new SystemThumbprintMapping(
+                                trustedIssuer,
+                                certThumbPrint,
+                                sysUser
+                        )
+                                            );
+            }
+        }
+    }
+
+    /**
      * Build intermediate cert validation config.
      */
     public void buildIntermediateCertValidationConfigData() {
@@ -281,6 +446,26 @@ public class AuthConfigurationUtil {
         return isIntermediateCertValidationEnabled;
     }
 
+    public boolean IsClientCertBasedAuthnEnabled() {
+
+        return isClientCertBasedAuthnEnabled;
+    }
+
+    public boolean IsLogEnabled() {
+
+        return clientCertBasedAuthnLogEnabled;
+    }
+
+    public List<CertUserMapping> getCertUserMappings() {
+
+        return userThumbPrintMappings;
+    }
+
+    public List<SystemThumbprintMapping> getSystemUserThumbprintMappings() {
+
+        return systemThumbprintMappings;
+    }
+
     public List<String> getIntermediateCertCNList() {
 
         return intermediateCertCNList;
@@ -337,5 +522,39 @@ public class AuthConfigurationUtil {
             }
         }
         return false;
+    }
+
+    private static QName qn(String local) {
+
+        return new QName(IdentityCoreConstants.IDENTITY_DEFAULT_NAMESPACE, local);
+    }
+
+    private static String getChildText(OMElement parent, String local) {
+
+        OMElement child = parent.getFirstChildWithName(qn(local));
+        return child != null ? StringUtils.trim(child.getText()) : null;
+    }
+
+    private static String safeText(OMElement ele) {
+
+        return ele == null ? null : StringUtils.trimToNull(ele.getText());
+    }
+
+    private static List<String> getChildrenTextList(OMElement parent, String childLocalName, boolean dedupe) {
+
+        ArrayList<String> out = new ArrayList<>();
+        if (parent == null) return out;
+        Iterator<OMElement> kids = parent.getChildrenWithName(
+                new QName(IdentityCoreConstants.IDENTITY_DEFAULT_NAMESPACE, childLocalName));
+        while (kids != null && kids.hasNext()) {
+            String v = safeText(kids.next());
+            if (StringUtils.isNotEmpty(v)) out.add(v);
+        }
+        if (dedupe && !out.isEmpty()) {
+            LinkedHashSet<String> set = new LinkedHashSet<>(out);
+            out.clear();
+            out.addAll(set);
+        }
+        return out;
     }
 }

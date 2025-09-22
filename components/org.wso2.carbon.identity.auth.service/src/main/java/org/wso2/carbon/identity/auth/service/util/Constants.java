@@ -28,10 +28,19 @@ public class Constants {
 
     public static final String INTERMEDIATE_CERT_VALIDATION_ELE = "IntermediateCertValidation";
     public static final String INTERMEDIATE_CERTS_ELE = "IntermediateCerts";
+    public static final String TRUSTED_ISSUER_ELE = "TrustedIssuer";
     public static final String EXEMPT_CONTEXT_ELE = "ExemptContext";
     public static final String CERT_CN_ELE = "CertCN";
+    public static final String USER_THUMBPRINT_MAPPINGS = "UserThumbprintMappings";
+    public static final String LOG_CLIENT_CERT_INFO_ENABLED = "LogClientCertInfoEnabled";
+    public static final String CERT_THUMBPRINT = "CertThumbprint";
+    public static final String MAPPING = "Mapping";
+    public static final String SYSTEM_THUMBPRINT_MAPPINGS = "SystemThumbprintMappings";
+    public static final String ALLOWED_USERNAME = "AllowedUsername";
+    public static final String ALLOWED_SYSTEM_USER = "AllowedSystemUser";
     public final static String CONTEXT_ELE = "Context";
     public final static String CERT_AUTHENTICATION_ENABLE_ATTR = "enable";
+    public final static String CERT_BASED_AUTHENTICATION_ELE = "ClientCertBasedAuthentication";
     public final static String DENY_DEFAULT_ACCESS = "deny";
 
     public final static String COOKIE_BASED_TOKEN_BINDING = "cookie";
@@ -47,4 +56,5 @@ public class Constants {
 
     public static final String IS_FEDERATED_USER = "isFederatedUser";
     public static final String IDP_NAME = "idpName";
+    public static final String WILDCARD = "*";
 }
