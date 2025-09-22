@@ -48,29 +48,29 @@ public class CarbonUtils {
 
     public static void mockCarbonContextForTenant(int tenantId, String tenantDomain) {
 
-            PrivilegedCarbonContext privilegedCarbonContext = mock(PrivilegedCarbonContext.class);
-            try (MockedStatic<PrivilegedCarbonContext> mockedStatic = mockStatic(PrivilegedCarbonContext.class)) {
-                mockedStatic.when(PrivilegedCarbonContext::getThreadLocalCarbonContext).thenReturn(privilegedCarbonContext);
-                when(privilegedCarbonContext.getTenantDomain()).thenReturn(tenantDomain);
-                when(privilegedCarbonContext.getTenantId()).thenReturn(tenantId);
-                when(privilegedCarbonContext.getUsername()).thenReturn("admin");
-            }
+        PrivilegedCarbonContext privilegedCarbonContext = mock(PrivilegedCarbonContext.class);
+        try (MockedStatic<PrivilegedCarbonContext> mockedStatic = mockStatic(PrivilegedCarbonContext.class)) {
+            mockedStatic.when(PrivilegedCarbonContext::getThreadLocalCarbonContext).thenReturn(privilegedCarbonContext);
+            when(privilegedCarbonContext.getTenantDomain()).thenReturn(tenantDomain);
+            when(privilegedCarbonContext.getTenantId()).thenReturn(tenantId);
+            when(privilegedCarbonContext.getUsername()).thenReturn("admin");
         }
+    }
 
-        public static void mockIdentityTenantUtility() {
+    public static void mockIdentityTenantUtility() {
 
-            IdentityTenantUtil identityTenantUtil = mock(IdentityTenantUtil.class);
-            try (MockedStatic<IdentityTenantUtil> mockedStatic = mockStatic(IdentityTenantUtil.class)) {
-                mockedStatic.when(() -> IdentityTenantUtil.getTenantDomain(any(Integer.class)))
-                        .thenReturn(SUPER_TENANT_DOMAIN_NAME);
-            }
+        IdentityTenantUtil identityTenantUtil = mock(IdentityTenantUtil.class);
+        try (MockedStatic<IdentityTenantUtil> mockedStatic = mockStatic(IdentityTenantUtil.class)) {
+            mockedStatic.when(() -> IdentityTenantUtil.getTenantDomain(any(Integer.class)))
+                    .thenReturn(SUPER_TENANT_DOMAIN_NAME);
         }
+    }
 
-        public static void mockRealmService() {
+    public static void mockRealmService() {
 
-            RealmService mockRealmService = mock(RealmService.class);
-            TenantManager tenantManager = mock(TenantManager.class);
-            when(mockRealmService.getTenantManager()).thenReturn(tenantManager);
-            FrameworkServiceDataHolder.getInstance().setRealmService(mockRealmService);
-        }
+        RealmService mockRealmService = mock(RealmService.class);
+        TenantManager tenantManager = mock(TenantManager.class);
+        when(mockRealmService.getTenantManager()).thenReturn(tenantManager);
+        FrameworkServiceDataHolder.getInstance().setRealmService(mockRealmService);
+    }
 }

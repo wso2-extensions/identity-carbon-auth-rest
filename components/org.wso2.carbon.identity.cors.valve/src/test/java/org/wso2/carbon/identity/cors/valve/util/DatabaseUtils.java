@@ -78,17 +78,17 @@ public class DatabaseUtils {
 
     public static Connection createDataSource() throws SQLException {
 
-    DataSource dataSource = mock(DataSource.class);
-    try (MockedStatic<IdentityDatabaseUtil> mockedStatic = mockStatic(IdentityDatabaseUtil.class)) {
-        mockedStatic.when(IdentityDatabaseUtil::getDataSource).thenReturn(dataSource);
+        DataSource dataSource = mock(DataSource.class);
+        try (MockedStatic<IdentityDatabaseUtil> mockedStatic = mockStatic(IdentityDatabaseUtil.class)) {
+            mockedStatic.when(IdentityDatabaseUtil::getDataSource).thenReturn(dataSource);
 
-        Connection connection = getConnection();
-        Connection spyConnection = spyConnection(connection);
-        when(dataSource.getConnection()).thenReturn(spyConnection);
+            Connection connection = getConnection();
+            Connection spyConnection = spyConnection(connection);
+            when(dataSource.getConnection()).thenReturn(spyConnection);
 
-        return connection;
+            return connection;
+        }
     }
-}
 
     private static Connection getConnection() throws SQLException {
 
