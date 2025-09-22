@@ -1,7 +1,7 @@
 /*
- * Copyright (c) 2020, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2020-2025, WSO2 LLC. (https://www.wso2.com).
  *
- * WSO2 Inc. licenses this file to you under the Apache License,
+ * WSO2 LLC. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License.
  * You may obtain a copy of the License at
@@ -18,6 +18,7 @@
 
 package org.wso2.carbon.identity.cors.valve.util;
 
+import org.mockito.MockedStatic;
 import org.wso2.carbon.base.CarbonBaseConstants;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.identity.application.authentication.framework.internal.FrameworkServiceDataHolder;
@@ -29,8 +30,8 @@ import java.nio.file.Paths;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
-import static org.powermock.api.mockito.PowerMockito.mockStatic;
 import static org.wso2.carbon.base.MultitenantConstants.SUPER_TENANT_DOMAIN_NAME;
 
 /**
@@ -47,28 +48,29 @@ public class CarbonUtils {
 
     public static void mockCarbonContextForTenant(int tenantId, String tenantDomain) {
 
-        mockStatic(PrivilegedCarbonContext.class);
         PrivilegedCarbonContext privilegedCarbonContext = mock(PrivilegedCarbonContext.class);
-
-        when(PrivilegedCarbonContext.getThreadLocalCarbonContext()).thenReturn(privilegedCarbonContext);
-        when(privilegedCarbonContext.getTenantDomain()).thenReturn(tenantDomain);
-        when(privilegedCarbonContext.getTenantId()).thenReturn(tenantId);
-        when(privilegedCarbonContext.getUsername()).thenReturn("admin");
+        try (MockedStatic<PrivilegedCarbonContext> mockedStatic = mockStatic(PrivilegedCarbonContext.class)) {
+            mockedStatic.when(PrivilegedCarbonContext::getThreadLocalCarbonContext).thenReturn(privilegedCarbonContext);
+            when(privilegedCarbonContext.getTenantDomain()).thenReturn(tenantDomain);
+            when(privilegedCarbonContext.getTenantId()).thenReturn(tenantId);
+            when(privilegedCarbonContext.getUsername()).thenReturn("admin");
+        }
     }
 
     public static void mockIdentityTenantUtility() {
 
-        mockStatic(IdentityTenantUtil.class);
         IdentityTenantUtil identityTenantUtil = mock(IdentityTenantUtil.class);
-        when(IdentityTenantUtil.getTenantDomain(any(Integer.class))).thenReturn(SUPER_TENANT_DOMAIN_NAME);
+        try (MockedStatic<IdentityTenantUtil> mockedStatic = mockStatic(IdentityTenantUtil.class)) {
+            mockedStatic.when(() -> IdentityTenantUtil.getTenantDomain(any(Integer.class)))
+                    .thenReturn(SUPER_TENANT_DOMAIN_NAME);
+        }
     }
 
     public static void mockRealmService() {
 
         RealmService mockRealmService = mock(RealmService.class);
-        FrameworkServiceDataHolder.getInstance().setRealmService(mockRealmService);
-
         TenantManager tenantManager = mock(TenantManager.class);
         when(mockRealmService.getTenantManager()).thenReturn(tenantManager);
+        FrameworkServiceDataHolder.getInstance().setRealmService(mockRealmService);
     }
 }

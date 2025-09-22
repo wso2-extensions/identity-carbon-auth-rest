@@ -1,7 +1,7 @@
 /*
- * Copyright (c) 2020, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2020-2025, WSO2 LLC. (https://www.wso2.com).
  *
- * WSO2 Inc. licenses this file to you under the Apache License,
+ * WSO2 LLC. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License.
  * You may obtain a copy of the License at
@@ -19,6 +19,7 @@
 package org.wso2.carbon.identity.cors.valve.util;
 
 import org.apache.commons.dbcp.BasicDataSource;
+import org.mockito.MockedStatic;
 import org.wso2.carbon.identity.core.util.IdentityDatabaseUtil;
 
 import java.sql.Connection;
@@ -30,9 +31,9 @@ import javax.sql.DataSource;
 
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
-import static org.powermock.api.mockito.PowerMockito.mockStatic;
 
 /**
  * Utility class for database functions.
@@ -78,14 +79,15 @@ public class DatabaseUtils {
     public static Connection createDataSource() throws SQLException {
 
         DataSource dataSource = mock(DataSource.class);
-        mockStatic(IdentityDatabaseUtil.class);
-        when(IdentityDatabaseUtil.getDataSource()).thenReturn(dataSource);
+        try (MockedStatic<IdentityDatabaseUtil> mockedStatic = mockStatic(IdentityDatabaseUtil.class)) {
+            mockedStatic.when(IdentityDatabaseUtil::getDataSource).thenReturn(dataSource);
 
-        Connection connection = getConnection();
-        Connection spyConnection = spyConnection(connection);
-        when(dataSource.getConnection()).thenReturn(spyConnection);
+            Connection connection = getConnection();
+            Connection spyConnection = spyConnection(connection);
+            when(dataSource.getConnection()).thenReturn(spyConnection);
 
-        return connection;
+            return connection;
+        }
     }
 
     private static Connection getConnection() throws SQLException {
