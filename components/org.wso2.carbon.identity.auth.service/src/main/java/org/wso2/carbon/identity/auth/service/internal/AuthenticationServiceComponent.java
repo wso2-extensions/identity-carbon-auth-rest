@@ -68,6 +68,7 @@ public class AuthenticationServiceComponent {
             AuthConfigurationUtil.getInstance().buildResourceAccessControlData();
             AuthConfigurationUtil.getInstance().buildClientAuthenticationHandlerControlData();
             AuthConfigurationUtil.getInstance().buildIntermediateCertValidationConfigData();
+            AuthConfigurationUtil.getInstance().buildClientCertBasedAuthnEnabled();
             if (log.isDebugEnabled())
                 log.debug("AuthenticatorService is activated");
             if (clientAuthenticationHandler.hasDefaultCredentialsUsed()) {
