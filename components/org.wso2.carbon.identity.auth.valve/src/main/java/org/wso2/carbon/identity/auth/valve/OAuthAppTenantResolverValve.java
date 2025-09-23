@@ -184,6 +184,7 @@ public class OAuthAppTenantResolverValve extends ValveBase {
         String clientId = "";
         try {
             JWT decodedToken = JWTParser.parse(bearerToken);
+            IdentityUtil.validateJWTDepth(bearerToken);
             clientId = decodedToken.getJWTClaimsSet().getStringClaim("client_id");
         } catch (ParseException e) {
             if (LOG.isDebugEnabled()) {
