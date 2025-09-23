@@ -34,6 +34,7 @@ import org.testng.Assert;
 import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
 import org.wso2.carbon.identity.auth.service.util.Constants;
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
+import org.wso2.carbon.identity.oauth2.IdentityOAuth2Exception;
 import org.wso2.carbon.identity.oauth2.OAuth2Constants;
 import org.wso2.carbon.identity.oauth2.dto.OAuth2IntrospectionResponseDTO;
 
@@ -202,6 +203,26 @@ public class OAuth2AccessTokenHandlerTest {
             mockedAuthConfigUtil.verify(() -> AuthConfigurationUtil.isAuthHeaderMatch(
                     authenticationContext, "Bearer", false));
         }
+    }
+
+    @DataProvider
+    public Object[][] signedJWTProvider() throws ParseException {
+
+        String tokenString = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9." +
+                "eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0." +
+                "KMUFsIDTnFmyG3nMiGM6H9FNFUROf3wh7SmqJp-QV30";
+        SignedJWT signedJWT = SignedJWT.parse(tokenString);
+        return new Object[][]{
+                {signedJWT}
+        };
+    }
+
+    @Test(dataProvider = "signedJWTProvider")
+    public void getClaimSet(SignedJWT signedJWT) throws IdentityOAuth2Exception {
+
+        OAuth2AccessTokenHandler oAuth2AccessTokenHandler = new OAuth2AccessTokenHandler();
+        JWTClaimsSet jwtClaimsSet = oAuth2AccessTokenHandler.getClaimSet(signedJWT);
+        Assert.assertNotNull(jwtClaimsSet, "JWT Claim Set is null");
     }
 
 }
