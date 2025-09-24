@@ -682,6 +682,7 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
 
         try {
             if (signedJWT != null){
+                IdentityUtil.validateJWTDepth(signedJWT.serialize());
                 return signedJWT.getJWTClaimsSet();
             }
             return null;

@@ -74,6 +74,10 @@ public class OAuthAppTenantResolverValveTest extends PowerMockTestCase {
     private static final String DUMMY_CLIENT_ID = "client_id";
     private static final String DUMMY_CLIENT_SECRET = "client_id";
     private static final String TENANT_DOMAIN = "test.tenant";
+    private static final String DUMMY_BEARER_JWT_TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9." +
+                    "eyJpc3MiOiJJQU0gVGVzdCIsImlhdCI6MTc1ODYyMDQwMywiZXhwIjoxNzkwMTU2NDAzLCJhdWQiOiJ" +
+                    "3d3cuZXhhbXBsZS5jb20iLCJzdWIiOiJqcm9ja2V0QGV4YW1wbGUuY29tIiwiY2xpZW50X2lkIjoidG" +
+                    "VzdGNsaWVudGlkIn0.b5ihsYK2d63ma1TCQPaEDo3q67ybahk4kZUUfUq63Ew";
 
     @Mock
     private Valve valve;
@@ -145,18 +149,19 @@ public class OAuthAppTenantResolverValveTest extends PowerMockTestCase {
 
         return new Object[][]{
                 // requestPath, clientIdParam, headerCredentials, expectedAppTenant.
-                {DUMMY_RESOURCE_OAUTH_2, DUMMY_CLIENT_ID, null, TENANT_DOMAIN},
-                {DUMMY_RESOURCE_OAUTH_10A, DUMMY_CLIENT_ID, null, TENANT_DOMAIN},
-                {DUMMY_RESOURCE_NON_OAUTH, DUMMY_CLIENT_ID, null, null},
-                {DUMMY_RESOURCE_OAUTH_2, null, new String[]{DUMMY_CLIENT_ID, DUMMY_CLIENT_SECRET}, TENANT_DOMAIN},
-                {DUMMY_RESOURCE_OAUTH_2, null, new String[]{"user1", "password"}, null},
-                {DUMMY_RESOURCE_OAUTH_2, null, null, null}
+                {DUMMY_RESOURCE_OAUTH_2, DUMMY_CLIENT_ID, null, TENANT_DOMAIN, null},
+                {DUMMY_RESOURCE_OAUTH_10A, DUMMY_CLIENT_ID, null, TENANT_DOMAIN, null},
+                {DUMMY_RESOURCE_NON_OAUTH, DUMMY_CLIENT_ID, null, null, null},
+                {DUMMY_RESOURCE_OAUTH_2, null, new String[]
+                        {DUMMY_CLIENT_ID, DUMMY_CLIENT_SECRET}, TENANT_DOMAIN, null},
+                {DUMMY_RESOURCE_OAUTH_2, null, new String[]{"user1", "password"}, null, null},
+                {DUMMY_RESOURCE_NON_OAUTH, DUMMY_CLIENT_ID, null, null, DUMMY_BEARER_JWT_TOKEN},
         };
     }
 
     @Test(dataProvider = "invokeDataProvider")
     public void testInvoke(String requestPath, String clientIdParam, String[] headerCredentials,
-                           String expectedAppTenant) throws Exception {
+                           String expectedAppTenant, String bearerToken) throws Exception {
 
         // Suppress the execution of cleaning methods inorder to assert the correct behaviour.
         PowerMockito.suppress(PowerMockito.method(
@@ -174,6 +179,12 @@ public class OAuthAppTenantResolverValveTest extends PowerMockTestCase {
         if (headerCredentials != null) {
             when(OAuth2Util.isBasicAuthorizationHeaderExists(request)).thenReturn(true);
             when(OAuth2Util.extractCredentialsFromAuthzHeader(request)).thenReturn(headerCredentials);
+        } else if(bearerToken != null) {
+            when(OAuth2Util.extractBearerTokenFromAuthzHeader(request)).thenReturn(bearerToken);
+            // when OAuth2Util.isJWT is called, call the real function
+            PowerMockito.when(OAuth2Util.class, "isJWT", anyString()).thenCallRealMethod();
+            PowerMockito.when(IdentityUtil.class, "validateJWTDepth", anyString()).thenCallRealMethod();
+            when(OAuth2Util.isBasicAuthorizationHeaderExists(request)).thenReturn(false);
         } else {
             when(OAuth2Util.isBasicAuthorizationHeaderExists(request)).thenReturn(false);
         }
