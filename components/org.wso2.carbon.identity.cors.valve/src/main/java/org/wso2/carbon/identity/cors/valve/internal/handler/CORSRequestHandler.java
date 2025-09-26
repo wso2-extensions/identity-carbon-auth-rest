@@ -69,31 +69,25 @@ public class CORSRequestHandler {
         String tenantDomain = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain();
         Origin requestOrigin = new Origin(request.getHeader(Header.ORIGIN));
 
+        // Add a single Access-Control-Allow-Origin header.
+        if (config.isAllowAnyOrigin() && !config.isSupportsCredentials()) {
+            // If any origin is allowed, return header with '*'.
+            response.addHeader(Header.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
+        } else {
+            // Add a single Access-Control-Allow-Origin header, with the value
+            // of the Origin header as value.
+            if (isAllowedOrigin(tenantDomain, requestOrigin)) {
+                response.addHeader(Header.ACCESS_CONTROL_ALLOW_ORIGIN, requestOrigin.toString());
+            }
+            // If only specific origins are allowed, the response will vary by origin
+            response.addHeader(Header.VARY, "Origin");
+        }
+
         // If the resource supports credentials, add a single
         // Access-Control-Allow-Credentials header with the case-sensitive
         // string "true" as value.
         if (config.isSupportsCredentials()) {
             response.addHeader(Header.ACCESS_CONTROL_ALLOW_CREDENTIALS, "true");
-
-            // The string "*" cannot be used for a resource that supports credentials.
-            response.setHeader(Header.ACCESS_CONTROL_ALLOW_ORIGIN, requestOrigin.toString());
-
-            // See https://bitbucket.org/thetransactioncompany/cors-filter/issue/16/
-            response.addHeader(Header.VARY, "Origin");
-        } else {
-            // Add a single Access-Control-Allow-Origin header.
-            if (config.isAllowAnyOrigin()) {
-                // If any origin is allowed, return header with '*'.
-                response.addHeader(Header.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
-            } else {
-                // Add a single Access-Control-Allow-Origin header, with the value
-                // of the Origin header as value.
-                if (isAllowedOrigin(tenantDomain, requestOrigin)) {
-                    response.addHeader(Header.ACCESS_CONTROL_ALLOW_ORIGIN, requestOrigin.toString());
-                }
-                // If only specific origins are allowed, the response will vary by origin
-                response.addHeader(Header.VARY, "Origin");
-            }
         }
 
         // If the list of exposed headers is not empty add one or more

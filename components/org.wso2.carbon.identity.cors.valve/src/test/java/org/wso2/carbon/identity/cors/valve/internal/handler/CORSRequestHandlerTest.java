@@ -104,11 +104,13 @@ public class CORSRequestHandlerTest {
             // Default CORS configuration
             when(corsManager.getCORSConfiguration(anyString())).thenReturn(corsConfiguration);
             when(request.getHeader(Header.ORIGIN)).thenReturn("https://example.com");
+            when(corsManager.getCORSOrigins(MultitenantConstants.SUPER_TENANT_DOMAIN_NAME))
+                    .thenReturn(new Origin[]{new Origin("https://example.com")});
 
             corsRequestHandler.handleActualRequest(request, response);
 
             verify(response).addHeader(Header.ACCESS_CONTROL_ALLOW_CREDENTIALS, "true");
-            verify(response).setHeader(Header.ACCESS_CONTROL_ALLOW_ORIGIN, "https://example.com");
+            verify(response).addHeader(Header.ACCESS_CONTROL_ALLOW_ORIGIN, "https://example.com");
             verify(response).addHeader(Header.VARY, "Origin");
         }
     }
