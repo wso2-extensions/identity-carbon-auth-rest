@@ -112,6 +112,8 @@ public class AuthenticationValve extends ValveBase {
         try {
             validateRequestURI(request.getRequestURI());
             String normalizedRequestURI = AuthConfigurationUtil.getInstance().getNormalizedRequestURI(request.getRequestURI());
+            // Normalized request URI should be validated again to avoid un-normalized URLs.
+            validateRequestURI(normalizedRequestURI);
             ResourceConfig securedResource = authenticationManager.getSecuredResource(
                     new ResourceConfigKey(normalizedRequestURI, request.getMethod()));
 
