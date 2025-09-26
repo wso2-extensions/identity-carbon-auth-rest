@@ -70,9 +70,15 @@ public class CORSRequestHandler {
         Origin requestOrigin = new Origin(request.getHeader(Header.ORIGIN));
 
         // Add a single Access-Control-Allow-Origin header.
-        if (config.isAllowAnyOrigin() && !config.isSupportsCredentials()) {
-            // If any origin is allowed, return header with '*'.
-            response.addHeader(Header.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
+        if (config.isAllowAnyOrigin()) {
+            if (config.isSupportsCredentials()) {
+                response.addHeader(Header.ACCESS_CONTROL_ALLOW_ORIGIN, requestOrigin.toString());
+                // If only specific origins are allowed, the response will vary by origin
+                response.addHeader(Header.VARY, "Origin");
+            } else {
+                // If any origin is allowed, return header with '*'.
+                response.addHeader(Header.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
+            }
         } else {
             // Add a single Access-Control-Allow-Origin header, with the value
             // of the Origin header as value.
