@@ -315,8 +315,19 @@ public class AuthConfigurationUtil {
             return null;
         }
 
-        String decodedURl = URLDecoder.decode(requestURI, StandardCharsets.UTF_8.name());
-        return new URI(decodedURl).normalize().toString();
+        String decodedUri = requestURI;
+        String previousUri;
+
+        // Repeatedly decode until the value stops changing (handles multi-encoding)
+        do {
+            previousUri = decodedUri;
+            decodedUri = URLDecoder.decode(previousUri, StandardCharsets.UTF_8.name());
+        } while (!decodedUri.equals(previousUri));
+
+        // Normalize path (removes redundant "..", ".", etc.)
+        URI normalizedUri = new URI(decodedUri).normalize();
+
+        return normalizedUri.toString();
     }
 
     public boolean isIntermediateCertValidationEnabled() {
