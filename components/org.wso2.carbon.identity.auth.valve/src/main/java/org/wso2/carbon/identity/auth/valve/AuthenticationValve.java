@@ -183,7 +183,7 @@ public class AuthenticationValve extends ValveBase {
             log.debug("Invalid URI syntax of the request: ", e);
             APIErrorResponseHandler.handleErrorResponse(null, response, HttpServletResponse.SC_BAD_REQUEST, null);
         } catch (UnsupportedEncodingException e) {
-            log.debug("Request URI appears to be encoded more than 2 times.", e);
+            log.debug("URL is still encoded or contains invalid encoding after decoding.", e);
             APIErrorResponseHandler.handleErrorResponse(null, response, HttpServletResponse.SC_BAD_REQUEST, null);
         } catch (PatternSyntaxException e) {
             log.debug("Invalid pattern syntax of the request: ", e);

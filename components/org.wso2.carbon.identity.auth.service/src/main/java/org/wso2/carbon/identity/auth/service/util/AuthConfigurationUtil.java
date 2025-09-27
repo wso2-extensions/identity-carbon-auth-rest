@@ -522,24 +522,15 @@ public class AuthConfigurationUtil {
             return null;
         }
 
-        String decodedUri = requestURI;
-        String previousUri;
-        int decodeCount = 0;
+        // Decode once
+        String decodedUri = URLDecoder.decode(requestURI, StandardCharsets.UTF_8.name());
 
-        // Repeatedly decode until stable or limit reached
-        do {
-            previousUri = decodedUri;
-            decodedUri = URLDecoder.decode(previousUri, StandardCharsets.UTF_8.name());
-            if (!decodedUri.equals(previousUri)) {
-                decodeCount++;
-            }
+        // If the decoded URI still contains '%', consider it unsafe
+        if (decodedUri.contains("%")) {
+            throw new UnsupportedEncodingException("URL is still encoded or contains invalid encoding after decoding.");
+        }
 
-            if (decodeCount > 2) {
-                throw new UnsupportedEncodingException("Request URI appears to be encoded more than 2 times.");
-            }
-        } while (!decodedUri.equals(previousUri));
-
-        // Return normalized URI if it was decoded 0, 1, or 2 times
+        // Normalize and return safe URI
         return new URI(decodedUri).normalize().toString();
     }
 
