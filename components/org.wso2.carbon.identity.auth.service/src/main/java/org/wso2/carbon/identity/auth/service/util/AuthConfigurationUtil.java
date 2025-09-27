@@ -522,8 +522,25 @@ public class AuthConfigurationUtil {
             return null;
         }
 
-        String decodedURl = URLDecoder.decode(requestURI, StandardCharsets.UTF_8.name());
-        return new URI(decodedURl).normalize().toString();
+        String decodedUri = requestURI;
+        String previousUri;
+        int decodeCount = 0;
+
+        // Repeatedly decode until stable or limit reached
+        do {
+            previousUri = decodedUri;
+            decodedUri = URLDecoder.decode(previousUri, StandardCharsets.UTF_8.name());
+            if (!decodedUri.equals(previousUri)) {
+                decodeCount++;
+            }
+
+            if (decodeCount > 2) {
+                throw new UnsupportedEncodingException("Request URI appears to be encoded more than 2 times.");
+            }
+        } while (!decodedUri.equals(previousUri));
+
+        // Return normalized URI if it was decoded 0, 1, or 2 times
+        return new URI(decodedUri).normalize().toString();
     }
 
     public boolean isIntermediateCertValidationEnabled() {

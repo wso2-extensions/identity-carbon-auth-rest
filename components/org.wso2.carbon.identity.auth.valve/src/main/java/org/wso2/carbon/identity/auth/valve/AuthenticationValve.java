@@ -60,6 +60,7 @@ import org.wso2.carbon.user.core.tenant.TenantManager;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -180,6 +181,9 @@ public class AuthenticationValve extends ValveBase {
                     HttpServletResponse.SC_SERVICE_UNAVAILABLE, null);
         } catch (URISyntaxException e) {
             log.debug("Invalid URI syntax of the request: ", e);
+            APIErrorResponseHandler.handleErrorResponse(null, response, HttpServletResponse.SC_BAD_REQUEST, null);
+        } catch (UnsupportedEncodingException e) {
+            log.debug("Request URI appears to be encoded more than 2 times.", e);
             APIErrorResponseHandler.handleErrorResponse(null, response, HttpServletResponse.SC_BAD_REQUEST, null);
         } catch (PatternSyntaxException e) {
             log.debug("Invalid pattern syntax of the request: ", e);
