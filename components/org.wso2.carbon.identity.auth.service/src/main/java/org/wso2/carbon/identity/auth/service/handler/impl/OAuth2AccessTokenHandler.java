@@ -18,15 +18,21 @@
 
 package org.wso2.carbon.identity.auth.service.handler.impl;
 
+import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.SignedJWT;
 import org.apache.catalina.connector.Request;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpHeaders;
+import org.json.JSONObject;
 import org.slf4j.MDC;
+import org.wso2.carbon.CarbonConstants;
+import org.wso2.carbon.identity.application.authentication.framework.exception.UserIdNotFoundException;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
 import org.wso2.carbon.identity.application.authentication.framework.util.FrameworkConstants;
 import org.wso2.carbon.identity.application.common.model.ProvisioningServiceProviderType;
+import org.wso2.carbon.identity.application.common.model.ServiceProvider;
 import org.wso2.carbon.identity.application.common.model.ThreadLocalProvisioningServiceProvider;
 import org.wso2.carbon.identity.application.common.model.User;
 import org.wso2.carbon.identity.application.common.util.IdentityApplicationManagementUtil;
@@ -35,30 +41,43 @@ import org.wso2.carbon.identity.auth.service.AuthenticationRequest;
 import org.wso2.carbon.identity.auth.service.AuthenticationResult;
 import org.wso2.carbon.identity.auth.service.AuthenticationStatus;
 import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
+import org.wso2.carbon.identity.auth.service.module.ResourceConfig;
 import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
 import org.wso2.carbon.identity.auth.service.util.Constants;
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
+import org.wso2.carbon.identity.core.context.IdentityContext;
+import org.wso2.carbon.identity.core.context.model.ApplicationActor;
+import org.wso2.carbon.identity.core.context.model.UserActor;
 import org.wso2.carbon.identity.core.handler.InitConfig;
+import org.wso2.carbon.identity.core.util.IdentityConfigParser;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.identity.oauth.common.exception.InvalidOAuthClientException;
 import org.wso2.carbon.identity.oauth.dao.OAuthAppDO;
 import org.wso2.carbon.identity.oauth2.IdentityOAuth2Exception;
+import org.wso2.carbon.identity.oauth2.OAuth2Constants;
 import org.wso2.carbon.identity.oauth2.OAuth2TokenValidationService;
 import org.wso2.carbon.identity.oauth2.dto.OAuth2IntrospectionResponseDTO;
 import org.wso2.carbon.identity.oauth2.dto.OAuth2TokenValidationRequestDTO;
 import org.wso2.carbon.identity.oauth2.model.AccessTokenDO;
 import org.wso2.carbon.identity.oauth2.token.bindings.TokenBinding;
 import org.wso2.carbon.identity.oauth2.util.OAuth2Util;
+import org.wso2.carbon.identity.oauth2.validators.RefreshTokenValidator;
+import org.wso2.carbon.identity.organization.management.service.exception.OrganizationManagementException;
+import org.wso2.carbon.identity.organization.management.service.util.OrganizationManagementUtil;
 
+import java.text.ParseException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
+import static org.wso2.carbon.identity.application.mgt.ApplicationConstants.MY_ACCOUNT_APPLICATION_CLIENT_ID;
 import static org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil.isAuthHeaderMatch;
-import static org.wso2.carbon.identity.auth.service.util.Constants.AUTHENTICATION_TYPE;
-import static org.wso2.carbon.identity.auth.service.util.Constants.IDP_NAME;
-import static org.wso2.carbon.identity.auth.service.util.Constants.IS_FEDERATED_USER;
-import static org.wso2.carbon.identity.auth.service.util.Constants.OAUTH2_ALLOWED_SCOPES;
-import static org.wso2.carbon.identity.auth.service.util.Constants.OAUTH2_VALIDATE_SCOPE;
+import static org.wso2.carbon.identity.auth.service.util.Constants.GET;
+import static org.wso2.carbon.identity.oauth.common.OAuthConstants.IMPERSONATING_ACTOR;
 import static org.wso2.carbon.identity.oauth2.OAuth2Constants.TokenBinderType.SSO_SESSION_BASED_TOKEN_BINDER;
+import static org.wso2.carbon.identity.oauth2.impersonation.utils.Constants.IMPERSONATION_ORG_SCOPE_NAME;
+import static org.wso2.carbon.identity.oauth2.impersonation.utils.Constants.IMPERSONATION_SCOPE_NAME;
 
 /**
  * OAuth2AccessTokenHandler is for authenticate the request based on Token.
@@ -68,11 +87,20 @@ import static org.wso2.carbon.identity.oauth2.OAuth2Constants.TokenBinderType.SS
 public class OAuth2AccessTokenHandler extends AuthenticationHandler {
 
     private static final Log log = LogFactory.getLog(OAuth2AccessTokenHandler.class);
+    private static final Log AUDIT = CarbonConstants.AUDIT_LOG;
     private final String OAUTH_HEADER = "Bearer";
     private final String CONSUMER_KEY = "consumer-key";
-    private final String SERVICE_PROVIDER = "serviceProvider";
+    private final String SERVICE_PROVIDER_NAME = "serviceProvider";
     private final String SERVICE_PROVIDER_TENANT_DOMAIN = "serviceProviderTenantDomain";
+    private final String SERVICE_PROVIDER_UUID = "serviceProviderUUID";
     private final String SCIM_ME_ENDPOINT_URI = "scim2/me";
+    private final String AUT_APPLICATION = "APPLICATION";
+    private final String AUT_APPLICATION_USER = "APPLICATION_USER";
+
+    @Override
+    public void init(InitConfig initConfig) {
+
+    }
 
     @Override
     protected AuthenticationResult doAuthenticate(MessageContext messageContext) {
@@ -83,7 +111,8 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
         if (authenticationRequest != null) {
 
             String authorizationHeader = authenticationRequest.getHeader(HttpHeaders.AUTHORIZATION);
-            if (StringUtils.isNotEmpty(authorizationHeader) && authorizationHeader.startsWith(OAUTH_HEADER)) {
+            if (StringUtils.isNotEmpty(authorizationHeader) && authorizationHeader.toLowerCase().
+                    startsWith(OAUTH_HEADER.toLowerCase())) {
                 String accessToken = null;
                 String[] bearerToken = authorizationHeader.split(" ");
 
@@ -116,9 +145,22 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
                         oAuth2TokenValidationService.buildIntrospectionResponse(requestDTO);
 
                 IdentityUtil.threadLocalProperties.get()
-                        .put(AUTHENTICATION_TYPE, oAuth2IntrospectionResponseDTO.getAut());
+                        .put(Constants.AUTHENTICATION_TYPE, oAuth2IntrospectionResponseDTO.getAut());
 
-                if (!oAuth2IntrospectionResponseDTO.isActive()) {
+                if (!oAuth2IntrospectionResponseDTO.isActive() ||
+                        RefreshTokenValidator.TOKEN_TYPE_NAME.equals(oAuth2IntrospectionResponseDTO.getTokenType())) {
+                    return authenticationResult;
+                }
+
+                /* If the token is impersonated access token issued for MY_ACCOUNT, block all the actions excepts
+                    for discoverable actions. */
+                boolean isValidOperation = validateAllowedDuringImpersonation(authenticationContext.getResourceConfig(),
+                        oAuth2IntrospectionResponseDTO.getScope(),
+                        oAuth2IntrospectionResponseDTO.getClientId());
+                if (!isValidOperation) {
+                    if (log.isDebugEnabled()) {
+                        log.debug("Not an allowed operation during impersonation.");
+                    }
                     return authenticationResult;
                 }
 
@@ -136,68 +178,292 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
                     return authenticationResult;
                 }
 
+                handleImpersonatedAccessToken(authenticationContext, accessToken, oAuth2IntrospectionResponseDTO);
+
                 authenticationResult.setAuthenticationStatus(AuthenticationStatus.SUCCESS);
+                setActorToIdentityContext(oAuth2IntrospectionResponseDTO);
 
                 User authorizedUser = oAuth2IntrospectionResponseDTO.getAuthorizedUser();
+                String authorizedUserTenantDomain = null;
                 if (authorizedUser != null) {
                     authenticationContext.setUser(authorizedUser);
+                    authorizedUserTenantDomain = authorizedUser.getTenantDomain();
                     if (authorizedUser instanceof AuthenticatedUser) {
                         IdentityUtil.threadLocalProperties.get()
-                                .put(IS_FEDERATED_USER, ((AuthenticatedUser) authorizedUser).isFederatedUser());
+                                .put(Constants.IS_FEDERATED_USER,
+                                        ((AuthenticatedUser) authorizedUser).isFederatedUser());
                         IdentityUtil.threadLocalProperties.get()
-                                .put(IDP_NAME, ((AuthenticatedUser) authorizedUser).getFederatedIdPName());
+                                .put(Constants.IDP_NAME, ((AuthenticatedUser) authorizedUser).getFederatedIdPName());
                     } else {
                         AuthenticatedUser authenticatedUser = new AuthenticatedUser(authorizedUser);
                         IdentityUtil.threadLocalProperties.get()
-                                .put(IS_FEDERATED_USER, authenticatedUser.isFederatedUser());
+                                .put(Constants.IS_FEDERATED_USER, authenticatedUser.isFederatedUser());
                         IdentityUtil.threadLocalProperties.get()
-                                .put(IDP_NAME, authenticatedUser.getFederatedIdPName());
+                                .put(Constants.IDP_NAME, authenticatedUser.getFederatedIdPName());
                     }
                 }
 
                 authenticationContext.addParameter(CONSUMER_KEY, oAuth2IntrospectionResponseDTO.getClientId());
-                authenticationContext.addParameter(OAUTH2_ALLOWED_SCOPES,
+                authenticationContext.addParameter(Constants.OAUTH2_ALLOWED_SCOPES,
                         OAuth2Util.buildScopeArray(oAuth2IntrospectionResponseDTO.getScope()));
-                authenticationContext.addParameter(OAUTH2_VALIDATE_SCOPE,
+                authenticationContext.addParameter(Constants.OAUTH2_VALIDATE_SCOPE,
                         AuthConfigurationUtil.getInstance().isScopeValidationEnabled());
-                String serviceProvider = null;
+
+                ServiceProvider serviceProvider = null;
+                String serviceProviderName = null;
+                String serviceProviderUUID = null;
                 try {
-                    serviceProvider =
-                            OAuth2Util.getServiceProvider(oAuth2IntrospectionResponseDTO.getClientId()).
-                                    getApplicationName();
+                    /*
+                     Tokens which are issued for the applications which are registered in sub organization,
+                     contains the tenant domain for the authorized user as the sub organization. Based on that
+                     we can get the application details by using both the client id and the tenant domain.
+                    */
+                    if (StringUtils.isNotEmpty(authorizedUserTenantDomain) && OrganizationManagementUtil.
+                            isOrganization(authorizedUserTenantDomain)) {
+                        serviceProvider = OAuth2Util.getServiceProvider(oAuth2IntrospectionResponseDTO.getClientId(),
+                                authorizedUserTenantDomain);
+                    } else {
+                        serviceProvider = OAuth2Util.getServiceProvider(oAuth2IntrospectionResponseDTO.getClientId());
+                    }
+                    if (serviceProvider != null) {
+                        serviceProviderName = serviceProvider.getApplicationName();
+                        serviceProviderUUID = serviceProvider.getApplicationResourceId();
+                    } else {
+                        log.debug("There is no associated Service provider for client Id "
+                                + oAuth2IntrospectionResponseDTO.getClientId());
+                        throw new IdentityOAuth2Exception("There is no associated Service provider for client Id "
+                                + oAuth2IntrospectionResponseDTO.getClientId());
+                    }
                 } catch (IdentityOAuth2Exception e) {
-                    log.error("Error occurred while getting the Service Provider by Consumer key: "
-                            + oAuth2IntrospectionResponseDTO.getClientId(), e);
+                    if (log.isDebugEnabled()) {
+                        log.debug("Error occurred while getting the Service Provider by Consumer key: "
+                                + oAuth2IntrospectionResponseDTO.getClientId(), e);
+                    }
+                } catch (OrganizationManagementException e) {
+                    if (log.isDebugEnabled()) {
+                        log.debug("Error occurred while checking the tenant domain: " +
+                                authorizedUserTenantDomain + " is an organization.", e);
+                    }
+                }
+
+                /*
+                 Set OAuthAppDO to the authentication context to be used when checking the user belongs to the
+                 requested tenant. This needs to be executed in the sub organization level.
+                */
+                OAuthAppDO oAuthAppDO = null;
+                try {
+                    if (StringUtils.isNotEmpty(authorizedUserTenantDomain) && OrganizationManagementUtil.
+                            isOrganization(authorizedUserTenantDomain)) {
+                        oAuthAppDO = OAuth2Util.getAppInformationByClientId(
+                                oAuth2IntrospectionResponseDTO.getClientId(), authorizedUserTenantDomain);
+                    }
+                } catch (IdentityOAuth2Exception | InvalidOAuthClientException e) {
+                    if (log.isDebugEnabled()) {
+                        log.debug("Error occurred while getting the OAuth App by Consumer key: "
+                                + oAuth2IntrospectionResponseDTO.getClientId() + " and tenant domain: " +
+                                authorizedUserTenantDomain, e);
+                    }
+                } catch (OrganizationManagementException e) {
+                    if (log.isDebugEnabled()) {
+                        log.debug("Error occurred while checking the tenant domain: " +
+                                authorizedUserTenantDomain + " is an organization.", e);
+                    }
+                }
+                if (oAuthAppDO != null) {
+                    authenticationContext.addParameter(Constants.AUTH_CONTEXT_OAUTH_APP_PROPERTY, oAuthAppDO);
                 }
 
                 String serviceProviderTenantDomain = null;
                 try {
-                    serviceProviderTenantDomain =
-                            OAuth2Util.getTenantDomainOfOauthApp(oAuth2IntrospectionResponseDTO.getClientId());
-                } catch (InvalidOAuthClientException | IdentityOAuth2Exception e) {
-                    log.error("Error occurred while getting the OAuth App tenantDomain by Consumer key: "
-                            + oAuth2IntrospectionResponseDTO.getClientId(), e);
-                }
-
-                if (serviceProvider != null) {
-                    authenticationContext.addParameter(SERVICE_PROVIDER, serviceProvider);
-                    if (serviceProviderTenantDomain != null) {
-                        authenticationContext.addParameter(SERVICE_PROVIDER_TENANT_DOMAIN, serviceProviderTenantDomain);
+                    /*
+                     Tokens which are issued for the applications which are registered in sub organization,
+                     contains the tenant domain for the authorized user as the sub organization. Based on that
+                     we can get the application tenant domain detail by using both the client id and the tenant domain.
+                    */
+                    if (StringUtils.isNotEmpty(authorizedUserTenantDomain) && OrganizationManagementUtil.
+                            isOrganization(authorizedUserTenantDomain)) {
+                        serviceProviderTenantDomain =
+                                OAuth2Util.getTenantDomainOfOauthApp(oAuth2IntrospectionResponseDTO.getClientId(),
+                                        authorizedUserTenantDomain);
+                    } else {
+                        serviceProviderTenantDomain =
+                                OAuth2Util.getTenantDomainOfOauthApp(oAuth2IntrospectionResponseDTO.getClientId());
                     }
-
-                    MDC.put(SERVICE_PROVIDER, serviceProvider);
-                    // Set OAuth service provider details to be consumed by the provisioning framework.
-                    setProvisioningServiceProviderThreadLocal(oAuth2IntrospectionResponseDTO.getClientId(),
-                            serviceProviderTenantDomain);
+                } catch (InvalidOAuthClientException | IdentityOAuth2Exception e) {
+                    if (log.isDebugEnabled()) {
+                        log.debug("Error occurred while getting the OAuth App tenantDomain by Consumer key: "
+                                + oAuth2IntrospectionResponseDTO.getClientId(), e);
+                    }
+                } catch (OrganizationManagementException e) {
+                    if (log.isDebugEnabled()) {
+                        log.debug("Error occurred while checking the tenant domain: " +
+                                authorizedUserTenantDomain + " is an organization.", e);
+                    }
                 }
+
+                if (serviceProviderName != null){
+                    authenticationContext.addParameter(SERVICE_PROVIDER_NAME, serviceProviderName);
+                    MDC.put(SERVICE_PROVIDER_NAME, serviceProviderName);
+                }
+                if (serviceProviderTenantDomain != null) {
+                    authenticationContext.addParameter(SERVICE_PROVIDER_TENANT_DOMAIN, serviceProviderTenantDomain);
+                }
+                if (serviceProviderUUID != null) {
+                    authenticationContext.addParameter(SERVICE_PROVIDER_UUID, serviceProviderUUID);
+                    MDC.put(SERVICE_PROVIDER_UUID, serviceProviderUUID);
+                }
+                // Set OAuth service provider details to be consumed by the provisioning framework.
+                setProvisioningServiceProviderThreadLocal(oAuth2IntrospectionResponseDTO.getClientId(),
+                        serviceProviderTenantDomain);
             }
         }
         return authenticationResult;
     }
 
-    @Override
-    public void init(InitConfig initConfig) {
+    /**
+     * If the application is MY_ACCOUNT and the token is impersonated allow only
+     * allowed operations during impersonation.
+     *
+     * @param resourceConfig Resource Config.
+     * @param allowedScopes  Allowed scopes in the token.
+     * @param clientId       Client id.
+     * @return Whether the operation is allowed or not.
+     */
+    private boolean validateAllowedDuringImpersonation(ResourceConfig resourceConfig, String allowedScopes,
+                                                       String clientId) {
 
+        List<String> scopes = Arrays.asList(OAuth2Util.buildScopeArray(allowedScopes));
+        List<String> impersonateMyAccountResourceConfigs = IdentityConfigParser
+                .getImpersonateMyAccountResourceConfigs();
+        return !(MY_ACCOUNT_APPLICATION_CLIENT_ID.equals(clientId)
+                && (scopes.contains(IMPERSONATION_SCOPE_NAME) || scopes.contains(IMPERSONATION_ORG_SCOPE_NAME))
+                && !GET.equals(resourceConfig.getHttpMethod())
+                && impersonateMyAccountResourceConfigs.stream()
+                    .noneMatch(resource -> resourceConfig.getContext().contains(resource)));
+    }
+
+    private void setActorToIdentityContext(OAuth2IntrospectionResponseDTO introspectionResponseDTO) {
+
+        String authenticatedEntity = introspectionResponseDTO.getAut();
+        if (authenticatedEntity == null) {
+            return;
+        }
+
+        switch (authenticatedEntity) {
+            case AUT_APPLICATION:
+                ApplicationActor actor = new ApplicationActor.Builder()
+                        .authenticationType(ApplicationActor.AuthType.OAUTH2)
+                        .entityId(introspectionResponseDTO.getClientId())
+                        .build();
+                IdentityContext.getThreadLocalIdentityContext().setActor(actor);
+                break;
+            case AUT_APPLICATION_USER:
+                UserActor.Builder userBuilder =  new UserActor.Builder()
+                        .username(introspectionResponseDTO.getAuthorizedUser().getUserName());
+                try {
+                    userBuilder.userId(introspectionResponseDTO.getAuthorizedUser().getUserId());
+                } catch (UserIdNotFoundException e) {
+                    log.warn("No userId found for the authenticated user.", e);
+                }
+                IdentityContext.getThreadLocalIdentityContext().setActor(userBuilder.build());
+                break;
+            default:
+                break;
+        }
+    }
+
+    /**
+     * Handles the logging of impersonated access tokens. This method extracts the claims from the given
+     * access token and checks if it represents an impersonation request. If impersonation is detected,
+     * it logs the impersonation event with relevant details such as subject, impersonator, resource path,
+     * HTTP method, client ID, and scope. The method ensures that only non-GET requests are logged for audit purposes.
+     *
+     * @param authenticationContext The authentication context containing the authentication request details.
+     * @param accessToken The access token to be inspected for impersonation.
+     * @param introspectionResponseDTO The introspection response containing token details.
+     */
+    private void handleImpersonatedAccessToken(AuthenticationContext authenticationContext,
+                                               String accessToken,
+                                               OAuth2IntrospectionResponseDTO introspectionResponseDTO) {
+
+        String subject = null;
+        String impersonator = null;
+        try {
+            if (OAuth2Constants.TokenTypes.JWT.equalsIgnoreCase(introspectionResponseDTO.getTokenType())) {
+                // Extract claims from the access token
+                SignedJWT signedJWT = getSignedJWT(accessToken);
+                JWTClaimsSet claimsSet = getClaimSet(signedJWT);
+                if (claimsSet != null) {
+                    subject = resolveSubject(claimsSet);
+                    impersonator = resolveImpersonator(claimsSet);
+                }
+            } else {
+                // Extract claims from the introspection response.
+                if (introspectionResponseDTO.getProperties().containsKey(IMPERSONATING_ACTOR)) {
+                    subject = introspectionResponseDTO.getAuthorizedUser().getAuthenticatedSubjectIdentifier();
+                    impersonator = (String) introspectionResponseDTO.getProperties().get(IMPERSONATING_ACTOR);
+                }
+            }
+
+            // Check if the token represents an impersonation request
+            if (impersonator != null) {
+                MDC.put(Constants.IMPERSONATOR, impersonator);
+                String scope = introspectionResponseDTO.getScope();
+                String clientId = introspectionResponseDTO.getClientId();
+                String requestUri = authenticationContext.getAuthenticationRequest().getRequestUri();
+                String httpMethod = authenticationContext.getAuthenticationRequest().getMethod();
+
+                // Ensure it's not a GET request before logging
+                if (!GET.equals(httpMethod)) {
+                    // Prepare data for audit log
+                    JSONObject data = new JSONObject();
+                    data.put(Constants.SUBJECT, subject);
+                    data.put(Constants.IMPERSONATOR, impersonator);
+                    data.put(Constants.RESOURCE_PATH, requestUri);
+                    data.put(Constants.HTTP_METHOD, httpMethod);
+                    data.put(Constants.CLIENT_ID, clientId);
+                    data.put(Constants.SCOPE, scope);
+
+                    String action;
+
+                    switch (httpMethod) {
+                        case Constants.PATCH:
+                            action = Constants.IMPERSONATION_RESOURCE_MODIFICATION;
+                            break;
+                        case Constants.POST:
+                            action = Constants.IMPERSONATION_RESOURCE_CREATION;
+                            break;
+                        case Constants.DELETE:
+                            action = Constants.IMPERSONATION_RESOURCE_DELETION;
+                            break;
+                        default:
+                            action = Constants.IMPERSONATION_RESOURCE_ACCESS;
+                            break;
+                    }
+                    // Log the audit event
+                    AUDIT.info(createAuditMessage(impersonator, action, subject, data, Constants.AUTHORIZED));
+                }
+            }
+        } catch (IdentityOAuth2Exception e) {
+            // Ignore IdentityOAuth2Exception since this is an audit log section
+        }
+    }
+
+    /**
+     * To create an audit message based on provided parameters.
+     *
+     * @param action      Activity
+     * @param target      Target affected by this activity.
+     * @param data        Information passed along with the request.
+     * @param resultField Result value.
+     * @return Relevant audit log in Json format.
+     */
+    private String createAuditMessage(String subject, String action, String target, JSONObject data, String resultField) {
+
+        String auditMessage =
+                Constants.INITIATOR + "=%s " + Constants.ACTION + "=%s " + Constants.TARGET + "=%s "
+                        + Constants.DATA + "=%s " + Constants.OUTCOME + "=%s";
+        return String.format(auditMessage, subject, action, target, data, resultField);
     }
 
     @Override
@@ -221,7 +487,7 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
     @Override
     public boolean canHandle(MessageContext messageContext) {
 
-        return isAuthHeaderMatch(messageContext, OAUTH_HEADER);
+        return isAuthHeaderMatch(messageContext, OAUTH_HEADER, false );
     }
 
     /**
@@ -382,5 +648,69 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
             provisioningServiceProvider.setTenantDomain(serviceProviderTenantDomain);
             IdentityApplicationManagementUtil.setThreadLocalProvisioningServiceProvider(provisioningServiceProvider);
         }
+    }
+
+    /**
+     * Get the SignedJWT by parsing the subjectToken.
+     *
+     * @param token Token sent in the request
+     * @return SignedJWT
+     * @throws IdentityOAuth2Exception Error when parsing the subjectToken
+     */
+    private SignedJWT getSignedJWT(String token) throws IdentityOAuth2Exception {
+
+        SignedJWT signedJWT;
+        if (StringUtils.isEmpty(token)) {
+            return null;
+        }
+        try {
+            signedJWT = SignedJWT.parse(token);
+            return signedJWT;
+        } catch (ParseException e) {
+            throw new IdentityOAuth2Exception("Error while parsing the JWT", e);
+        }
+    }
+
+    /**
+     * Retrieve the JWTClaimsSet from the SignedJWT.
+     *
+     * @param signedJWT SignedJWT object
+     * @return JWTClaimsSet
+     * @throws IdentityOAuth2Exception Error when retrieving the JWTClaimsSet
+     */
+    public static JWTClaimsSet getClaimSet(SignedJWT signedJWT) throws IdentityOAuth2Exception {
+
+        try {
+            if (signedJWT != null){
+                IdentityUtil.validateJWTDepth(signedJWT.serialize());
+                return signedJWT.getJWTClaimsSet();
+            }
+            return null;
+        } catch (ParseException e) {
+            throw new IdentityOAuth2Exception("Error when retrieving claimsSet from the JWT", e);
+        }
+    }
+
+    /**
+     * The default implementation creates the subject from the Sub attribute.
+     * To translate between the federated and local user store, this may need some mapping.
+     * Override if needed
+     *
+     * @param claimsSet all the JWT claims
+     * @return The subject, to be used
+     */
+    private String resolveSubject(JWTClaimsSet claimsSet) {
+
+        return claimsSet.getSubject();
+    }
+
+    private String resolveImpersonator(JWTClaimsSet claimsSet) {
+
+        if (claimsSet.getClaim(Constants.ACT) != null) {
+
+            Map<String, String>  mayActClaimSet = (Map) claimsSet.getClaim(Constants.ACT);
+            return mayActClaimSet.get(Constants.SUB);
+        }
+        return null;
     }
 }

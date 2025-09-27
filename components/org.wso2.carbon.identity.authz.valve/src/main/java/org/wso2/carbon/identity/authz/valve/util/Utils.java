@@ -1,8 +1,8 @@
 /*
- * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016-2025, WSO2 LLC. (http://www.wso2.com).
  *
- * WSO2 Inc. licenses this file to you under the Apache License,
- *  Version 2.0 (the "License"); you may not use this file except
+ * WSO2 LLC. licenses this file to you under the Apache License,
+ * Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License.
  * You may obtain a copy of the License at
  *
@@ -26,11 +26,14 @@ import org.wso2.carbon.identity.application.common.model.User;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
 import org.wso2.carbon.identity.auth.service.util.Constants;
 import org.wso2.carbon.identity.authz.service.AuthorizationContext;
+import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.oauth.dao.OAuthAppDO;
 import org.wso2.carbon.identity.oauth2.util.OAuth2Util;
 import org.wso2.carbon.utils.multitenancy.MultitenantConstants;
 
 import java.util.List;
+
+import static org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil.getResourceResidentTenantForTenantPerspective;
 
 public class Utils {
 
@@ -88,20 +91,36 @@ public class Utils {
                     Constants.AUTH_CONTEXT_OAUTH_APP_PROPERTY);
             tenantDomain = OAuth2Util.getTenantDomainOfOauthApp(oAuthAppDO);
         }
-        return tenantDomainFromURLMapping.equals(tenantDomain);
-    }
 
-    public static boolean isUserAuthorizedForOrganization(AuthenticationContext authenticationContext, Request request) {
+        // If tenant qualified URls are disabled get the requested tenant domain from carbon context
+        if (!IdentityTenantUtil.isTenantQualifiedUrlsEnabled()) {
+            String tenantDomainFromCarbonContext = PrivilegedCarbonContext.getThreadLocalCarbonContext()
+                    .getTenantDomain();
+            return tenantDomainFromCarbonContext.equals(tenantDomain);
+        }
 
-        User user = authenticationContext.getUser();
-        if (user == null) {
-            return false;
+        if (tenantDomainFromURLMapping.equals(tenantDomain)) {
+            return true;
         }
-        String authorizedOrganization = ((AuthenticatedUser) user).getAccessingOrganization();
-        if (StringUtils.isNotEmpty(authorizedOrganization)) {
-            return getOrganizationIdFromURLMapping(request).equals(authorizedOrganization);
+
+        String appResidentTenant = getResourceResidentTenantForTenantPerspective(authenticationContext.
+                getAuthenticationRequest().getRequestUri());
+        if (StringUtils.isNotEmpty(appResidentTenant) && StringUtils.equals(appResidentTenant, tenantDomain)) {
+            return true;
         }
-        return isUserBelongsToRequestedTenant(authenticationContext, request);
+        // Check request with organization qualified URL is allowed to access.
+        String organizationID = getOrganizationIdFromURLMapping(request);
+        if (user != null) {
+            if (StringUtils.equals(organizationID, ((AuthenticatedUser) user).getAccessingOrganization())) {
+                return true;
+            } else {
+                OAuthAppDO oAuthAppDO = (OAuthAppDO) authenticationContext.getParameter(
+                        Constants.AUTH_CONTEXT_OAUTH_APP_PROPERTY);
+                tenantDomain = OAuth2Util.getTenantDomainOfOauthApp(oAuthAppDO);
+                return StringUtils.equals(((AuthenticatedUser) user).getAccessingOrganization(), tenantDomain);
+            }
+        }
+        return false;
     }
 
     /**

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2023, WSO2 LLC. (http://www.wso2.com).
+ * Copyright (c) 2016-2024, WSO2 LLC. (http://www.wso2.com).
  *
  * WSO2 LLC. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -40,8 +40,6 @@ import org.wso2.carbon.user.api.UserRealm;
 import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.user.core.common.AbstractUserStoreManager;
 import org.wso2.carbon.user.core.service.RealmService;
-import org.wso2.carbon.user.core.util.UserCoreUtil;
-import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
 /**
  * This is the abstract class for custom authentication handlers.
@@ -107,75 +105,64 @@ public abstract class AuthenticationHandler extends AbstractIdentityMessageHandl
 
             User user = authenticationContext.getUser();
             if (user != null) {
-                // Set the user in to the Carbon context if the user belongs to same tenant or else if the accessing
-                // organization is authorized to access. Skip this for cross tenant scenarios.
+                // Set the user in to the Carbon context if the user belongs to same tenant. Skip this for cross tenant
+                // scenarios.
 
-                String authorizedOrganization = null;
-                String userResidentOrganization = null;
-                if (user instanceof AuthenticatedUser) {
-                    authorizedOrganization = ((AuthenticatedUser) user).getAccessingOrganization();
-                    userResidentOrganization = ((AuthenticatedUser) user).getUserResidentOrganization();
-                }
-
-                if (user.getTenantDomain() != null && (user.getTenantDomain()
-                        .equalsIgnoreCase(PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain()))) {
+                if (user.getTenantDomain() != null && user.getTenantDomain().equalsIgnoreCase(PrivilegedCarbonContext
+                        .getThreadLocalCarbonContext().getTenantDomain())) {
                     PrivilegedCarbonContext.getThreadLocalCarbonContext().setUsername(IdentityUtil.addDomainToName
                             (user.getUserName(), user.getUserStoreDomain()));
                 }
 
                 // Set the user id to the Carbon context if the user authentication is succeeded.
                 try {
-                    AuthenticatedUser authenticatedUser;
                     if (user instanceof AuthenticatedUser) {
-                        authenticatedUser = (AuthenticatedUser) user;
-                        // For B2B organization users, set the user ID which is set as username in user object.
-                        if (authenticatedUser.isFederatedUser() && StringUtils.isNotEmpty(authorizedOrganization)) {
-                            String userName = MultitenantUtils.getTenantAwareUsername(authenticatedUser.getUserName());
-                            userName = UserCoreUtil.removeDomainFromName(userName);
-                            PrivilegedCarbonContext.getThreadLocalCarbonContext().setUserId(userName);
-                        } else {
-                            PrivilegedCarbonContext.getThreadLocalCarbonContext()
-                                    .setUserId(authenticatedUser.getUserId());
-                        }
+                        PrivilegedCarbonContext.getThreadLocalCarbonContext()
+                                .setUserId(((AuthenticatedUser) user).getUserId());
                     } else {
-                        authenticatedUser = new AuthenticatedUser(user);
-                        PrivilegedCarbonContext.getThreadLocalCarbonContext().setUserId(authenticatedUser.getUserId());
+                        AuthenticatedUser authenticatedUser = new AuthenticatedUser(user);
+                        PrivilegedCarbonContext.getThreadLocalCarbonContext()
+                                .setUserId(authenticatedUser.getUserId());
                     }
                 } catch (UserIdNotFoundException e) {
                     LOG.error("User id not found for user: " + user.getLoggableMaskedUserId());
                 }
 
-                if (StringUtils.isNotEmpty(authorizedOrganization)) {
-                    // Set the user's resident organization if user is accessing an organization
+                // Set the username in to the Carbon context if an organization user.
+                if (user instanceof AuthenticatedUser && ((AuthenticatedUser) user).isOrganizationUser()) {
+                    String username = resolveUserNameForOrganizationUser((AuthenticatedUser) user);
+                    PrivilegedCarbonContext.getThreadLocalCarbonContext().setUsername(username);
+                }
+
+                // Set the user's resident organization if user is accessing an organization
+                if (user instanceof AuthenticatedUser &&
+                        StringUtils.isNotEmpty(((AuthenticatedUser) user).getAccessingOrganization())) {
                     PrivilegedCarbonContext.getThreadLocalCarbonContext()
-                            .setUserResidentOrganizationId(userResidentOrganization);
-                    if (((AuthenticatedUser) user).isFederatedUser()) {
-                        updateUserNameInContextForOrganizationSsoUsers(userResidentOrganization);
-                    }
+                            .setUserResidentOrganizationId(((AuthenticatedUser) user).getUserResidentOrganization());
                 }
             }
         }
     }
 
-    private void updateUserNameInContextForOrganizationSsoUsers(String userResidentOrganization) {
+    private String resolveUserNameForOrganizationUser(AuthenticatedUser authenticatedUser) {
 
         try {
             String tenantDomain = AuthenticationServiceHolder.getInstance().getOrganizationManager()
-                    .resolveTenantDomain(userResidentOrganization);
+                    .resolveTenantDomain(authenticatedUser.getUserResidentOrganization());
             int tenantId = AuthenticationServiceHolder.getInstance().getRealmService().getTenantManager()
                     .getTenantId(tenantDomain);
-            RealmService realmService = AuthenticationServiceHolder.getInstance().getRealmService();
-            UserRealm tenantUserRealm = realmService.getTenantUserRealm(tenantId);
-            if (tenantUserRealm != null) {
-                String userId = PrivilegedCarbonContext.getThreadLocalCarbonContext().getUserId();
-                org.wso2.carbon.user.core.common.User user =
-                        ((AbstractUserStoreManager) tenantUserRealm.getUserStoreManager()).getUser(userId, null);
-                if (user != null && StringUtils.isNotEmpty(user.getUsername())) {
-                    PrivilegedCarbonContext.getThreadLocalCarbonContext().setUsername(user.getUsername());
-                }
-            }
-        } catch (OrganizationManagementException | UserStoreException e) {
+            AbstractUserStoreManager userStoreManager = getAbstractUserStoreManager(tenantId);
+            return userStoreManager.getUserNameFromUserID(authenticatedUser.getUserId());
+        } catch (OrganizationManagementException | UserStoreException | UserIdNotFoundException e) {
             LOG.error("Authenticated user's username could not be resolved.", e);
         }
+        return StringUtils.EMPTY;
+    }
+
+    private AbstractUserStoreManager getAbstractUserStoreManager(int tenantId) throws UserStoreException {
+
+        RealmService realmService = AuthenticationServiceHolder.getInstance().getRealmService();
+        UserRealm tenantUserRealm = realmService.getTenantUserRealm(tenantId);
+        return (AbstractUserStoreManager) tenantUserRealm.getUserStoreManager();
     }
 }

@@ -1,3 +1,21 @@
+/*
+ * Copyright (c) 2016-2025, WSO2 LLC. (http://www.wso2.com).
+ *
+ * WSO2 LLC. licenses this file to you under the Apache License,
+ * Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
 package org.wso2.carbon.identity.auth.service.util;
 
 import org.apache.axiom.om.OMElement;
@@ -16,6 +34,7 @@ import org.wso2.carbon.identity.core.bean.context.MessageContext;
 import org.wso2.carbon.identity.core.util.IdentityConfigParser;
 import org.wso2.carbon.identity.core.util.IdentityCoreConstants;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
+import org.wso2.carbon.identity.organization.management.service.exception.OrganizationManagementException;
 import org.wso2.securevault.SecretResolver;
 import org.wso2.securevault.SecretResolverFactory;
 import org.wso2.securevault.commons.MiscellaneousUtil;
@@ -35,8 +54,10 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import javax.xml.namespace.QName;
 import javax.xml.stream.XMLStreamException;
@@ -44,6 +65,10 @@ import javax.xml.stream.XMLStreamException;
 import static org.wso2.carbon.identity.auth.service.util.Constants.AUTHORIZATION_CONTROL_ELE;
 import static org.wso2.carbon.identity.auth.service.util.Constants.AUTH_HANDLER_ELE;
 import static org.wso2.carbon.identity.auth.service.util.Constants.ENDPOINT_LIST_ELE;
+import static org.wso2.carbon.identity.auth.service.util.Constants.RESOURCE_OPERATIONS_ELE;
+import static org.wso2.carbon.identity.auth.service.util.Constants.RESOURCE_OPERATION_ELE;
+import static org.wso2.carbon.identity.auth.service.util.Constants.RESOURCE_OPERATION_ELE_NAME_ATTR;
+import static org.wso2.carbon.identity.auth.service.util.Constants.RESOURCE_OPERATION_ELE_SCOPE_ATTR;
 import static org.wso2.carbon.identity.auth.service.util.Constants.SKIP_AUTHORIZATION_ELE;
 
 public class AuthConfigurationUtil {
@@ -53,17 +78,73 @@ public class AuthConfigurationUtil {
     private Map<ResourceConfigKey, ResourceConfig> resourceConfigMap = new LinkedHashMap<>();
     private Map<String, String> applicationConfigMap = new HashMap<>();
     private List<String> intermediateCertCNList = new ArrayList<>();
+    private List<CertUserMapping> userThumbPrintMappings = new ArrayList<>();
+    private List<SystemThumbprintMapping> systemThumbprintMappings = new ArrayList<>();
     private List<String> exemptedContextList = new ArrayList<>();
     private Map<String, String[]> skipAuthorizationAllowedEndpoints = new HashMap<>();
     private boolean isIntermediateCertValidationEnabled = false;
+    private boolean isClientCertBasedAuthnEnabled = false;
     private static final String SECRET_ALIAS = "secretAlias";
     private static final String SECRET_ALIAS_NAMESPACE_URI = "http://org.wso2.securevault/configuration";
     private static final String SECRET_ALIAS_PREFIX = "svns";
     private static final String regex = "\\s*,\\s*";
+    private static final String TENANT_PERSPECTIVE_REQUEST_REGEX = "^/t/[^/]+/o/[a-f0-9\\-]+?";
     private String defaultAccess;
     private boolean isScopeValidationEnabled = true;
 
     private static final Log log = LogFactory.getLog(AuthConfigurationUtil.class);
+
+    public static class CertUserMapping {
+
+        private final String certifiedIssuer;
+        private final String certThumbprint;
+        private final ArrayList<String> allowedUsernames;
+
+        public CertUserMapping(String certifiedIssuer, String certFingerPrint,
+                               ArrayList<String> allowedUsernames) {
+            this.certifiedIssuer = certifiedIssuer;
+            this.certThumbprint = certFingerPrint;
+            this.allowedUsernames = allowedUsernames;
+        }
+
+        public String getAllowedThumbprint() {
+            return certThumbprint;
+        }
+
+        public ArrayList<String> getAllowedUsernames() {
+            return allowedUsernames;
+        }
+
+        public String getAllowedIssuer() {
+            return certifiedIssuer;
+        }
+    }
+
+    public static class SystemThumbprintMapping {
+
+        private final String certThumbprint;
+        private final String allowedSystemUser;
+        private final String certifiedIssuer;
+
+        public SystemThumbprintMapping(String certifiedIssuer, String certThumbprint, String allowedSystemUser) {
+            this.certThumbprint = certThumbprint;
+            this.allowedSystemUser = allowedSystemUser;
+            this.certifiedIssuer = certifiedIssuer;
+        }
+
+        public String getAllowedThumbprint() {
+            return certThumbprint;
+        }
+
+        public String getAllowedSystemUser() {
+            return allowedSystemUser;
+        }
+
+        public String getAllowedIssuer() {
+            return certifiedIssuer;
+        }
+
+    }
 
     private AuthConfigurationUtil() {
     }
@@ -74,8 +155,8 @@ public class AuthConfigurationUtil {
 
     public ResourceConfig getSecuredConfig(ResourceConfigKey resourceConfigKey) {
         ResourceConfig resourceConfig = null;
-        for ( Map.Entry<ResourceConfigKey, ResourceConfig> entry : resourceConfigMap.entrySet() ) {
-            if ( entry.getKey().equals(resourceConfigKey) ) {
+        for (Map.Entry<ResourceConfigKey, ResourceConfig> entry : resourceConfigMap.entrySet()) {
+            if (entry.getKey().equals(resourceConfigKey)) {
                 resourceConfig = entry.getValue();
                 break;
             }
@@ -89,7 +170,7 @@ public class AuthConfigurationUtil {
     public void buildResourceAccessControlData() {
 
         OMElement resourceAccessControl = getResourceAccessControlConfigs();
-        if ( resourceAccessControl != null ) {
+        if (resourceAccessControl != null) {
             defaultAccess = resourceAccessControl.getAttributeValue(new QName(Constants.RESOURCE_DEFAULT_ACCESS));
             isScopeValidationEnabled = !Boolean.parseBoolean(resourceAccessControl
                     .getAttributeValue(new QName(Constants.RESOURCE_DISABLE_SCOPE_VALIDATION)));
@@ -97,7 +178,7 @@ public class AuthConfigurationUtil {
                     new QName(IdentityCoreConstants.IDENTITY_DEFAULT_NAMESPACE, Constants.RESOURCE_ELE));
             if ( resources != null ) {
 
-                while ( resources.hasNext() ) {
+                while (resources.hasNext()) {
                     OMElement resource = resources.next();
                     ResourceConfig resourceConfig = new ResourceConfig();
                     String httpMethod = resource.getAttributeValue(
@@ -162,6 +243,35 @@ public class AuthConfigurationUtil {
                     resourceConfig.setAllowedAuthHandlers(allowedAuthHandlers);
                     resourceConfig.setPermissions(permissionBuilder.toString());
                     resourceConfig.setScopes(scopes);
+
+                    // Parse <Operations> if present
+                    Iterator<OMElement> operationsElementItr = resource.getChildrenWithName(
+                            new QName(IdentityCoreConstants.IDENTITY_DEFAULT_NAMESPACE, RESOURCE_OPERATIONS_ELE));
+
+                    if (operationsElementItr != null && operationsElementItr.hasNext()) {
+                        OMElement operationsElement = operationsElementItr.next();  // There should be only one <Operations> per <Resource>
+                        Iterator<OMElement> operationElements = operationsElement.getChildrenWithName(
+                                new QName(IdentityCoreConstants.IDENTITY_DEFAULT_NAMESPACE, RESOURCE_OPERATION_ELE));
+
+                        Map<String, String> operationScopeMap = new HashMap<>();
+                        while (operationElements.hasNext()) {
+                            OMElement operationElement = operationElements.next();
+                            String operationName = operationElement.getAttributeValue(new QName(
+                                    RESOURCE_OPERATION_ELE_NAME_ATTR));
+                            OMElement scopeElement = operationElement.getFirstChildWithName(new QName(
+                                    IdentityCoreConstants.IDENTITY_DEFAULT_NAMESPACE,
+                                    RESOURCE_OPERATION_ELE_SCOPE_ATTR));
+
+                            if (StringUtils.isNotBlank(operationName) && scopeElement != null &&
+                                    StringUtils.isNotBlank(scopeElement.getText())) {
+                                operationScopeMap.put(operationName, scopeElement.getText());
+                            }
+                        }
+                        if (!operationScopeMap.isEmpty()) {
+                            resourceConfig.setOperationScopeMap(operationScopeMap);
+                        }
+                    }
+
                     ResourceConfigKey resourceConfigKey = new ResourceConfigKey(context, httpMethod);
                     if (!resourceConfigMap.containsKey(resourceConfigKey)) {
                         resourceConfigMap.put(resourceConfigKey, resourceConfig);
@@ -245,6 +355,103 @@ public class AuthConfigurationUtil {
                     }
                     applicationConfigMap.put(appName, hash);
                 }
+            }
+        }
+    }
+
+    /**
+     * Build cert based authentication enabled config.
+     */
+    public void buildClientCertBasedAuthnEnabled() {
+
+        OMElement root = IdentityConfigParser.getInstance()
+                .getConfigElement(Constants.CERT_BASED_AUTHENTICATION_ELE);
+
+        if (root != null) {
+            isClientCertBasedAuthnEnabled = Boolean.parseBoolean(
+                    root.getAttributeValue(new QName(Constants.CERT_AUTHENTICATION_ENABLE_ATTR)));
+        }
+        if (!isClientCertBasedAuthnEnabled) {
+            return;
+        }
+
+        OMElement userMappingsEle = root.getFirstChildWithName(
+                new QName(IdentityCoreConstants.IDENTITY_DEFAULT_NAMESPACE, Constants.USER_THUMBPRINT_MAPPINGS));
+        if (userMappingsEle != null) {
+            Iterator<OMElement> items = userMappingsEle.getChildrenWithName(
+                    new QName(IdentityCoreConstants.IDENTITY_DEFAULT_NAMESPACE, Constants.MAPPING));
+            while (items != null && items.hasNext()) {
+                OMElement m = items.next();
+
+                String trustedIssuer = getChildText(m, Constants.TRUSTED_ISSUER_ELE);
+                if (StringUtils.isEmpty(trustedIssuer)) {
+                    log.warn("Skipping user mapping. Missing 'trusted_issuer'.");
+                    continue;
+                }
+
+                if (Constants.WILDCARD.equals(trustedIssuer)) {
+                    log.warn("Skipping user thumbprint mapping. 'trusted_issuer' cannot be '*'.");
+                    continue;
+                }
+
+                String certThumbprint = getChildText(m, Constants.CERT_THUMBPRINT);
+                if (StringUtils.isEmpty(certThumbprint)) {
+                    certThumbprint = Constants.WILDCARD;
+                }
+
+                ArrayList<String> allowedUsers = new ArrayList<>(
+                        getChildrenTextList(m, Constants.ALLOWED_USERNAME, true)
+                );
+                if (allowedUsers.isEmpty()) {
+                    allowedUsers.add(Constants.WILDCARD);
+                }
+
+                userThumbPrintMappings.add(
+                        new CertUserMapping(
+                                trustedIssuer,
+                                certThumbprint,
+                                allowedUsers
+                        )
+                );
+            }
+        }
+
+        OMElement systemMappingsEle = root.getFirstChildWithName(
+                new QName(IdentityCoreConstants.IDENTITY_DEFAULT_NAMESPACE, Constants.SYSTEM_THUMBPRINT_MAPPINGS));
+        if (systemMappingsEle != null) {
+            Iterator<OMElement> items = systemMappingsEle.getChildrenWithName(
+                    new QName(IdentityCoreConstants.IDENTITY_DEFAULT_NAMESPACE, Constants.MAPPING));
+            while (items != null && items.hasNext()) {
+                OMElement m = items.next();
+
+                String trustedIssuer = getChildText(m, Constants.TRUSTED_ISSUER_ELE);
+                if (StringUtils.isEmpty(trustedIssuer)) {
+                    log.warn("Skipping system thumbprint mapping. Missing 'trusted_issuer'.");
+                    continue;
+                }
+
+                if (Constants.WILDCARD.equals(trustedIssuer)) {
+                    log.warn("Skipping system thumbprint mapping. 'trusted_issuer' cannot be '*'.");
+                    continue;
+                }
+
+                String certThumbPrint = getChildText(m, Constants.CERT_THUMBPRINT);
+                if (StringUtils.isEmpty(certThumbPrint)) {
+                    certThumbPrint = Constants.WILDCARD;
+                }
+
+                String sysUser = getChildText(m, Constants.ALLOWED_SYSTEM_USER);
+                if (StringUtils.isEmpty(sysUser)) {
+                    sysUser = Constants.WILDCARD;
+                }
+
+                systemThumbprintMappings.add(
+                        new SystemThumbprintMapping(
+                                trustedIssuer,
+                                certThumbPrint,
+                                sysUser
+                        )
+                );
             }
         }
     }
@@ -335,6 +542,19 @@ public class AuthConfigurationUtil {
         return isIntermediateCertValidationEnabled;
     }
 
+    public boolean IsClientCertBasedAuthnEnabled() {
+
+        return isClientCertBasedAuthnEnabled;
+    }
+
+    public List<CertUserMapping> getCertUserMappings() {
+        return userThumbPrintMappings;
+    }
+
+    public List<SystemThumbprintMapping> getSystemUserThumbprintMappings() {
+        return systemThumbprintMappings;
+    }
+
     public List<String> getIntermediateCertCNList() {
 
         return intermediateCertCNList;
@@ -373,8 +593,25 @@ public class AuthConfigurationUtil {
      * @param messageContext       Authentication message context.
      * @param authHeaderIdentifier Specific header identifier to be matched.
      * @return True if matched, false otherwise.
+     * @deprecated use {@link #isAuthHeaderMatch(MessageContext, String, boolean)} instead.
      */
+    @Deprecated
     public static boolean isAuthHeaderMatch(MessageContext messageContext, String authHeaderIdentifier) {
+
+        return isAuthHeaderMatch(messageContext, authHeaderIdentifier, true);
+    }
+
+    /**
+     * Check if the authorization header is matching to the provided auth header identifier.
+     *
+     * @param messageContext       Authentication message context.
+     * @param authHeaderIdentifier Specific header identifier to be matched.
+     * @param isCaseSensitive      Whether the comparison of the authHeaderIdentifier and the header in the request
+     *                             should be case sensitive.
+     * @return True if matched, false otherwise.
+     */
+    public static boolean isAuthHeaderMatch(MessageContext messageContext, String authHeaderIdentifier,
+                                            boolean isCaseSensitive) {
 
         if (messageContext instanceof AuthenticationContext) {
             AuthenticationContext authenticationContext = (AuthenticationContext) messageContext;
@@ -385,9 +622,16 @@ public class AuthConfigurationUtil {
                     return false;
                 }
                 String[] splitAuthorizationHeader = authorizationHeader.split(" ");
-                return splitAuthorizationHeader.length > 0 &&
-                        StringUtils.isNotEmpty(splitAuthorizationHeader[0]) &&
-                        authHeaderIdentifier.equals(splitAuthorizationHeader[0]);
+                if (isCaseSensitive) {
+                    return splitAuthorizationHeader.length > 0 &&
+                            StringUtils.isNotEmpty(splitAuthorizationHeader[0]) &&
+                            authHeaderIdentifier.equals(splitAuthorizationHeader[0]);
+                } else {
+                    // Case insensitive comparison.
+                    if (splitAuthorizationHeader.length > 0 && StringUtils.isNotEmpty(splitAuthorizationHeader[0])) {
+                        return authHeaderIdentifier.equalsIgnoreCase(splitAuthorizationHeader[0]);
+                    }
+                }
             }
         }
         return false;
@@ -422,5 +666,65 @@ public class AuthConfigurationUtil {
      */
     public Map<String, String[]> getSkipAuthorizationAllowedEndpoints() {
         return skipAuthorizationAllowedEndpoints;
+    }
+
+    /**
+     * Retrieve the resource resident tenant domain from the tenant perspective request.
+     *
+     * @param requestURI tenant perspective request.
+     * @return tenant domain of the resource resident tenant.
+     */
+    public static String getResourceResidentTenantForTenantPerspective(String requestURI) {
+
+        Pattern patternTenantPerspective = Pattern.compile(TENANT_PERSPECTIVE_REQUEST_REGEX);
+        if (patternTenantPerspective.matcher(requestURI).find()) {
+            int startIndex = requestURI.indexOf("/o/") + 3;
+            int endIndex = requestURI.indexOf("/", startIndex);
+            String resourceOrgId = requestURI.substring(startIndex, endIndex);
+            try {
+                return AuthenticationServiceHolder.getInstance().getOrganizationManager().
+                        resolveTenantDomain(resourceOrgId);
+            } catch (OrganizationManagementException e) {
+                if(log.isDebugEnabled())
+                {
+                    log.debug("Failed to resolve tenant for resourceOrgId: " + resourceOrgId);
+                }
+            }
+        }
+        return null;
+    }
+
+    private static QName qn(String local) {
+
+        return new QName(IdentityCoreConstants.IDENTITY_DEFAULT_NAMESPACE, local);
+    }
+
+    private static String getChildText(OMElement parent, String local) {
+
+        OMElement child = parent.getFirstChildWithName(qn(local));
+        return child != null ? StringUtils.trim(child.getText()) : null;
+    }
+
+    private static String safeText(OMElement ele) {
+
+        return ele == null ? null : StringUtils.trimToNull(ele.getText());
+    }
+
+    private static List<String> getChildrenTextList(OMElement parent, String childLocalName, boolean dedupe) {
+
+        ArrayList<String> out = new ArrayList<>();
+        if (parent == null) return out;
+        Iterator<OMElement> kids = parent.getChildrenWithName(
+                new QName(IdentityCoreConstants.IDENTITY_DEFAULT_NAMESPACE, childLocalName));
+        while (kids != null && kids.hasNext()) {
+            String v = safeText(kids.next());
+            if (StringUtils.isNotEmpty(v)) out.add(v);
+        }
+        if (dedupe && !out.isEmpty()) {
+            LinkedHashSet<String> set = new LinkedHashSet<>(out);
+            out.clear();
+            out.addAll(set);
+        }
+        return out;
     }
 }

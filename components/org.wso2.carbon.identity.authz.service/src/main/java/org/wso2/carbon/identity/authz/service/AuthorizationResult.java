@@ -17,9 +17,9 @@
  */
 package org.wso2.carbon.identity.authz.service;
 
-
 public class AuthorizationResult {
     private AuthorizationStatus authorizationStatus = null;
+    private boolean operationScopeAuthorizationRequired;
 
     public AuthorizationResult(AuthorizationStatus authorizationStatus) {
         this.authorizationStatus = authorizationStatus;
@@ -33,5 +33,13 @@ public class AuthorizationResult {
         this.authorizationStatus = authorizationStatus;
     }
 
+    public boolean isOperationScopeAuthorizationRequired() {
 
+        return operationScopeAuthorizationRequired;
+    }
+
+    public void setOperationScopeAuthorizationRequired(boolean operationScopeAuthorizationRequired) {
+
+        this.operationScopeAuthorizationRequired = operationScopeAuthorizationRequired;
+    }
 }

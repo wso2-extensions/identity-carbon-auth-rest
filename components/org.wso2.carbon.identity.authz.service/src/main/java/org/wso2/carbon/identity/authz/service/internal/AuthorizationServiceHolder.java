@@ -20,6 +20,7 @@ package org.wso2.carbon.identity.authz.service.internal;
 
 import org.wso2.carbon.identity.authz.service.handler.AuthorizationHandler;
 import org.wso2.carbon.identity.authz.service.handler.ResourceHandler;
+import org.wso2.carbon.identity.organization.management.service.OrganizationManager;
 import org.wso2.carbon.user.core.service.RealmService;
 
 import java.util.ArrayList;
@@ -37,6 +38,7 @@ public class AuthorizationServiceHolder {
     private List<ResourceHandler> resourceHandlerList = new ArrayList<>();
 
     private RealmService realmService = null;
+    private OrganizationManager organizationManager;
 
     private AuthorizationServiceHolder() {
 
@@ -60,5 +62,15 @@ public class AuthorizationServiceHolder {
 
     public List<ResourceHandler> getResourceHandlerList() {
         return resourceHandlerList;
+    }
+
+    public OrganizationManager getOrganizationManager() {
+
+        return organizationManager;
+    }
+
+    public void setOrganizationManager(OrganizationManager organizationManager) {
+
+        this.organizationManager = organizationManager;
     }
 }

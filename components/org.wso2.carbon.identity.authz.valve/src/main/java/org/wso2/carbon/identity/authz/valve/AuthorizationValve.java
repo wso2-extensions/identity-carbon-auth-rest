@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2023, WSO2 LLC. (http://www.wso2.com).
+ * Copyright (c) 2016-2024, WSO2 LLC. (http://www.wso2.com).
  *
  * WSO2 LLC. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -25,6 +25,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.wso2.carbon.context.OperationScopeValidationContext;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
@@ -41,17 +42,22 @@ import org.wso2.carbon.identity.authz.service.AuthorizationStatus;
 import org.wso2.carbon.identity.authz.service.exception.AuthzServiceServerException;
 import org.wso2.carbon.identity.authz.valve.internal.AuthorizationValveServiceHolder;
 import org.wso2.carbon.identity.authz.valve.util.Utils;
+import org.wso2.carbon.identity.core.context.IdentityContext;
+import org.wso2.carbon.identity.core.context.model.Organization;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.identity.organization.management.authz.service.OrganizationManagementAuthorizationContext;
+import org.wso2.carbon.identity.organization.management.service.OrganizationManager;
 import org.wso2.carbon.identity.organization.management.service.constant.OrganizationManagementConstants;
 import org.wso2.carbon.identity.organization.management.service.exception.OrganizationManagementException;
-import org.wso2.carbon.utils.multitenancy.MultitenantConstants;
+import org.wso2.carbon.identity.organization.management.service.model.MinimalOrganization;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.regex.Pattern;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
@@ -59,6 +65,8 @@ import javax.servlet.http.HttpServletResponse;
 import static org.wso2.carbon.identity.auth.service.util.Constants.ENGAGED_AUTH_HANDLER;
 import static org.wso2.carbon.identity.auth.service.util.Constants.OAUTH2_ALLOWED_SCOPES;
 import static org.wso2.carbon.identity.auth.service.util.Constants.OAUTH2_VALIDATE_SCOPE;
+import static org.wso2.carbon.identity.auth.service.util.Constants.RESOURCE_ORGANIZATION_ID;
+import static org.wso2.carbon.identity.auth.service.util.Constants.VALIDATE_LEGACY_PERMISSIONS;
 
 /**
  * AuthenticationValve can be used to intercept any request.
@@ -84,40 +92,6 @@ public class AuthorizationValve extends ValveBase {
             }
 
             String requestURI = request.getRequestURI();
-            String tenantDomain = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain();
-            // The below check on organization qualified resource access should be removed.
-            if (!StringUtils.equals(MultitenantConstants.SUPER_TENANT_DOMAIN_NAME, tenantDomain) &&
-                    requestURI.startsWith(ORGANIZATION_PATH_PARAM) &&
-                    org.wso2.carbon.identity.organization.management.service.util.Utils.useOrganizationRolesForValidation(
-                            PrivilegedCarbonContext.getThreadLocalCarbonContext().getOrganizationId())) {
-                /*
-                If the request is authenticated using an oauth2 access token and scope validation is required,
-                the token obtained tenant domain should be equal to the accessed resource's tenant domain.
-                 */
-                Object scopeValidationEnabled = authenticationContext.getParameter(OAUTH2_VALIDATE_SCOPE);
-                if (scopeValidationEnabled != null && Boolean.parseBoolean(scopeValidationEnabled.toString())) {
-                    if (!Utils.isUserAuthorizedForOrganization(authenticationContext, request)) {
-                        if (log.isDebugEnabled()) {
-                            log.debug("Authorization to " + request.getRequestURI() +
-                                    " is denied because the used access token issued from a different tenant domain: " +
-                                    authenticationContext.getUser().getTenantDomain());
-                        }
-                        APIErrorResponseHandler.handleErrorResponse(authenticationContext, response,
-                                HttpServletResponse.SC_UNAUTHORIZED, null);
-                        return;
-                    }
-                }
-                AuthorizationResult authorizationResult =
-                        authorizeInOrganizationLevel(request, response, authenticationContext, resourceConfig);
-                /*
-                If the user authorized from organization level permissions, grant access and execute next valve.
-                 */
-                if (AuthorizationStatus.GRANT.equals(authorizationResult.getAuthorizationStatus())) {
-                    getNext().invoke(request, response);
-                    return;
-                }
-            }
-            // If user didn't authorized via org level authz model, fallback to old authz model.
             if (!isRequestValidForTenant(authenticationContext, authorizationContext, request)) {
                 /*
                 Forbidden the /o/<org-id> path requests if the org level authz failed and
@@ -146,13 +120,29 @@ public class AuthorizationValve extends ValveBase {
                 if (resourceConfig != null && CollectionUtils.isNotEmpty(resourceConfig.getScopes())) {
                     authorizationContext.setRequiredScopes(resourceConfig.getScopes());
                 }
+                if (resourceConfig != null && resourceConfig.getOperationScopeMap() != null) {
+                    Map<String, String> operationScopeMap = resourceConfig.getOperationScopeMap();
+                    authorizationContext.setOperationScopeMap(operationScopeMap);
+                }
                 String contextPath = request.getContextPath();
                 String httpMethod = request.getMethod();
                 authorizationContext.setContext(contextPath);
                 authorizationContext.setHttpMethods(httpMethod);
                 authorizationContext.setUser(authenticationContext.getUser());
-                authorizationContext.addParameter(OAUTH2_ALLOWED_SCOPES, authenticationContext.getParameter(OAUTH2_ALLOWED_SCOPES));
+                if (authenticationContext.getParameter(OAUTH2_ALLOWED_SCOPES) != null) {
+                    authorizationContext.addParameter(OAUTH2_ALLOWED_SCOPES,
+                            authenticationContext.getParameter(OAUTH2_ALLOWED_SCOPES));
+                }
                 authorizationContext.addParameter(OAUTH2_VALIDATE_SCOPE, authenticationContext.getParameter(OAUTH2_VALIDATE_SCOPE));
+                authorizationContext.addParameter(VALIDATE_LEGACY_PERMISSIONS,
+                        authenticationContext.getParameter(VALIDATE_LEGACY_PERMISSIONS));
+                Pattern patternTenantPerspective = Pattern.compile("^/t/[^/]+/o/[a-f0-9\\-]+?");
+                if (patternTenantPerspective.matcher(requestURI).find()) {
+                    int startIndex = requestURI.indexOf("/o/") + 3;
+                    int endIndex = requestURI.indexOf("/", startIndex);
+                    String resourceOrgId = requestURI.substring(startIndex, endIndex);
+                    authorizationContext.addParameter(RESOURCE_ORGANIZATION_ID, resourceOrgId);
+                }
 
                 String tenantDomainFromURLMapping = Utils.getTenantDomainFromURLMapping(request);
                 authorizationContext.setTenantDomainFromURLMapping(tenantDomainFromURLMapping);
@@ -163,6 +153,18 @@ public class AuthorizationValve extends ValveBase {
                 try {
                     AuthorizationResult authorizationResult = authorizationManager.authorize(authorizationContext);
                     if (authorizationResult.getAuthorizationStatus().equals(AuthorizationStatus.GRANT)) {
+                        String[] validatedScopes = authorizationContext.getParameter(OAUTH2_ALLOWED_SCOPES) == null ?
+                                new String[0] : (String[]) authorizationContext.getParameter(OAUTH2_ALLOWED_SCOPES);
+                        OperationScopeValidationContext operationScopeValidationContext =
+                                new OperationScopeValidationContext();
+                        operationScopeValidationContext.setApiIdentifier(authorizationContext.getContext());
+                        operationScopeValidationContext.setValidationRequired(
+                                authorizationResult.isOperationScopeAuthorizationRequired());
+                        operationScopeValidationContext.setValidatedScopes(
+                                Arrays.asList(Objects.requireNonNull(validatedScopes)));
+                        operationScopeValidationContext.setOperationScopeMap(authorizationContext.getOperationScopeMap());
+                        PrivilegedCarbonContext.getThreadLocalCarbonContext().setOperationScopeValidationContext(
+                                operationScopeValidationContext);
                         if (authorizationContext.getUser() instanceof AuthenticatedUser) {
                             String authorizedOrganization = ((AuthenticatedUser)authorizationContext.getUser())
                                     .getAccessingOrganization();
@@ -238,6 +240,8 @@ public class AuthorizationValve extends ValveBase {
                     authenticationContext.getParameter(OAUTH2_ALLOWED_SCOPES));
             orgMgtAuthorizationContext.addParameter(OAUTH2_VALIDATE_SCOPE,
                     authenticationContext.getParameter(OAUTH2_VALIDATE_SCOPE));
+            orgMgtAuthorizationContext.addParameter(VALIDATE_LEGACY_PERMISSIONS,
+                    authenticationContext.getParameter(VALIDATE_LEGACY_PERMISSIONS));
 
             List<AuthorizationManager> authorizationManagerList = AuthorizationValveServiceHolder.getInstance()
                     .getAuthorizationManagerList();
@@ -321,11 +325,46 @@ public class AuthorizationValve extends ValveBase {
                 .setUserResidentOrganizationId(userResidentOrganizationId);
         PrivilegedCarbonContext.getThreadLocalCarbonContext().setOrganizationId(authorizedOrganization);
         try {
-            String authorizedTenantDomain = AuthorizationValveServiceHolder.getInstance().getOrganizationManager()
-                    .resolveTenantDomain(authorizedOrganization);
+            String authorizedTenantDomain = getOrganizationManager().resolveTenantDomain(authorizedOrganization);
             PrivilegedCarbonContext.getThreadLocalCarbonContext().setTenantDomain(authorizedTenantDomain, true);
+            populateOrganizationInIdentityContext(authorizedOrganization);
         } catch (OrganizationManagementException e) {
             throw new AuthRuntimeException("Error while resolving tenant domain by organization.", e);
         }
+    }
+
+    private void populateOrganizationInIdentityContext(String organizationId) {
+
+        if (IdentityContext.getThreadLocalIdentityContext().getOrganization() != null) {
+            log.debug("Organization is already set in the IdentityContext. " +
+                    "Skipping initialization of organization.");
+            return;
+        }
+
+        try {
+            MinimalOrganization minimalOrganization = getOrganizationManager().getMinimalOrganization(organizationId,
+                    null);
+
+            if (minimalOrganization == null) {
+                log.debug("No organization found for the organization id: " + organizationId +
+                        ". Cannot initialize organization.");
+                return;
+            }
+
+            IdentityContext.getThreadLocalIdentityContext().setOrganization(new Organization.Builder()
+                    .id(minimalOrganization.getId())
+                    .name(minimalOrganization.getName())
+                    .organizationHandle(minimalOrganization.getOrganizationHandle())
+                    .parentOrganizationId(minimalOrganization.getParentOrganizationId())
+                    .depth(minimalOrganization.getDepth())
+                    .build());
+        } catch (OrganizationManagementException e) {
+            log.error("Error while retrieving organization with id: " + organizationId, e);
+        }
+    }
+
+    private OrganizationManager getOrganizationManager() {
+
+        return AuthorizationValveServiceHolder.getInstance().getOrganizationManager();
     }
 }

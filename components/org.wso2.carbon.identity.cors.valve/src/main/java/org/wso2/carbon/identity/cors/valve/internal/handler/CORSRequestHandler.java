@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2020, WSO2 LLC. (https://www.wso2.com) All Rights Reserved.
+/*
+ * Copyright (c) 2020-2025, WSO2 LLC. (https://www.wso2.com).
  *
  * WSO2 LLC. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -69,13 +69,8 @@ public class CORSRequestHandler {
         String tenantDomain = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain();
         Origin requestOrigin = new Origin(request.getHeader(Header.ORIGIN));
 
-        // If only specific origins are allowed, the response will vary by origin
-        if (!config.isAllowAnyOrigin()) {
-            response.addHeader(Header.VARY, "Origin");
-        }
-
         // Add a single Access-Control-Allow-Origin header.
-        if (config.isAllowAnyOrigin()) {
+        if (config.isAllowAnyOrigin() && !config.isSupportsCredentials()) {
             // If any origin is allowed, return header with '*'.
             response.addHeader(Header.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
         } else {
@@ -84,6 +79,8 @@ public class CORSRequestHandler {
             if (isAllowedOrigin(tenantDomain, requestOrigin)) {
                 response.addHeader(Header.ACCESS_CONTROL_ALLOW_ORIGIN, requestOrigin.toString());
             }
+            // If only specific origins are allowed, the response will vary by origin
+            response.addHeader(Header.VARY, "Origin");
         }
 
         // If the resource supports credentials, add a single

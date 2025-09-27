@@ -43,6 +43,7 @@ import org.wso2.carbon.identity.auth.service.module.ResourceConfig;
 import org.wso2.carbon.identity.auth.service.module.ResourceConfigKey;
 import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
 import org.wso2.carbon.identity.auth.service.util.Constants;
+import org.wso2.carbon.identity.auth.valve.factory.DCRMgtOGSiServiceFactory;
 import org.wso2.carbon.identity.auth.valve.internal.AuthenticationValveDataHolder;
 import org.wso2.carbon.identity.auth.valve.internal.AuthenticationValveServiceHolder;
 import org.wso2.carbon.identity.auth.valve.util.APIErrorResponseHandler;
@@ -51,6 +52,8 @@ import org.wso2.carbon.identity.base.IdentityRuntimeException;
 import org.wso2.carbon.identity.core.util.IdentityConfigParser;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
+import org.wso2.carbon.identity.oauth.dcr.exception.DCRMException;
+import org.wso2.carbon.identity.oauth.dcr.model.DCRConfiguration;
 import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.user.core.tenant.TenantManager;
 
@@ -66,6 +69,7 @@ import java.util.regex.PatternSyntaxException;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.HttpMethod;
 
 import static org.wso2.carbon.identity.auth.service.util.Constants.AUTHENTICATED_WITH_BASIC_AUTH;
 
@@ -77,7 +81,9 @@ public class AuthenticationValve extends ValveBase {
     private static final String AUTH_CONTEXT = "auth-context";
     private static final String USER_AGENT = "User-Agent";
     private static final String REMOTE_ADDRESS = "remoteAddress";
-    private static final String SERVICE_PROVIDER = "serviceProvider";
+    private static final String SERVICE_PROVIDER_NAME = "serviceProvider";
+    private static final String IMPERSONATOR = "impersonator";
+    private static final String SERVICE_PROVIDER_UUID= "serviceProviderUUID";
     private final String CLIENT_COMPONENT = "clientComponent";
     private final String REST_API_CLIENT_COMPONENT = "REST API";
     private static final String AUTH_USER_TENANT_DOMAIN = "authUserTenantDomain";
@@ -90,6 +96,8 @@ public class AuthenticationValve extends ValveBase {
     private static final Pattern URL_MATCHING_PATTERN = Pattern.compile(URL_PATH_FILTER_REGEX);
 
     private static final Log log = LogFactory.getLog(AuthenticationValve.class);
+
+    private static final String DCR_REGISTER_ENDPOINT_PATH = "/api/identity/oauth2/dcr/v1.1/register";
 
     @Override
     public void invoke(Request request, Response response) throws IOException, ServletException {
@@ -104,9 +112,12 @@ public class AuthenticationValve extends ValveBase {
         try {
             validateRequestURI(request.getRequestURI());
             String normalizedRequestURI = AuthConfigurationUtil.getInstance().getNormalizedRequestURI(request.getRequestURI());
+            // Normalized request URI should be validated again to avoid un-normalized URLs.
+            validateRequestURI(normalizedRequestURI);
             ResourceConfig securedResource = authenticationManager.getSecuredResource(
                     new ResourceConfigKey(normalizedRequestURI, request.getMethod()));
 
+            overrideSecuredResource(securedResource, normalizedRequestURI, request.getMethod());
 
             setRemoteAddressAndUserAgentToMDC(request);
 
@@ -173,6 +184,10 @@ public class AuthenticationValve extends ValveBase {
         } catch (PatternSyntaxException e) {
             log.debug("Invalid pattern syntax of the request: ", e);
             APIErrorResponseHandler.handleErrorResponse(null, response, HttpServletResponse.SC_BAD_REQUEST, null);
+        } catch (DCRMException e) {
+            log.error("Error while getting DCR Configuration: ", e);
+            APIErrorResponseHandler.handleErrorResponse(null, response,
+                    HttpServletResponse.SC_SERVICE_UNAVAILABLE, e);
         } finally {
             // Clear 'IdentityError' thread local.
             if (IdentityUtil.getIdentityErrorMsg() != null) {
@@ -200,6 +215,35 @@ public class AuthenticationValve extends ValveBase {
 
     }
 
+    /**
+     * This method is used to override the secured resource based on tenant-wise DCR api security configuration.
+     *
+     * @param securedResource securedResource object
+     * @param normalizedRequestURI request URL path
+     * @param httpMethod http method
+     * @throws DCRMException DCRMException
+     */
+    private void overrideSecuredResource(ResourceConfig securedResource, String normalizedRequestURI,
+                                         String httpMethod) throws DCRMException {
+
+        if (normalizedRequestURI.contains(DCR_REGISTER_ENDPOINT_PATH) && HttpMethod.POST.equals(httpMethod)) {
+
+            if (DCRMgtOGSiServiceFactory.getInstance() != null) {
+
+                DCRConfiguration dcrConfiguration = DCRMgtOGSiServiceFactory.getInstance().getDCRConfiguration();
+                Boolean isClientAuthenticationRequired = dcrConfiguration.getAuthenticationRequired();
+                if ((Boolean.TRUE).equals(isClientAuthenticationRequired)) {
+                    securedResource.setIsSecured(true);
+                } else if ((Boolean.FALSE).equals(isClientAuthenticationRequired)) {
+                    securedResource.setIsSecured(false);
+                }
+            } else {
+//                We do not throw an exception here to avoid breaking the flow and to have similar behaviour as before.
+                log.debug("DCRMgtOGSiServiceFactory is null. Cannot get DCR Configuration.");
+            }
+        }
+    }
+
     private void setRemoteAddressAndUserAgentToMDC(Request request) {
 
         String userAgent = request.getHeader(USER_AGENT);
@@ -224,18 +268,21 @@ public class AuthenticationValve extends ValveBase {
 
     private void setThreadLocalServiceProvider(AuthenticationContext authenticationContext) {
 
-        Object serviceProvider = authenticationContext.getParameter(SERVICE_PROVIDER);
+        Object serviceProviderName = authenticationContext.getParameter(SERVICE_PROVIDER_NAME);
+        Object serviceProviderUUID = authenticationContext.getParameter(SERVICE_PROVIDER_UUID);
         Object serviceProviderTenantDomain = authenticationContext.getParameter(SERVICE_PROVIDER_TENANT_DOMAIN);
-        if (serviceProvider != null && serviceProviderTenantDomain != null) {
-            IdentityUtil.threadLocalProperties.get().put(SERVICE_PROVIDER, serviceProvider);
+        if(serviceProviderTenantDomain != null && serviceProviderName != null && serviceProviderUUID != null){
+            IdentityUtil.threadLocalProperties.get().put(SERVICE_PROVIDER_NAME, serviceProviderName);
+            IdentityUtil.threadLocalProperties.get().put(SERVICE_PROVIDER_UUID, serviceProviderUUID);
             IdentityUtil.threadLocalProperties.get().put(SERVICE_PROVIDER_TENANT_DOMAIN, serviceProviderTenantDomain);
         }
     }
 
     private void unsetThreadLocalServiceProvider() {
 
-        IdentityUtil.threadLocalProperties.get().remove(SERVICE_PROVIDER);
+        IdentityUtil.threadLocalProperties.get().remove(SERVICE_PROVIDER_NAME);
         IdentityUtil.threadLocalProperties.get().remove(SERVICE_PROVIDER_TENANT_DOMAIN);
+        IdentityUtil.threadLocalProperties.get().remove(SERVICE_PROVIDER_UUID);
     }
 
     private void unsetThreadLocalAuthenticationType() {
@@ -261,7 +308,7 @@ public class AuthenticationValve extends ValveBase {
 
     private void setClientComponent() {
 
-        String serviceProvider = MDC.get(SERVICE_PROVIDER);
+        String serviceProvider = MDC.get(SERVICE_PROVIDER_NAME);
         if (serviceProvider != null) {
             MDC.put(CLIENT_COMPONENT, serviceProvider);
         } else {
@@ -274,7 +321,8 @@ public class AuthenticationValve extends ValveBase {
         MDC.remove(CLIENT_COMPONENT);
         MDC.remove(USER_AGENT);
         MDC.remove(REMOTE_ADDRESS);
-        MDC.remove(SERVICE_PROVIDER);
+        MDC.remove(SERVICE_PROVIDER_NAME);
+        MDC.remove(IMPERSONATOR);
     }
 
     private boolean isLoggableParam(String param) {

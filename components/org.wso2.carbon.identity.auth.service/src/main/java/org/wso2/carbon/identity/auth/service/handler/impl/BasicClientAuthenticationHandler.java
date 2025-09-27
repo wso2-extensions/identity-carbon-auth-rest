@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2021-2025, WSO2 LLC. (http://www.wso2.org).
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -30,6 +30,8 @@ import org.wso2.carbon.identity.auth.service.exception.AuthenticationFailExcepti
 import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
 import org.wso2.carbon.identity.auth.service.util.Constants;
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
+import org.wso2.carbon.identity.core.context.IdentityContext;
+import org.wso2.carbon.identity.core.context.model.ApplicationActor;
 import org.wso2.carbon.identity.core.handler.InitConfig;
 import org.wso2.carbon.identity.oauth.IdentityOAuthAdminException;
 import org.wso2.carbon.identity.oauth.common.exception.InvalidOAuthClientException;
@@ -39,6 +41,7 @@ import org.wso2.carbon.identity.oauth2.util.OAuth2Util;
 
 import java.nio.charset.Charset;
 
+import static org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil.getResourceResidentTenantForTenantPerspective;
 import static org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil.isAuthHeaderMatch;
 
 /**
@@ -109,6 +112,15 @@ public class BasicClientAuthenticationHandler extends AuthenticationHandler {
 
                         String appTenant = ((AuthenticationContext) messageContext).getAuthenticationRequest()
                                 .getRequest().getParameter(APP_TENANT_QUERY_PARAM);
+
+                        /*
+                         If the app tenant is null, then check whether the request comes from a tenant perspective
+                         request and if so, get the app tenant domain from the request path.
+                        */
+                        if (StringUtils.isEmpty(appTenant)) {
+                            String requestURI = authenticationContext.getAuthenticationRequest().getRequestUri();
+                            appTenant = getResourceResidentTenantForTenantPerspective(requestURI);
+                        }
                         OAuthAppDO oAuthAppDO;
 
                         /*
@@ -128,6 +140,7 @@ public class BasicClientAuthenticationHandler extends AuthenticationHandler {
 
                         if (OAuth2Util.authenticateClient(clientId, clientSecret, appTenant)) {
                             authenticationResult.setAuthenticationStatus(AuthenticationStatus.SUCCESS);
+                            addAuthenticatedApplicationToIdentityContext(oAuthAppDO);
                         } else {
                             authenticationResult.setAuthenticationStatus(AuthenticationStatus.FAILED);
                         }
@@ -137,7 +150,7 @@ public class BasicClientAuthenticationHandler extends AuthenticationHandler {
                         throw new AuthenticationFailException(errorMessage, e);
                     } catch (InvalidOAuthClientException | IdentityOAuth2Exception e) {
                         String errorMessage = "Invalid client: " + clientId;
-                        log.error(errorMessage, e);
+                        log.debug(errorMessage);
                         throw new AuthenticationFailException(errorMessage, e);
                     }
                 } else {
@@ -158,5 +171,15 @@ public class BasicClientAuthenticationHandler extends AuthenticationHandler {
             throw new AuthenticationFailException(errorMessage);
         }
         return authenticationResult;
+    }
+
+    private void addAuthenticatedApplicationToIdentityContext(OAuthAppDO oAuthAppDO) {
+
+        ApplicationActor applicationActor = new ApplicationActor.Builder()
+                .applicationName(oAuthAppDO.getApplicationName())
+                .authenticationType(ApplicationActor.AuthType.OAUTH2)
+                .entityId(oAuthAppDO.getOauthConsumerKey())
+                .build();
+        IdentityContext.getThreadLocalIdentityContext().setActor(applicationActor);
     }
 }

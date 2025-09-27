@@ -31,6 +31,8 @@ import org.wso2.carbon.identity.auth.service.exception.AuthenticationFailExcepti
 import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
 import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
+import org.wso2.carbon.identity.core.context.IdentityContext;
+import org.wso2.carbon.identity.core.context.model.ApplicationActor;
 import org.wso2.carbon.identity.core.handler.InitConfig;
 
 import java.nio.charset.Charset;
@@ -117,6 +119,7 @@ public class ClientAuthenticationHandler extends AuthenticationHandler {
                         String hashFromRequest = sb.toString();
                         if (hash.equals(hashFromRequest)) {
                             authenticationResult.setAuthenticationStatus(AuthenticationStatus.SUCCESS);
+                            addActorToIdentityContext();
                             if (log.isDebugEnabled()) {
                                 log.debug("Client Authentication Successful for the application: " + appName);
                             }
@@ -144,6 +147,19 @@ public class ClientAuthenticationHandler extends AuthenticationHandler {
             throw new AuthenticationFailException(errorMessage);
         }
         return authenticationResult;
+    }
+
+    /**
+     * Add the authenticated default application to the Identity Context.
+     * In this authentication handler authenticating entity will be a default application to the server.
+     * Hence, the authenticated entity will be set as an ApplicationActor.
+     */
+    private void addActorToIdentityContext() {
+
+        ApplicationActor applicationActor = new ApplicationActor.Builder()
+                .applicationName(defaultAppName)
+                .build();
+        IdentityContext.getThreadLocalIdentityContext().setActor(applicationActor);
     }
 
     /**
