@@ -522,8 +522,16 @@ public class AuthConfigurationUtil {
             return null;
         }
 
-        String decodedURl = URLDecoder.decode(requestURI, StandardCharsets.UTF_8.name());
-        return new URI(decodedURl).normalize().toString();
+        // Decode once
+        String decodedUri = URLDecoder.decode(requestURI, StandardCharsets.UTF_8.name());
+
+        // If the decoded URI still contains '%', consider it unsafe
+        if (decodedUri.contains("%")) {
+            throw new UnsupportedEncodingException("URL is still encoded or contains invalid encoding after decoding.");
+        }
+
+        // Normalize and return safe URI
+        return new URI(decodedUri).normalize().toString();
     }
 
     public boolean isIntermediateCertValidationEnabled() {
