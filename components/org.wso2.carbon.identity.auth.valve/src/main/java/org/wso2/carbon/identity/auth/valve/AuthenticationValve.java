@@ -113,6 +113,7 @@ public class AuthenticationValve extends ValveBase {
         try {
             validateRequestURI(request.getRequestURI());
             String normalizedRequestURI = AuthConfigurationUtil.getInstance().getNormalizedRequestURI(request.getRequestURI());
+            validateRequestURI(normalizedRequestURI);
             ResourceConfig securedResource = authenticationManager.getSecuredResource(
                     new ResourceConfigKey(normalizedRequestURI, request.getMethod()));
             validateRequestURI(normalizedRequestURI);
