@@ -93,8 +93,9 @@ public class AuthenticationValve extends ValveBase {
     private final String CONFIG_CONTEXTUAL_PARAM = "LoggableContextualParams.contextual_param";
     private final String CONFIG_LOG_PARAM_USER_AGENT = "user_agent";
     private final String CONFIG_LOG_PARAM_REMOTE_ADDRESS = "remote_address";
-    private static final String URL_PATH_FILTER_REGEX = "(.*)/((\\.+)|(.*;+.*)|%2e)/(.*)";
-    private static final Pattern URL_MATCHING_PATTERN = Pattern.compile(URL_PATH_FILTER_REGEX);
+    private static final String URL_PATH_FILTER_REGEX = "(.*)/((\\.+)|(.*;+.*)|%2e.*)/(.*)";
+    private static final Pattern URL_MATCHING_PATTERN = Pattern.compile(URL_PATH_FILTER_REGEX,
+            Pattern.CASE_INSENSITIVE);
 
     private static final Log log = LogFactory.getLog(AuthenticationValve.class);
 
@@ -113,9 +114,9 @@ public class AuthenticationValve extends ValveBase {
         try {
             validateRequestURI(request.getRequestURI());
             String normalizedRequestURI = AuthConfigurationUtil.getInstance().getNormalizedRequestURI(request.getRequestURI());
+            validateRequestURI(normalizedRequestURI);
             ResourceConfig securedResource = authenticationManager.getSecuredResource(
                     new ResourceConfigKey(normalizedRequestURI, request.getMethod()));
-            validateRequestURI(normalizedRequestURI);
 
             overrideSecuredResource(securedResource, normalizedRequestURI, request.getMethod());
 
