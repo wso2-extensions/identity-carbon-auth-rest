@@ -1,5 +1,6 @@
 package org.wso2.carbon.identity.auth.service.module;
 
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -12,7 +13,7 @@ public class ResourceConfigKey {
     public ResourceConfigKey(String contextPath, String httpMethod) {
         this.contextPath = contextPath;
         this.httpMethod = httpMethod;
-        this.pattern = Pattern.compile(contextPath);
+        this.pattern = Pattern.compile(contextPath, Pattern.CASE_INSENSITIVE);
     }
 
     public String getContextPath() {
@@ -47,7 +48,7 @@ public class ResourceConfigKey {
         if (httpMethod.equalsIgnoreCase("all")) {
             return true;
         }
-        return httpMethod.contains(that.httpMethod);
+        return httpMethod.toLowerCase(Locale.US).contains(that.httpMethod.toLowerCase(Locale.US));
     }
 
     @Override
