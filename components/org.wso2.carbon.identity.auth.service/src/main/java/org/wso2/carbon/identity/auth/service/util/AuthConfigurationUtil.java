@@ -527,7 +527,8 @@ public class AuthConfigurationUtil {
 
         // If the decoded URI still contains '%', consider it unsafe
         if (decodedUri.contains("%")) {
-            throw new UnsupportedEncodingException("URL is still encoded or contains invalid encoding after decoding.");
+            throw new UnsupportedEncodingException("URL is still encoded or contains invalid encoding after decoding: "
+                    + decodedUri);
         }
 
         // Normalize and return safe URI
