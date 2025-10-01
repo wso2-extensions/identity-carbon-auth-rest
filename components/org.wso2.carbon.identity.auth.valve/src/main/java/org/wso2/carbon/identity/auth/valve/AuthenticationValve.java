@@ -57,6 +57,7 @@ import org.wso2.carbon.user.core.tenant.TenantManager;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -104,7 +105,7 @@ public class AuthenticationValve extends ValveBase {
             String normalizedRequestURI = AuthConfigurationUtil.getInstance().getNormalizedRequestURI(request.getRequestURI());
             ResourceConfig securedResource = authenticationManager.getSecuredResource(
                     new ResourceConfigKey(normalizedRequestURI, request.getMethod()));
-
+            validateRequestURI(normalizedRequestURI);
 
             setRemoteAddressAndUserAgentToMDC(request);
 
@@ -167,7 +168,11 @@ public class AuthenticationValve extends ValveBase {
                     HttpServletResponse.SC_SERVICE_UNAVAILABLE, null);
         } catch (URISyntaxException e) {
             log.error("Error while normalizing the request URI to process the authentication: ", e);
-            APIErrorResponseHandler.handleErrorResponse(null, response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, null);
+            APIErrorResponseHandler.handleErrorResponse(null, response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                    null);
+        } catch (UnsupportedEncodingException e) {
+            log.debug("URL is still encoded or contains invalid encoding after decoding.", e);
+            APIErrorResponseHandler.handleErrorResponse(null, response, HttpServletResponse.SC_BAD_REQUEST, null);
         } finally {
             // Clear 'IdentityError' thread local.
             if (IdentityUtil.getIdentityErrorMsg() != null) {
