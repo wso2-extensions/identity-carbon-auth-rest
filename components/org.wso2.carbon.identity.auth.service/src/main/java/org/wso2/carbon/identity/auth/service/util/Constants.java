@@ -32,6 +32,7 @@ public class Constants {
     public final static String RESOURCE_OPERATIONS_ELE = "Operations";
     public final static String RESOURCE_OPERATION_ELE = "Operation";
     public final static String RESOURCE_OPERATION_ELE_NAME_ATTR = "name";
+    public final static String RESOURCE_OPERATION_ELE_MANDATORY_ATTR = "mandatory";
     public final static String RESOURCE_OPERATION_ELE_SCOPE_ATTR = "scope";
     public final static String OAUTH2_ALLOWED_SCOPES = "oauth2-allowed-scopes";
     public final static String OAUTH2_VALIDATE_SCOPE = "oauth2-validate-scopes";
