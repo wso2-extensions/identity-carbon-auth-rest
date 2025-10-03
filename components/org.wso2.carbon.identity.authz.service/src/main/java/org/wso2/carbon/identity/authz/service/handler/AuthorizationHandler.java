@@ -25,6 +25,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.CarbonConstants;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
+import org.wso2.carbon.context.model.OperationScope;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
 import org.wso2.carbon.identity.application.common.model.User;
 import org.wso2.carbon.identity.authz.service.AuthorizationContext;
@@ -143,7 +144,7 @@ public class AuthorizationHandler extends AbstractIdentityHandler {
         return authorizationResult;
     }
 
-    private void authorizeUser(List<String> requiredScopes, Map<String, String> operationScopeMap,
+    private void authorizeUser(List<String> requiredScopes, Map<String, OperationScope> operationScopeMap,
                                AuthorizationResult authorizationResult, List<String> allowedScopes)
             throws IdentityOAuth2Exception {
 
@@ -155,10 +156,10 @@ public class AuthorizationHandler extends AbstractIdentityHandler {
         boolean isOperationScopesGranted = false;
         if (!isRequiredScopesGranted) {
             if (operationScopeMap != null && !operationScopeMap.isEmpty()) {
-                for (String opScope : operationScopeMap.values()) {
-                    if (allowedScopes.contains(opScope)) {
+                for (OperationScope opScope : operationScopeMap.values()) {
+                    if (allowedScopes.contains(opScope.getScope())) {
                         isOperationScopesGranted = true;
-                        authorizationResult.setOperationScopeAuthorizationRequired(false);
+                        authorizationResult.setOperationScopeAuthorizationRequired(opScope.getIsMandatory());
                         break;
                     }
                 }
@@ -202,7 +203,8 @@ public class AuthorizationHandler extends AbstractIdentityHandler {
         }
     }
 
-    private void validateScopes(AuthorizationContext authorizationContext, AuthorizationResult authorizationResult, String[] allowedScopes) {
+    private void validateScopes(AuthorizationContext authorizationContext, AuthorizationResult authorizationResult,
+                                String[] allowedScopes) {
 
         boolean granted = true;
         boolean operationScopesGranted = false;
@@ -217,17 +219,24 @@ public class AuthorizationHandler extends AbstractIdentityHandler {
             authorizationResult.setOperationScopeAuthorizationRequired(!granted);
 
             // Check if at least one operation scope is satisfied
-            Map<String, String> operationScopeMap = authorizationContext.getOperationScopeMap();
+            Map<String, OperationScope> operationScopeMap = authorizationContext.getOperationScopeMap();
+            boolean isOperationScopeMandatory = false;
             if (operationScopeMap != null && !operationScopeMap.isEmpty()) {
-                for (String opScope : operationScopeMap.values()) {
-                    if (ArrayUtils.contains(allowedScopes, opScope)) {
+                for (OperationScope opScope : operationScopeMap.values()) {
+                    isOperationScopeMandatory = opScope.getIsMandatory();
+                    if (ArrayUtils.contains(allowedScopes, opScope.getScope())) {
                         operationScopesGranted = true;
                         break;
                     }
                 }
             }
 
-            if (granted || operationScopesGranted) {
+            // Operation scope validation in mandatory now.
+            if (isOperationScopeMandatory && operationScopesGranted && granted) {
+                authorizationResult.setOperationScopeAuthorizationRequired(true);
+                authorizationResult.setAuthorizationStatus(AuthorizationStatus.GRANT);
+            // Operation scope validation is not mandatory, only validated when root scope is not present.
+            } else if (!isOperationScopeMandatory && (granted || operationScopesGranted)) {
                 authorizationResult.setAuthorizationStatus(AuthorizationStatus.GRANT);
             }
         }

@@ -50,6 +50,7 @@ import org.wso2.carbon.identity.organization.management.service.OrganizationMana
 import org.wso2.carbon.identity.organization.management.service.constant.OrganizationManagementConstants;
 import org.wso2.carbon.identity.organization.management.service.exception.OrganizationManagementException;
 import org.wso2.carbon.identity.organization.management.service.model.MinimalOrganization;
+import org.wso2.carbon.context.model.OperationScope;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -121,7 +122,7 @@ public class AuthorizationValve extends ValveBase {
                     authorizationContext.setRequiredScopes(resourceConfig.getScopes());
                 }
                 if (resourceConfig != null && resourceConfig.getOperationScopeMap() != null) {
-                    Map<String, String> operationScopeMap = resourceConfig.getOperationScopeMap();
+                    Map<String, OperationScope> operationScopeMap = resourceConfig.getOperationScopeMap();
                     authorizationContext.setOperationScopeMap(operationScopeMap);
                 }
                 String contextPath = request.getContextPath();

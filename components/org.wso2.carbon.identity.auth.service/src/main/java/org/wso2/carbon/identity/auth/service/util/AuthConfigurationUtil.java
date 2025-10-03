@@ -25,6 +25,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpHeaders;
 import org.wso2.carbon.CarbonConstants;
+import org.wso2.carbon.context.model.OperationScope;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
 import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
 import org.wso2.carbon.identity.auth.service.internal.AuthenticationServiceHolder;
@@ -67,6 +68,7 @@ import static org.wso2.carbon.identity.auth.service.util.Constants.AUTH_HANDLER_
 import static org.wso2.carbon.identity.auth.service.util.Constants.ENDPOINT_LIST_ELE;
 import static org.wso2.carbon.identity.auth.service.util.Constants.RESOURCE_OPERATIONS_ELE;
 import static org.wso2.carbon.identity.auth.service.util.Constants.RESOURCE_OPERATION_ELE;
+import static org.wso2.carbon.identity.auth.service.util.Constants.RESOURCE_OPERATION_ELE_MANDATORY_ATTR;
 import static org.wso2.carbon.identity.auth.service.util.Constants.RESOURCE_OPERATION_ELE_NAME_ATTR;
 import static org.wso2.carbon.identity.auth.service.util.Constants.RESOURCE_OPERATION_ELE_SCOPE_ATTR;
 import static org.wso2.carbon.identity.auth.service.util.Constants.SKIP_AUTHORIZATION_ELE;
@@ -250,10 +252,12 @@ public class AuthConfigurationUtil {
 
                     if (operationsElementItr != null && operationsElementItr.hasNext()) {
                         OMElement operationsElement = operationsElementItr.next();  // There should be only one <Operations> per <Resource>
+                        boolean isMandatory =
+                                Boolean.parseBoolean(operationsElement.getAttributeValue(new QName(RESOURCE_OPERATION_ELE_MANDATORY_ATTR)));
                         Iterator<OMElement> operationElements = operationsElement.getChildrenWithName(
                                 new QName(IdentityCoreConstants.IDENTITY_DEFAULT_NAMESPACE, RESOURCE_OPERATION_ELE));
 
-                        Map<String, String> operationScopeMap = new HashMap<>();
+                        Map<String, OperationScope> operationScopeMap = new HashMap<>();
                         while (operationElements.hasNext()) {
                             OMElement operationElement = operationElements.next();
                             String operationName = operationElement.getAttributeValue(new QName(
@@ -264,7 +268,11 @@ public class AuthConfigurationUtil {
 
                             if (StringUtils.isNotBlank(operationName) && scopeElement != null &&
                                     StringUtils.isNotBlank(scopeElement.getText())) {
-                                operationScopeMap.put(operationName, scopeElement.getText());
+
+                                OperationScope operationScope = new OperationScope();
+                                operationScope.setScope(scopeElement.getText());
+                                operationScope.setIsMandatory(isMandatory);
+                                operationScopeMap.put(operationName, operationScope);
                             }
                         }
                         if (!operationScopeMap.isEmpty()) {
