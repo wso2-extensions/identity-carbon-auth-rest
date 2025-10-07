@@ -25,7 +25,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.CarbonConstants;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
-import org.wso2.carbon.context.model.OperationScope;
+import org.wso2.carbon.context.model.OperationScopeSet;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
 import org.wso2.carbon.identity.application.common.model.User;
 import org.wso2.carbon.identity.authz.service.AuthorizationContext;
@@ -132,7 +132,7 @@ public class AuthorizationHandler extends AbstractIdentityHandler {
                         authorizationContext.addParameter(OAUTH2_ALLOWED_SCOPES, allowedScopesByUserRole
                                 .toArray(new String[0]));
                     }
-                    authorizeUser(authorizationContext.getRequiredScopes(), authorizationContext.getOperationScopeMap(),
+                    authorizeUser(authorizationContext.getRequiredScopes(), authorizationContext.getOperationScopeSet(),
                             authorizationResult, allowedScopesByUserRole);
                 }
             }
@@ -144,7 +144,7 @@ public class AuthorizationHandler extends AbstractIdentityHandler {
         return authorizationResult;
     }
 
-    private void authorizeUser(List<String> requiredScopes, Map<String, OperationScope> operationScopeMap,
+    private void authorizeUser(List<String> requiredScopes, OperationScopeSet operationScopeSet,
                                AuthorizationResult authorizationResult, List<String> allowedScopes)
             throws IdentityOAuth2Exception {
 
@@ -154,20 +154,29 @@ public class AuthorizationHandler extends AbstractIdentityHandler {
         // Operation scope validation.
         // If operation scopes are not provided, we assume that the operation scope validation is not required.
         boolean isOperationScopesGranted = false;
+        boolean isOperationScopeMandatory = false;
+        Map<String, String> operationScopeMap = null;
+        if (operationScopeSet != null) {
+            isOperationScopeMandatory = operationScopeSet.getIsMandatory();
+            operationScopeMap = operationScopeSet.getOperationScopeMap();
+        }
+        authorizationResult.setOperationScopeAuthorizationRequired(isOperationScopeMandatory);
         if (!isRequiredScopesGranted) {
             if (operationScopeMap != null && !operationScopeMap.isEmpty()) {
-                for (OperationScope opScope : operationScopeMap.values()) {
-                    if (allowedScopes.contains(opScope.getScope())) {
+                for (String opScope : operationScopeMap.values()) {
+                    if (allowedScopes.contains(opScope)) {
                         isOperationScopesGranted = true;
-                        authorizationResult.setOperationScopeAuthorizationRequired(opScope.getIsMandatory());
                         break;
                     }
                 }
             }
         }
 
-        authorizationResult.setOperationScopeAuthorizationRequired(!isRequiredScopesGranted);
-        if (isRequiredScopesGranted || isOperationScopesGranted) {
+        boolean authorize = isOperationScopeMandatory
+                ? (isOperationScopesGranted && isRequiredScopesGranted) // If operation scopes are mandatory.
+                : (isOperationScopesGranted || isRequiredScopesGranted); // If operation scopes are not mandatory.
+
+        if (authorize) {
             authorizationResult.setAuthorizationStatus(AuthorizationStatus.GRANT);
         }
     }
@@ -216,29 +225,32 @@ public class AuthorizationHandler extends AbstractIdentityHandler {
                     break;
                 }
             }
-            authorizationResult.setOperationScopeAuthorizationRequired(!granted);
 
             // Check if at least one operation scope is satisfied
-            Map<String, OperationScope> operationScopeMap = authorizationContext.getOperationScopeMap();
+            Map<String, String> operationScopeMap = null;
             boolean isOperationScopeMandatory = false;
+            if (authorizationContext.getOperationScopeSet() != null) {
+                isOperationScopeMandatory = authorizationContext.getOperationScopeSet().getIsMandatory();
+                operationScopeMap = authorizationContext.getOperationScopeSet().getOperationScopeMap();
+            }
+            authorizationResult.setOperationScopeAuthorizationRequired(isOperationScopeMandatory);
             if (operationScopeMap != null && !operationScopeMap.isEmpty()) {
-                for (OperationScope opScope : operationScopeMap.values()) {
-                    isOperationScopeMandatory = opScope.getIsMandatory();
-                    if (ArrayUtils.contains(allowedScopes, opScope.getScope())) {
+                for (String opScope : operationScopeMap.values()) {
+                    if (ArrayUtils.contains(allowedScopes, opScope)) {
                         operationScopesGranted = true;
                         break;
                     }
                 }
             }
 
-            // Operation scope validation in mandatory now.
-            if (isOperationScopeMandatory && operationScopesGranted && granted) {
-                authorizationResult.setOperationScopeAuthorizationRequired(true);
-                authorizationResult.setAuthorizationStatus(AuthorizationStatus.GRANT);
-            // Operation scope validation is not mandatory, only validated when root scope is not present.
-            } else if (!isOperationScopeMandatory && (granted || operationScopesGranted)) {
+            boolean authorize = isOperationScopeMandatory
+                    ? (operationScopesGranted && granted) // If operation scopes are mandatory.
+                    : (granted || operationScopesGranted); // If operation scopes are not mandatory.
+
+            if (authorize) {
                 authorizationResult.setAuthorizationStatus(AuthorizationStatus.GRANT);
             }
+
         }
     }
 

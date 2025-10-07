@@ -25,7 +25,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpHeaders;
 import org.wso2.carbon.CarbonConstants;
-import org.wso2.carbon.context.model.OperationScope;
+import org.wso2.carbon.context.model.OperationScopeSet;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
 import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
 import org.wso2.carbon.identity.auth.service.internal.AuthenticationServiceHolder;
@@ -257,7 +257,9 @@ public class AuthConfigurationUtil {
                         Iterator<OMElement> operationElements = operationsElement.getChildrenWithName(
                                 new QName(IdentityCoreConstants.IDENTITY_DEFAULT_NAMESPACE, RESOURCE_OPERATION_ELE));
 
-                        Map<String, OperationScope> operationScopeMap = new HashMap<>();
+                        OperationScopeSet operationScopeSet = new OperationScopeSet();
+                        operationScopeSet.setIsMandatory(isMandatory);
+                        Map<String, String> operationScopeMap = new HashMap<>();
                         while (operationElements.hasNext()) {
                             OMElement operationElement = operationElements.next();
                             String operationName = operationElement.getAttributeValue(new QName(
@@ -268,15 +270,12 @@ public class AuthConfigurationUtil {
 
                             if (StringUtils.isNotBlank(operationName) && scopeElement != null &&
                                     StringUtils.isNotBlank(scopeElement.getText())) {
-
-                                OperationScope operationScope = new OperationScope();
-                                operationScope.setScope(scopeElement.getText());
-                                operationScope.setIsMandatory(isMandatory);
-                                operationScopeMap.put(operationName, operationScope);
+                                operationScopeMap.put(operationName, scopeElement.getText());
                             }
                         }
                         if (!operationScopeMap.isEmpty()) {
-                            resourceConfig.setOperationScopeMap(operationScopeMap);
+                            operationScopeSet.setOperationScopeMap(operationScopeMap);
+                            resourceConfig.setOperationScopeSet(operationScopeSet);
                         }
                     }
 

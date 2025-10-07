@@ -50,14 +50,12 @@ import org.wso2.carbon.identity.organization.management.service.OrganizationMana
 import org.wso2.carbon.identity.organization.management.service.constant.OrganizationManagementConstants;
 import org.wso2.carbon.identity.organization.management.service.exception.OrganizationManagementException;
 import org.wso2.carbon.identity.organization.management.service.model.MinimalOrganization;
-import org.wso2.carbon.context.model.OperationScope;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Pattern;
 import javax.servlet.ServletException;
@@ -121,9 +119,9 @@ public class AuthorizationValve extends ValveBase {
                 if (resourceConfig != null && CollectionUtils.isNotEmpty(resourceConfig.getScopes())) {
                     authorizationContext.setRequiredScopes(resourceConfig.getScopes());
                 }
-                if (resourceConfig != null && resourceConfig.getOperationScopeMap() != null) {
-                    Map<String, OperationScope> operationScopeMap = resourceConfig.getOperationScopeMap();
-                    authorizationContext.setOperationScopeMap(operationScopeMap);
+                if (resourceConfig != null && resourceConfig.getOperationScopeSet() != null &&
+                resourceConfig.getOperationScopeSet().getOperationScopeMap() != null) {
+                    authorizationContext.setOperationScopeSet(resourceConfig.getOperationScopeSet());
                 }
                 String contextPath = request.getContextPath();
                 String httpMethod = request.getMethod();
@@ -163,7 +161,7 @@ public class AuthorizationValve extends ValveBase {
                                 authorizationResult.isOperationScopeAuthorizationRequired());
                         operationScopeValidationContext.setValidatedScopes(
                                 Arrays.asList(Objects.requireNonNull(validatedScopes)));
-                        operationScopeValidationContext.setOperationScopeMap(authorizationContext.getOperationScopeMap());
+                        operationScopeValidationContext.setOperationScopeSet(authorizationContext.getOperationScopeSet());
                         PrivilegedCarbonContext.getThreadLocalCarbonContext().setOperationScopeValidationContext(
                                 operationScopeValidationContext);
                         if (authorizationContext.getUser() instanceof AuthenticatedUser) {
