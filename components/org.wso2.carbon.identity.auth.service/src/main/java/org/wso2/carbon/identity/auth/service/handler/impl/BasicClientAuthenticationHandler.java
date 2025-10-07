@@ -23,6 +23,8 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpHeaders;
+import org.wso2.carbon.identity.application.common.IdentityApplicationManagementException;
+import org.wso2.carbon.identity.application.common.model.ServiceProvider;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
 import org.wso2.carbon.identity.auth.service.AuthenticationResult;
 import org.wso2.carbon.identity.auth.service.AuthenticationStatus;
@@ -33,10 +35,13 @@ import org.wso2.carbon.identity.core.bean.context.MessageContext;
 import org.wso2.carbon.identity.core.context.IdentityContext;
 import org.wso2.carbon.identity.core.context.model.ApplicationActor;
 import org.wso2.carbon.identity.core.handler.InitConfig;
+import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.identity.oauth.IdentityOAuthAdminException;
+import org.wso2.carbon.identity.oauth.common.OAuthConstants;
 import org.wso2.carbon.identity.oauth.common.exception.InvalidOAuthClientException;
 import org.wso2.carbon.identity.oauth.dao.OAuthAppDO;
 import org.wso2.carbon.identity.oauth2.IdentityOAuth2Exception;
+import org.wso2.carbon.identity.oauth2.internal.OAuth2ServiceComponentHolder;
 import org.wso2.carbon.identity.oauth2.util.OAuth2Util;
 
 import java.nio.charset.Charset;
@@ -54,6 +59,8 @@ public class BasicClientAuthenticationHandler extends AuthenticationHandler {
     private static final Log log = LogFactory.getLog(BasicClientAuthenticationHandler.class);
     private final String BASIC_AUTH_HEADER = "Basic";
     private static final String APP_TENANT_QUERY_PARAM = "appTenant";
+    private static final String ALLOW_DISABLED_APPLICATION_CREDENTIALS_FOR_AUTHENTICATION =
+            "OAuth.AllowDisabledApplicationCredentialsForAuthentication";
 
     @Override
     public void init(InitConfig initConfig) {
@@ -138,7 +145,26 @@ public class BasicClientAuthenticationHandler extends AuthenticationHandler {
 
                         authenticationContext.addProperty(Constants.AUTH_CONTEXT_OAUTH_APP_PROPERTY, oAuthAppDO);
 
-                        if (OAuth2Util.authenticateClient(clientId, clientSecret, appTenant)) {
+                        ServiceProvider serviceProvider;
+                        try {
+                            serviceProvider = OAuth2ServiceComponentHolder.getApplicationMgtService()
+                                    .getServiceProviderByClientId(clientId, OAuthConstants.Scope.OAUTH2, appTenant);
+                        } catch (IdentityApplicationManagementException e) {
+                            throw new IdentityOAuthAdminException("Error while retrieving the application details.", e);
+                        }
+
+                        // Check if disabled application credentials are allowed for authentication
+                        String configValue
+                                = IdentityUtil.getProperty(ALLOW_DISABLED_APPLICATION_CREDENTIALS_FOR_AUTHENTICATION);
+                        boolean allowDisabledAppCredentials = Boolean.parseBoolean(configValue);
+
+                        if (!allowDisabledAppCredentials && (serviceProvider == null
+                                || !serviceProvider.isApplicationEnabled())) {
+                            if (log.isDebugEnabled()) {
+                                log.debug("Application with the provided client_id: " + clientId + " is not enabled.");
+                            }
+                            authenticationResult.setAuthenticationStatus(AuthenticationStatus.FAILED);
+                        } else if (OAuth2Util.authenticateClient(clientId, clientSecret, appTenant)) {
                             authenticationResult.setAuthenticationStatus(AuthenticationStatus.SUCCESS);
                             addAuthenticatedApplicationToIdentityContext(oAuthAppDO);
                         } else {
