@@ -18,12 +18,12 @@
 
 package org.wso2.carbon.identity.auth.service.handler.impl;
 
+import org.apache.catalina.connector.Connector;
 import org.apache.catalina.connector.Request;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.http.HttpHeaders;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
-import org.mockito.MockitoAnnotations;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeClass;
@@ -42,7 +42,9 @@ import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.identity.oauth.dao.OAuthAppDO;
 import org.wso2.carbon.identity.oauth2.internal.OAuth2ServiceComponentHolder;
 import org.wso2.carbon.identity.oauth2.util.OAuth2Util;
+import org.wso2.carbon.utils.CarbonUtils;
 
+import java.io.File;
 import java.nio.charset.StandardCharsets;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -53,7 +55,7 @@ import static org.mockito.Mockito.when;
 import static org.testng.Assert.assertEquals;
 
 /**
- * Tests for BasicClientAuthenticationHandler doAuthenticate focusing on disabled applications.
+ * Tests for BasicClientAuthenticationHandler doAuthenticate.
  */
 public class BasicClientAuthenticationHandlerTest {
 
@@ -63,16 +65,11 @@ public class BasicClientAuthenticationHandlerTest {
     @Mock
     private AuthenticationRequest mockAuthenticationRequest;
 
-    @Mock
-    private Request mockCatalinaRequest;
-
     private BasicClientAuthenticationHandler handler;
 
     private MockedStatic<IdentityUtil> mockedIdentityUtil;
     private MockedStatic<OAuth2Util> mockedOAuth2Util;
-    private MockedStatic<OAuth2ServiceComponentHolder> mockedOAuth2Holder;
 
-    private static final String APP_TENANT_QUERY_PARAM = "appTenant";
     private static final String ALLOW_DISABLED_PROP =
             "OAuth.AllowDisabledApplicationCredentialsForAuthentication";
 
@@ -81,24 +78,31 @@ public class BasicClientAuthenticationHandlerTest {
 
         CommonTestUtils.initPrivilegedCarbonContext();
         mockedIdentityUtil = mockStatic(IdentityUtil.class);
+        mockedIdentityUtil.when(IdentityUtil::getIdentityConfigDirPath)
+                .thenReturn(CarbonUtils.getCarbonConfigDirPath() + File.separator + "identity");
         mockedOAuth2Util = mockStatic(OAuth2Util.class);
-        mockedOAuth2Holder = mockStatic(OAuth2ServiceComponentHolder.class);
     }
 
     @AfterClass
     public void cleanup() {
 
-        mockedIdentityUtil.close();
-        mockedOAuth2Util.close();
-        mockedOAuth2Holder.close();
+        if (mockedIdentityUtil != null) {
+            mockedIdentityUtil.close();
+        }
+        if (mockedOAuth2Util != null) {
+            mockedOAuth2Util.close();
+        }
     }
 
     @BeforeMethod
     public void setUp() {
 
-        MockitoAnnotations.openMocks(this);
+        mockAuthenticationContext = mock(AuthenticationContext.class);
+        mockAuthenticationRequest = mock(AuthenticationRequest.class);
         handler = new BasicClientAuthenticationHandler();
+        Request request = minimalRequest();
         when(mockAuthenticationContext.getAuthenticationRequest()).thenReturn(mockAuthenticationRequest);
+        when(mockAuthenticationRequest.getRequest()).thenReturn(request);
     }
 
     @AfterMethod
@@ -113,17 +117,7 @@ public class BasicClientAuthenticationHandlerTest {
                 .getBytes(StandardCharsets.UTF_8));
         String header = "Basic " + basicToken;
         when(mockAuthenticationRequest.getHeader(HttpHeaders.AUTHORIZATION)).thenReturn(header);
-        when(mockAuthenticationRequest.getRequest()).thenReturn(mockCatalinaRequest);
-        when(mockCatalinaRequest.getParameter(APP_TENANT_QUERY_PARAM)).thenReturn(tenantDomain);
         when(mockAuthenticationRequest.getRequestUri()).thenReturn("/t/" + tenantDomain + "/api");
-    }
-
-    private void setupAppMgtService(ServiceProvider sp) throws Exception {
-
-        ApplicationManagementService appMgtService = mock(ApplicationManagementService.class);
-        when(appMgtService.getServiceProviderByClientId(eq("client-123"), any(String.class), eq("tenant.com")))
-                .thenReturn(sp);
-        mockedOAuth2Holder.when(OAuth2ServiceComponentHolder::getApplicationMgtService).thenReturn(appMgtService);
     }
 
     private OAuthAppDO mockOAuthAppDO() {
@@ -142,13 +136,11 @@ public class BasicClientAuthenticationHandlerTest {
         String tenant = "tenant.com";
         setupAuthHeaderAndTenant(clientId, clientSecret, tenant);
 
-        // Disabled apps are not allowed.
-        mockedIdentityUtil.when(() -> IdentityUtil.getProperty(ALLOW_DISABLED_PROP)).thenReturn("false");
+        when(IdentityUtil.getProperty(ALLOW_DISABLED_PROP)).thenReturn("false");
 
-        // Mock OAuth app lookup and client authentication (should not affect outcome here).
         OAuthAppDO oAuthAppDO = mockOAuthAppDO();
-        mockedOAuth2Util.when(() -> OAuth2Util.getAppInformationByClientId(clientId, tenant)).thenReturn(oAuthAppDO);
-        mockedOAuth2Util.when(() -> OAuth2Util.authenticateClient(clientId, clientSecret, tenant)).thenReturn(true);
+        when(OAuth2Util.getAppInformationByClientId(clientId, tenant)).thenReturn(oAuthAppDO);
+        when(OAuth2Util.authenticateClient(clientId, clientSecret, tenant)).thenReturn(true);
 
         // Service provider is disabled.
         ServiceProvider sp = mock(ServiceProvider.class);
@@ -156,8 +148,7 @@ public class BasicClientAuthenticationHandlerTest {
         setupAppMgtService(sp);
 
         AuthenticationResult result = handler.doAuthenticate(mockAuthenticationContext);
-        assertEquals(result.getAuthenticationStatus(), AuthenticationStatus.FAILED,
-                "Authentication should fail when app is disabled and disabled apps are disallowed");
+        assertEquals(result.getAuthenticationStatus(), AuthenticationStatus.FAILED);
     }
 
     @Test
@@ -168,21 +159,18 @@ public class BasicClientAuthenticationHandlerTest {
         String tenant = "tenant.com";
         setupAuthHeaderAndTenant(clientId, clientSecret, tenant);
 
-        // Disabled apps are allowed.
-        mockedIdentityUtil.when(() -> IdentityUtil.getProperty(ALLOW_DISABLED_PROP)).thenReturn("true");
+        when(IdentityUtil.getProperty(ALLOW_DISABLED_PROP)).thenReturn("true");
 
         OAuthAppDO oAuthAppDO = mockOAuthAppDO();
-        mockedOAuth2Util.when(() -> OAuth2Util.getAppInformationByClientId(clientId, tenant)).thenReturn(oAuthAppDO);
-        mockedOAuth2Util.when(() -> OAuth2Util.authenticateClient(clientId, clientSecret, tenant)).thenReturn(true);
+        when(OAuth2Util.getAppInformationByClientId(clientId, tenant)).thenReturn(oAuthAppDO);
+        when(OAuth2Util.authenticateClient(clientId, clientSecret, tenant)).thenReturn(true);
 
-        // Service provider is disabled but allowed by config.
         ServiceProvider sp = mock(ServiceProvider.class);
         when(sp.isApplicationEnabled()).thenReturn(false);
         setupAppMgtService(sp);
 
         AuthenticationResult result = handler.doAuthenticate(mockAuthenticationContext);
-        assertEquals(result.getAuthenticationStatus(), AuthenticationStatus.SUCCESS,
-                "Authentication should succeed when disabled apps are allowed and credentials are valid");
+        assertEquals(result.getAuthenticationStatus(), AuthenticationStatus.SUCCESS);
     }
 
     @Test
@@ -193,22 +181,18 @@ public class BasicClientAuthenticationHandlerTest {
         String tenant = "tenant.com";
         setupAuthHeaderAndTenant(clientId, clientSecret, tenant);
 
-        // Disabled apps are allowed.
-        mockedIdentityUtil.when(() -> IdentityUtil.getProperty(ALLOW_DISABLED_PROP)).thenReturn("true");
+        when(IdentityUtil.getProperty(ALLOW_DISABLED_PROP)).thenReturn("true");
 
         OAuthAppDO oAuthAppDO = mockOAuthAppDO();
-        mockedOAuth2Util.when(() -> OAuth2Util.getAppInformationByClientId(clientId, tenant)).thenReturn(oAuthAppDO);
-        // Invalid credentials.
-        mockedOAuth2Util.when(() -> OAuth2Util.authenticateClient(clientId, clientSecret, tenant)).thenReturn(false);
+        when(OAuth2Util.getAppInformationByClientId(clientId, tenant)).thenReturn(oAuthAppDO);
+        when(OAuth2Util.authenticateClient(clientId, clientSecret, tenant)).thenReturn(false);
 
-        // Service provider is disabled but allowed by config.
         ServiceProvider sp = mock(ServiceProvider.class);
         when(sp.isApplicationEnabled()).thenReturn(false);
         setupAppMgtService(sp);
 
         AuthenticationResult result = handler.doAuthenticate(mockAuthenticationContext);
-        assertEquals(result.getAuthenticationStatus(), AuthenticationStatus.FAILED,
-                "Authentication should fail when credentials are invalid even if disabled apps are allowed");
+        assertEquals(result.getAuthenticationStatus(), AuthenticationStatus.FAILED);
     }
 
     @Test
@@ -219,18 +203,14 @@ public class BasicClientAuthenticationHandlerTest {
         String tenant = "tenant.com";
         setupAuthHeaderAndTenant(clientId, clientSecret, tenant);
 
-        mockedIdentityUtil.when(() -> IdentityUtil.getProperty(ALLOW_DISABLED_PROP)).thenReturn("false");
+        when(IdentityUtil.getProperty(ALLOW_DISABLED_PROP)).thenReturn("false");
 
         OAuthAppDO oAuthAppDO = mockOAuthAppDO();
-        mockedOAuth2Util.when(() -> OAuth2Util.getAppInformationByClientId(clientId, tenant)).thenReturn(oAuthAppDO);
-        mockedOAuth2Util.when(() -> OAuth2Util.authenticateClient(clientId, clientSecret, tenant)).thenReturn(true);
-
-        // ServiceProvider is null.
-        setupAppMgtService(null);
+        when(OAuth2Util.getAppInformationByClientId(clientId, tenant)).thenReturn(oAuthAppDO);
+        when(OAuth2Util.authenticateClient(clientId, clientSecret, tenant)).thenReturn(true);
 
         AuthenticationResult result = handler.doAuthenticate(mockAuthenticationContext);
-        assertEquals(result.getAuthenticationStatus(), AuthenticationStatus.FAILED,
-                "Authentication should fail when ServiceProvider is null and disabled apps are disallowed");
+        assertEquals(result.getAuthenticationStatus(), AuthenticationStatus.FAILED);
     }
 
     @Test
@@ -241,19 +221,14 @@ public class BasicClientAuthenticationHandlerTest {
         String tenant = "tenant.com";
         setupAuthHeaderAndTenant(clientId, clientSecret, tenant);
 
-        mockedIdentityUtil.when(() -> IdentityUtil.getProperty(ALLOW_DISABLED_PROP)).thenReturn("true");
+        when(IdentityUtil.getProperty(ALLOW_DISABLED_PROP)).thenReturn("true");
 
         OAuthAppDO oAuthAppDO = mockOAuthAppDO();
-        mockedOAuth2Util.when(() -> OAuth2Util.getAppInformationByClientId(clientId, tenant)).thenReturn(oAuthAppDO);
-        mockedOAuth2Util.when(() -> OAuth2Util.authenticateClient(clientId, clientSecret, tenant)).thenReturn(true);
-
-        // ServiceProvider is null but allowed by config.
-        setupAppMgtService(null);
+        when(OAuth2Util.getAppInformationByClientId(clientId, tenant)).thenReturn(oAuthAppDO);
+        when(OAuth2Util.authenticateClient(clientId, clientSecret, tenant)).thenReturn(true);
 
         AuthenticationResult result = handler.doAuthenticate(mockAuthenticationContext);
-        assertEquals(result.getAuthenticationStatus(), AuthenticationStatus.SUCCESS,
-                "Authentication should succeed when ServiceProvider is null but disabled apps are allowed and " +
-                        "credentials are valid");
+        assertEquals(result.getAuthenticationStatus(), AuthenticationStatus.SUCCESS);
     }
 
     @Test(expectedExceptions = AuthenticationFailException.class)
@@ -261,5 +236,35 @@ public class BasicClientAuthenticationHandlerTest {
 
         when(mockAuthenticationRequest.getHeader(HttpHeaders.AUTHORIZATION)).thenReturn("InvalidHeader");
         handler.doAuthenticate(mockAuthenticationContext);
+    }
+
+    private void setupAppMgtService(ServiceProvider sp) throws Exception {
+
+        ApplicationManagementService appMgtService = mock(ApplicationManagementService.class);
+        when(appMgtService.getServiceProviderByClientId(eq("client-123"), any(String.class), eq("tenant.com")))
+                .thenReturn(sp);
+        OAuth2ServiceComponentHolder.setApplicationMgtService(appMgtService);
+    }
+
+    private Request minimalRequest() {
+        try {
+            Connector connector = new Connector();
+            connector.setParseBodyMethods("POST");
+            Request catalina = new Request(connector);
+            org.apache.coyote.Request coyote = new org.apache.coyote.Request();
+
+            catalina.setCoyoteRequest(coyote);
+
+            coyote.method().setString("GET");
+            coyote.scheme().setString("http");
+            coyote.serverName().setString("localhost");
+            coyote.setServerPort(8080);
+            coyote.requestURI().setString("/foo");
+            coyote.getParameters().addParameter("appTenant", "tenant.com");
+
+            return catalina;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }

@@ -25,13 +25,12 @@ import org.apache.catalina.connector.Response;
 import org.apache.commons.collections.iterators.IteratorEnumeration;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.MockitoAnnotations;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.testng.PowerMockTestCase;
 import org.slf4j.MDC;
 import org.testng.Assert;
+import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
@@ -66,23 +65,20 @@ import java.util.Map;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
-import static org.powermock.api.mockito.PowerMockito.doAnswer;
-import static org.powermock.api.mockito.PowerMockito.doNothing;
-import static org.powermock.api.mockito.PowerMockito.mockStatic;
-import static org.powermock.api.mockito.PowerMockito.when;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doAnswer;
 import static org.wso2.carbon.base.MultitenantConstants.SUPER_TENANT_DOMAIN_NAME;
 import static org.wso2.carbon.base.MultitenantConstants.SUPER_TENANT_ID;
 import static org.wso2.carbon.identity.auth.service.util.Constants.IDP_NAME;
 import static org.wso2.carbon.identity.auth.service.util.Constants.IS_FEDERATED_USER;
-import static org.wso2.carbon.identity.auth.valve.util.CarbonUtils.mockCarbonContextForTenant;
-import static org.wso2.carbon.identity.auth.valve.util.CarbonUtils.mockIdentityTenantUtility;
 import static org.wso2.carbon.identity.auth.valve.util.CarbonUtils.mockRealmService;
 import static org.wso2.carbon.identity.auth.valve.util.CarbonUtils.setCarbonHome;
 
-@PrepareForTest({AuthHandlerManager.class, AuthenticationManager.class, IdentityConfigParser.class,
-        IdentityTenantUtil.class, PrivilegedCarbonContext.class})
-public class AuthenticationValveTest extends PowerMockTestCase {
+public class AuthenticationValveTest {
 
     private static final String DUMMY_RESOURCE = "/test/resource";
     private static final String HTTP_METHOD_POST = "POST";
@@ -90,8 +86,6 @@ public class AuthenticationValveTest extends PowerMockTestCase {
     private static final String AUTH_CONTEXT = "auth-context";
     private static final String USER_AGENT = "User-Agent";
     private static final String REMOTE_ADDRESS = "remoteAddress";
-    private static final String SERVICE_PROVIDER = "serviceProvider";
-    private static final String CLIENT_COMPONENT = "clientComponent";
     private static final String IDP = "GOOGLE";
     private final String CONFIG_CONTEXTUAL_PARAM = "LoggableContextualParams.contextual_param";
     private final String CONFIG_LOG_PARAM_USER_AGENT = "user_agent";
@@ -116,6 +110,14 @@ public class AuthenticationValveTest extends PowerMockTestCase {
     private AuthenticationValve authenticationValve;
 
     private StringWriter stringWriter;
+
+    MockedStatic<IdentityConfigParser> identityConfigParserMockedStatic;
+    MockedStatic<AuthHandlerManager> authHandlerManagerMockedStatic;
+    MockedStatic<AuthenticationManager> authenticationManagerMockedStatic;
+    MockedStatic<PrivilegedCarbonContext> privilegedCarbonContextMockedStatic;
+    MockedStatic<IdentityTenantUtil> identityTenantUtilMockedStatic;
+
+    private AutoCloseable openMocks;
 
     @DataProvider
     public Object[][] getExceptionTypeData() {
@@ -180,7 +182,9 @@ public class AuthenticationValveTest extends PowerMockTestCase {
     @BeforeMethod
     public void setUp() throws Exception {
 
-        mockStatic(IdentityConfigParser.class);
+        openMocks = MockitoAnnotations.openMocks(this);
+
+        identityConfigParserMockedStatic = mockStatic(IdentityConfigParser.class);
         Map<String, Object> mockConfig = new HashMap<>();
         List<String> contextualParam = new ArrayList<>();
         contextualParam.add(CONFIG_LOG_PARAM_USER_AGENT);
@@ -191,9 +195,8 @@ public class AuthenticationValveTest extends PowerMockTestCase {
 
         authenticationValve = new AuthenticationValve();
 
-        MockitoAnnotations.initMocks(this);
-        mockStatic(AuthHandlerManager.class);
-        mockStatic(AuthenticationManager.class);
+        authHandlerManagerMockedStatic = mockStatic(AuthHandlerManager.class);
+        authenticationManagerMockedStatic = mockStatic(AuthenticationManager.class);
 
         when(AuthHandlerManager.getInstance()).thenReturn(authHandlerManager);
         when(authHandlerManager.getAuthenticationManager()).thenReturn(authenticationManager);
@@ -227,6 +230,22 @@ public class AuthenticationValveTest extends PowerMockTestCase {
         stringWriter = new StringWriter();
         PrintWriter printWriter = new PrintWriter(stringWriter);
         when(response.getWriter()).thenReturn(printWriter);
+    }
+
+    @AfterMethod
+    public void tearDown() {
+
+        identityConfigParserMockedStatic.close();
+        authHandlerManagerMockedStatic.close();
+        authenticationManagerMockedStatic.close();
+        privilegedCarbonContextMockedStatic.close();
+        identityTenantUtilMockedStatic.close();
+        if (openMocks != null) {
+            try {
+                openMocks.close();
+            } catch (Exception ignored) {
+            }
+        }
     }
 
     @Test(dataProvider = "getExceptionTypeData")
@@ -345,7 +364,7 @@ public class AuthenticationValveTest extends PowerMockTestCase {
         when(authenticationManager.authenticate(ArgumentMatchers.any(AuthenticationContext.class))).thenThrow(e);
         invokeAuthenticationValve();
         JsonObject jsonObject = getJsonResponseBody();
-        Assert.assertEquals(statusCode, jsonObject.get("status").getAsInt());
+        Assert.assertEquals(jsonObject.get("status").getAsInt(), statusCode);
     }
 
     @Test
@@ -360,7 +379,7 @@ public class AuthenticationValveTest extends PowerMockTestCase {
         when(authenticationManager.authenticate(ArgumentMatchers.any(AuthenticationContext.class))).thenThrow(new AuthClientException());
         invokeAuthenticationValve();
         JsonObject jsonObject = getJsonResponseBody();
-        Assert.assertEquals("invalid_client_metadata", jsonObject.get("error").getAsString());
+        Assert.assertEquals(jsonObject.get("error").getAsString(), "invalid_client_metadata");
     }
 
     @Test
@@ -376,7 +395,7 @@ public class AuthenticationValveTest extends PowerMockTestCase {
                 new AuthenticationFailException());
         invokeAuthenticationValve();
         JsonObject jsonObject = getJsonResponseBody();
-        Assert.assertEquals(401, jsonObject.get("code").getAsInt());
+        Assert.assertEquals(jsonObject.get("code").getAsInt(), 401);
     }
 
     @Test
@@ -403,20 +422,18 @@ public class AuthenticationValveTest extends PowerMockTestCase {
 
     private Map<String, Object> mockAttributeMap() {
         final Map<String, Object> attributes = new HashMap<>();
-        doAnswer(new Answer<Object>() {
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                String key = (String) invocation.getArguments()[0];
-                Object value = invocation.getArguments()[1];
-                attributes.put(key, value);
-                return null;
-            }
+        doAnswer((Answer<Object>) invocation -> {
+            String key = (String) invocation.getArguments()[0];
+            Object value = invocation.getArguments()[1];
+            attributes.put(key, value);
+            return null;
         }).when(request).setAttribute(ArgumentMatchers.anyString(), ArgumentMatchers.any());
         return attributes;
     }
 
     private JsonObject getJsonResponseBody() {
-        JsonElement parser = new JsonParser().parse(stringWriter.toString());
+        // Use non-deprecated parser
+        JsonElement parser = JsonParser.parseString(stringWriter.toString());
         return parser.getAsJsonObject();
     }
 
@@ -424,5 +441,26 @@ public class AuthenticationValveTest extends PowerMockTestCase {
 
         IdentityUtil.threadLocalProperties.get().put(IS_FEDERATED_USER, true);
         IdentityUtil.threadLocalProperties.get().put(IDP_NAME, IDP);
+    }
+
+    private void mockCarbonContextForTenant(int tenantId, String tenantDomain) {
+
+        privilegedCarbonContextMockedStatic = mockStatic(PrivilegedCarbonContext.class);
+        PrivilegedCarbonContext privilegedCarbonContext = mock(PrivilegedCarbonContext.class);
+
+        privilegedCarbonContextMockedStatic.when(PrivilegedCarbonContext::getThreadLocalCarbonContext)
+                .thenReturn(privilegedCarbonContext);
+        privilegedCarbonContextMockedStatic.when(privilegedCarbonContext::getTenantDomain).thenReturn(tenantDomain);
+        privilegedCarbonContextMockedStatic.when(privilegedCarbonContext::getTenantId).thenReturn(tenantId);
+        privilegedCarbonContextMockedStatic.when(privilegedCarbonContext::getUsername).thenReturn("admin");
+    }
+
+    private void mockIdentityTenantUtility() {
+
+        identityTenantUtilMockedStatic = mockStatic(IdentityTenantUtil.class);
+        identityTenantUtilMockedStatic.when(()->IdentityTenantUtil.getTenantDomain(any(Integer.class)))
+                .thenReturn(SUPER_TENANT_DOMAIN_NAME);
+        identityTenantUtilMockedStatic.when(()->IdentityTenantUtil.getTenantId(any(String.class)))
+                .thenReturn(SUPER_TENANT_ID);
     }
 }

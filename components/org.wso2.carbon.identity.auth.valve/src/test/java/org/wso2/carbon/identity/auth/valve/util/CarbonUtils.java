@@ -19,10 +19,7 @@
 package org.wso2.carbon.identity.auth.valve.util;
 
 import org.wso2.carbon.base.CarbonBaseConstants;
-import org.wso2.carbon.context.PrivilegedCarbonContext;
-import org.wso2.carbon.identity.application.authentication.framework.internal.FrameworkServiceDataHolder;
 import org.wso2.carbon.identity.auth.valve.internal.AuthenticationValveServiceHolder;
-import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.user.core.service.RealmService;
 import org.wso2.carbon.user.core.tenant.TenantManager;
@@ -30,13 +27,8 @@ import org.wso2.carbon.user.core.tenant.TenantManager;
 import java.nio.file.Paths;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.powermock.api.mockito.PowerMockito.mockStatic;
-import static org.wso2.carbon.base.MultitenantConstants.SUPER_TENANT_DOMAIN_NAME;
-import static org.wso2.carbon.base.MultitenantConstants.SUPER_TENANT_ID;
-
 /**
  * Utility class for Carbon functions.
  */
@@ -47,25 +39,6 @@ public class CarbonUtils {
         String carbonHome = Paths.get(System.getProperty("user.dir"), "target", "test-classes").toString();
         System.setProperty(CarbonBaseConstants.CARBON_HOME, carbonHome);
         System.setProperty(CarbonBaseConstants.CARBON_CONFIG_DIR_PATH, Paths.get(carbonHome, "conf").toString());
-    }
-
-    public static void mockCarbonContextForTenant(int tenantId, String tenantDomain) {
-
-        mockStatic(PrivilegedCarbonContext.class);
-        PrivilegedCarbonContext privilegedCarbonContext = mock(PrivilegedCarbonContext.class);
-
-        when(PrivilegedCarbonContext.getThreadLocalCarbonContext()).thenReturn(privilegedCarbonContext);
-        when(privilegedCarbonContext.getTenantDomain()).thenReturn(tenantDomain);
-        when(privilegedCarbonContext.getTenantId()).thenReturn(tenantId);
-        when(privilegedCarbonContext.getUsername()).thenReturn("admin");
-    }
-
-    public static void mockIdentityTenantUtility() {
-
-        mockStatic(IdentityTenantUtil.class);
-        IdentityTenantUtil identityTenantUtil = mock(IdentityTenantUtil.class);
-        when(IdentityTenantUtil.getTenantDomain(any(Integer.class))).thenReturn(SUPER_TENANT_DOMAIN_NAME);
-        when(IdentityTenantUtil.getTenantId(any(String.class))).thenReturn(SUPER_TENANT_ID);
     }
 
     public static void mockRealmService(boolean isTenantActive) throws UserStoreException {
