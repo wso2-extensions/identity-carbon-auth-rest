@@ -18,13 +18,12 @@
 package org.wso2.carbon.identity.authz.service;
 
 
+import org.wso2.carbon.context.model.OperationScopeSet;
 import org.wso2.carbon.identity.application.common.model.User;
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class AuthorizationContext extends MessageContext {
 
@@ -37,7 +36,7 @@ public class AuthorizationContext extends MessageContext {
     private boolean isCrossTenantAllowed;
     private String tenantDomainFromURLMapping;
     private List<String> allowedTenants;
-    private Map<String, String> operationScopeMap = new HashMap<>();
+    private OperationScopeSet operationScopeSet;
 
     public User getUser() {
         return user;
@@ -110,13 +109,13 @@ public class AuthorizationContext extends MessageContext {
         this.requiredScopes = requiredScopes;
     }
 
-    public Map<String, String> getOperationScopeMap() {
+    public OperationScopeSet getOperationScopeSet() {
 
-        return operationScopeMap;
+        return operationScopeSet;
     }
 
-    public void setOperationScopeMap(Map<String, String> operationScopeMap) {
+    public void setOperationScopeSet(OperationScopeSet operationScopeSet) {
 
-        this.operationScopeMap = operationScopeMap;
+        this.operationScopeSet = operationScopeSet;
     }
 }

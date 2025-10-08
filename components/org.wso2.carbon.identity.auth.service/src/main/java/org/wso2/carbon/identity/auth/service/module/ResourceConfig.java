@@ -17,10 +17,10 @@
  */
 package org.wso2.carbon.identity.auth.service.module;
 
+import org.wso2.carbon.context.model.OperationScopeSet;
+
 import java.io.Serializable;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Model class to hold resource access configs.
@@ -36,8 +36,7 @@ public class ResourceConfig implements Serializable {
     // Comma separated list of allowed authentication handler names. If all handlers are engaged the value is 'all'
     private String allowedAuthHandlers;
     private List<String> crossAccessAllowedTenants;
-    private Map<String, String> operationScopeMap = new HashMap<>();
-
+    private OperationScopeSet operationScopeSet;
     public String getContext() {
         return context;
     }
@@ -108,13 +107,13 @@ public class ResourceConfig implements Serializable {
         this.scopes = scopes;
     }
 
-    public Map<String, String> getOperationScopeMap() {
+    public OperationScopeSet getOperationScopeSet() {
 
-        return operationScopeMap;
+        return operationScopeSet;
     }
 
-    public void setOperationScopeMap(Map<String, String> operationScopeMap) {
+    public void setOperationScopeSet(OperationScopeSet operationScopeSet) {
 
-        this.operationScopeMap = operationScopeMap;
+        this.operationScopeSet = operationScopeSet;
     }
 }

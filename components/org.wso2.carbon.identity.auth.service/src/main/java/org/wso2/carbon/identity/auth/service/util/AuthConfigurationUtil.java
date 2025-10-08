@@ -25,6 +25,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpHeaders;
 import org.wso2.carbon.CarbonConstants;
+import org.wso2.carbon.context.model.OperationScopeSet;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
 import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
 import org.wso2.carbon.identity.auth.service.internal.AuthenticationServiceHolder;
@@ -67,6 +68,7 @@ import static org.wso2.carbon.identity.auth.service.util.Constants.AUTH_HANDLER_
 import static org.wso2.carbon.identity.auth.service.util.Constants.ENDPOINT_LIST_ELE;
 import static org.wso2.carbon.identity.auth.service.util.Constants.RESOURCE_OPERATIONS_ELE;
 import static org.wso2.carbon.identity.auth.service.util.Constants.RESOURCE_OPERATION_ELE;
+import static org.wso2.carbon.identity.auth.service.util.Constants.RESOURCE_OPERATION_ELE_MANDATORY_ATTR;
 import static org.wso2.carbon.identity.auth.service.util.Constants.RESOURCE_OPERATION_ELE_NAME_ATTR;
 import static org.wso2.carbon.identity.auth.service.util.Constants.RESOURCE_OPERATION_ELE_SCOPE_ATTR;
 import static org.wso2.carbon.identity.auth.service.util.Constants.SKIP_AUTHORIZATION_ELE;
@@ -250,9 +252,13 @@ public class AuthConfigurationUtil {
 
                     if (operationsElementItr != null && operationsElementItr.hasNext()) {
                         OMElement operationsElement = operationsElementItr.next();  // There should be only one <Operations> per <Resource>
+                        boolean isMandatory =
+                                Boolean.parseBoolean(operationsElement.getAttributeValue(new QName(RESOURCE_OPERATION_ELE_MANDATORY_ATTR)));
                         Iterator<OMElement> operationElements = operationsElement.getChildrenWithName(
                                 new QName(IdentityCoreConstants.IDENTITY_DEFAULT_NAMESPACE, RESOURCE_OPERATION_ELE));
 
+                        OperationScopeSet operationScopeSet = new OperationScopeSet();
+                        operationScopeSet.setIsMandatory(isMandatory);
                         Map<String, String> operationScopeMap = new HashMap<>();
                         while (operationElements.hasNext()) {
                             OMElement operationElement = operationElements.next();
@@ -268,7 +274,8 @@ public class AuthConfigurationUtil {
                             }
                         }
                         if (!operationScopeMap.isEmpty()) {
-                            resourceConfig.setOperationScopeMap(operationScopeMap);
+                            operationScopeSet.setOperationScopeMap(operationScopeMap);
+                            resourceConfig.setOperationScopeSet(operationScopeSet);
                         }
                     }
 
