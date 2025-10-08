@@ -160,7 +160,10 @@ public class AuthorizationHandler extends AbstractIdentityHandler {
             isOperationScopeMandatory = operationScopeSet.getIsMandatory();
             operationScopeMap = operationScopeSet.getOperationScopeMap();
         }
-        authorizationResult.setOperationScopeAuthorizationRequired(isOperationScopeMandatory);
+
+        authorizationResult.setOperationScopeAuthorizationRequired(
+                isOperationScopeMandatory || !isRequiredScopesGranted);
+
         if (!isRequiredScopesGranted) {
             if (operationScopeMap != null && !operationScopeMap.isEmpty()) {
                 for (String opScope : operationScopeMap.values()) {
@@ -229,7 +232,7 @@ public class AuthorizationHandler extends AbstractIdentityHandler {
                 isOperationScopeMandatory = authorizationContext.getOperationScopeSet().getIsMandatory();
                 operationScopeMap = authorizationContext.getOperationScopeSet().getOperationScopeMap();
             }
-            authorizationResult.setOperationScopeAuthorizationRequired(isOperationScopeMandatory);
+            authorizationResult.setOperationScopeAuthorizationRequired(isOperationScopeMandatory || !granted);
             if (operationScopeMap != null && !operationScopeMap.isEmpty()) {
                 for (String opScope : operationScopeMap.values()) {
                     if (ArrayUtils.contains(allowedScopes, opScope)) {
