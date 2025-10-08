@@ -22,6 +22,7 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
+import org.wso2.carbon.context.model.OperationScopeSet;
 import org.wso2.carbon.identity.authz.service.AuthorizationResult;
 import org.wso2.carbon.identity.authz.service.AuthorizationStatus;
 
@@ -68,7 +69,7 @@ public class AuthorizationHandlerTest {
                 // Test case 3: Required scopes not granted, but operation scope granted
                 {
                         Arrays.asList("admin", "superuser"),        // requiredScopes
-                        createOperationScopeMap("manage"),          // operationScopeMap
+                        createOperationScopeSet("manage"),          // operationScopeMap
                         Arrays.asList("read", "write", "manage"),    // allowedScopes
                         AuthorizationStatus.GRANT,                  // expectedStatus
                         true
@@ -77,7 +78,7 @@ public class AuthorizationHandlerTest {
                 // Test case 4: Neither required scopes nor operation scopes granted
                 {
                         Arrays.asList("admin", "superuser"),        // requiredScopes
-                        createOperationScopeMap("delete"),          // operationScopeMap
+                        createOperationScopeSet("delete"),          // operationScopeMap
                         Arrays.asList("read", "write"),              // allowedScopes
                         AuthorizationStatus.DENY,                   // expectedStatus
                         true                                         // expectedOperationScopeAuthRequired
@@ -101,7 +102,7 @@ public class AuthorizationHandlerTest {
                 // Test case 7: Required scopes not granted, operation scope map empty
                 {
                         Arrays.asList("admin"),                      // requiredScopes
-                        Collections.emptyMap(),                     // operationScopeMap
+                        new OperationScopeSet(),                     // operationScopeMap
                         Arrays.asList("read", "write"),              // allowedScopes
                         AuthorizationStatus.DENY,                   // expectedStatus
                         true                                         // expectedOperationScopeAuthRequired
@@ -109,7 +110,7 @@ public class AuthorizationHandlerTest {
                 // Test case 8: Required scopes not granted, multiple operation scopes, one granted
                 {
                         Arrays.asList("admin"),                      // requiredScopes
-                        createMultipleOperationScopeMap(),          // operationScopeMap
+                        createMultipleOperationScopeSet(),          // operationScopeMap
                         Arrays.asList("read", "write", "manage"),    // allowedScopes
                         AuthorizationStatus.GRANT,                  // expectedStatus
                         true
@@ -118,7 +119,7 @@ public class AuthorizationHandlerTest {
                 // Test case 9: Required scopes not granted, multiple operation scopes, none granted
                 {
                         Arrays.asList("admin"),                      // requiredScopes
-                        createMultipleOperationScopeMap(),          // operationScopeMap
+                        createMultipleOperationScopeSet(),          // operationScopeMap
                         Arrays.asList("read", "write"),              // allowedScopes
                         AuthorizationStatus.DENY,                   // expectedStatus
                         true                                         // expectedOperationScopeAuthRequired
@@ -136,7 +137,7 @@ public class AuthorizationHandlerTest {
 
     @Test(dataProvider = "authorizeUserTestData")
     public void testAuthorizeUser(List<String> requiredScopes,
-                                  Map<String, String> operationScopeMap,
+                                  OperationScopeSet operationScopeSet,
                                   List<String> allowedScopes,
                                   AuthorizationStatus expectedStatus,
                                   boolean expectedOperationScopeAuthRequired) throws Exception {
@@ -148,14 +149,14 @@ public class AuthorizationHandlerTest {
         Method authorizeUserMethod = AuthorizationHandler.class.getDeclaredMethod(
                 "authorizeUser",
                 List.class,
-                Map.class,
+                OperationScopeSet.class,
                 AuthorizationResult.class,
                 List.class
                                                                                  );
         authorizeUserMethod.setAccessible(true);
 
         // Invoke the method
-        authorizeUserMethod.invoke(authorizationHandler, requiredScopes, operationScopeMap,
+        authorizeUserMethod.invoke(authorizationHandler, requiredScopes, operationScopeSet,
                 authorizationResult, allowedScopes);
 
         // Verify the results
@@ -175,7 +176,7 @@ public class AuthorizationHandlerTest {
         Method authorizeUserMethod = AuthorizationHandler.class.getDeclaredMethod(
                 "authorizeUser",
                 List.class,
-                Map.class,
+                OperationScopeSet.class,
                 AuthorizationResult.class,
                 List.class
                                                                                  );
@@ -200,7 +201,7 @@ public class AuthorizationHandlerTest {
         Method authorizeUserMethod = AuthorizationHandler.class.getDeclaredMethod(
                 "authorizeUser",
                 List.class,
-                Map.class,
+                OperationScopeSet.class,
                 AuthorizationResult.class,
                 List.class
                                                                                  );
@@ -223,18 +224,20 @@ public class AuthorizationHandlerTest {
         List<String> requiredScopes = Arrays.asList("read", "write");
         Map<String, String> operationScopeMap = new HashMap<>();
         operationScopeMap.put("operation1", "manage");
+        OperationScopeSet operationScopeSet = new OperationScopeSet();
+        operationScopeSet.setOperationScopeMap(operationScopeMap);
         List<String> allowedScopes = Arrays.asList("read", "write", "manage");
 
         Method authorizeUserMethod = AuthorizationHandler.class.getDeclaredMethod(
                 "authorizeUser",
                 List.class,
-                Map.class,
+                OperationScopeSet.class,
                 AuthorizationResult.class,
                 List.class
                                                                                  );
         authorizeUserMethod.setAccessible(true);
 
-        authorizeUserMethod.invoke(authorizationHandler, requiredScopes, operationScopeMap,
+        authorizeUserMethod.invoke(authorizationHandler, requiredScopes, operationScopeSet,
                 authorizationResult, allowedScopes);
 
         // Required scopes are satisfied, so operation scope check should be skipped
@@ -243,19 +246,23 @@ public class AuthorizationHandlerTest {
     }
 
     // Helper methods to create test data
-    private static Map<String, String> createOperationScopeMap(String scope) {
+    private static OperationScopeSet createOperationScopeSet(String scope) {
 
         Map<String, String> operationScopeMap = new HashMap<>();
         operationScopeMap.put("operation1", scope);
-        return operationScopeMap;
+        OperationScopeSet operationScopeSet = new OperationScopeSet();
+        operationScopeSet.setOperationScopeMap(operationScopeMap);
+        return operationScopeSet;
     }
 
-    private static Map<String, String> createMultipleOperationScopeMap() {
+    private static OperationScopeSet createMultipleOperationScopeSet() {
 
         Map<String, String> operationScopeMap = new HashMap<>();
         operationScopeMap.put("operation1", "delete");
         operationScopeMap.put("operation2", "manage");
         operationScopeMap.put("operation3", "admin");
-        return operationScopeMap;
+        OperationScopeSet operationScopeSet = new OperationScopeSet();
+        operationScopeSet.setOperationScopeMap(operationScopeMap);
+        return operationScopeSet;
     }
 }
