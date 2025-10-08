@@ -172,11 +172,7 @@ public class AuthorizationHandler extends AbstractIdentityHandler {
             }
         }
 
-        boolean authorize = isOperationScopeMandatory
-                ? (isOperationScopesGranted && isRequiredScopesGranted) // If operation scopes are mandatory.
-                : (isOperationScopesGranted || isRequiredScopesGranted); // If operation scopes are not mandatory.
-
-        if (authorize) {
+        if (isRequiredScopesGranted || isOperationScopesGranted) {
             authorizationResult.setAuthorizationStatus(AuthorizationStatus.GRANT);
         }
     }
@@ -243,14 +239,9 @@ public class AuthorizationHandler extends AbstractIdentityHandler {
                 }
             }
 
-            boolean authorize = isOperationScopeMandatory
-                    ? (operationScopesGranted && granted) // If operation scopes are mandatory.
-                    : (granted || operationScopesGranted); // If operation scopes are not mandatory.
-
-            if (authorize) {
+            if (granted || operationScopesGranted) {
                 authorizationResult.setAuthorizationStatus(AuthorizationStatus.GRANT);
             }
-
         }
     }
 
