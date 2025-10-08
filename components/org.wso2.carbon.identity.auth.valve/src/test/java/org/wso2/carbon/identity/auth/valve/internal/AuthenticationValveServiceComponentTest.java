@@ -18,8 +18,8 @@ package org.wso2.carbon.identity.auth.valve.internal;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.osgi.service.component.ComponentContext;
-import org.powermock.modules.testng.PowerMockTestCase;
 import org.testng.Assert;
+import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 import org.wso2.carbon.identity.auth.service.AuthenticationManager;
@@ -28,27 +28,36 @@ import org.wso2.carbon.identity.auth.service.factory.AuthenticationRequestBuilde
 import java.util.List;
 
 
-public class AuthenticationValveServiceComponentTest extends PowerMockTestCase {
+public class AuthenticationValveServiceComponentTest {
 
     @Mock
     private ComponentContext componentContext;
-    @Mock
-    private AuthenticationValveServiceHolder authenticationValveServiceHolder;
+
+    private AutoCloseable openMocks;
 
     @BeforeMethod
-    public void setUp() throws Exception {
-        MockitoAnnotations.initMocks(this);
+    public void setUp() {
+        openMocks = MockitoAnnotations.openMocks(this);
+    }
+
+    @AfterMethod
+    public void tearDown() {
+        if (openMocks != null) {
+            try {
+                openMocks.close();
+            } catch (Exception ignored) { }
+        }
     }
 
     @Test
-    public void testActivate() throws Exception {
+    public void testActivate() {
         AuthenticationValveServiceComponent authenticationValveServiceComponent = new
                 AuthenticationValveServiceComponent();
         authenticationValveServiceComponent.activate(componentContext);
     }
 
     @Test
-    public void testAddAuthenticationRequestBuilderFactory() throws Exception {
+    public void testAddAuthenticationRequestBuilderFactory() {
         AuthenticationRequestBuilderFactory authenticationRequestBuilderFactory = AuthenticationRequestBuilderFactory
                 .getInstance();
         AuthenticationValveServiceComponent authenticationValveServiceComponent = new
@@ -69,7 +78,7 @@ public class AuthenticationValveServiceComponentTest extends PowerMockTestCase {
     }
 
     @Test
-    public void testSetAuthenticationManager() throws Exception {
+    public void testSetAuthenticationManager() {
         AuthenticationManager authenticationManager = AuthenticationManager.getInstance();
         AuthenticationValveServiceComponent authenticationValveServiceComponent = new
                 AuthenticationValveServiceComponent();

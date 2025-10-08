@@ -19,7 +19,6 @@ import org.apache.catalina.connector.Request;
 import org.apache.catalina.connector.Response;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.powermock.modules.testng.PowerMockTestCase;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -28,7 +27,7 @@ import org.wso2.carbon.identity.auth.service.factory.AuthenticationRequestBuilde
 import org.wso2.carbon.identity.auth.valve.internal.AuthenticationValveServiceHolder;
 import org.wso2.carbon.identity.auth.valve.util.AuthHandlerManager;
 
-public class AuthHandlerManagerTest extends PowerMockTestCase {
+public class AuthHandlerManagerTest {
 
     @Mock
     private Request request;

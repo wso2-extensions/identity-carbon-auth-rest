@@ -23,50 +23,42 @@ import org.apache.catalina.connector.Request;
 import org.apache.catalina.connector.Response;
 import org.apache.commons.lang.StringUtils;
 import org.mockito.Mock;
-import org.powermock.api.mockito.PowerMockito;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.core.classloader.annotations.SuppressStaticInitializationFor;
-import org.powermock.modules.testng.PowerMockTestCase;
-import org.powermock.reflect.Whitebox;
+import org.mockito.MockedStatic;
+import org.mockito.MockitoAnnotations;
+import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
-import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
 import org.wso2.carbon.identity.application.authentication.framework.util.FrameworkUtils;
-import org.wso2.carbon.identity.central.log.mgt.utils.LoggerUtils;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
-import org.wso2.carbon.identity.oauth.config.OAuthServerConfiguration;
+import org.wso2.carbon.identity.core.util.IdentityConfigParser;
 import org.wso2.carbon.identity.oauth.dao.OAuthAppDO;
 import org.wso2.carbon.identity.oauth2.client.authentication.OAuthClientAuthnException;
 import org.wso2.carbon.identity.oauth2.util.OAuth2Util;
-import org.wso2.carbon.user.core.service.RealmService;
-import org.wso2.carbon.user.core.tenant.TenantManager;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.servlet.ServletException;
 
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.spy;
-import static org.powermock.api.mockito.PowerMockito.doNothing;
-import static org.powermock.api.mockito.PowerMockito.mockStatic;
-import static org.powermock.api.mockito.PowerMockito.when;
+import static org.mockito.Mockito.when;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertNull;
+import static org.wso2.carbon.identity.auth.valve.util.CarbonUtils.setCarbonHome;
 import static org.wso2.carbon.identity.oauth.common.OAuthConstants.OAuth10AParams.OAUTH_CONSUMER_KEY;
 import static org.wso2.carbon.identity.oauth.common.OAuthConstants.OAuth20Params.CLIENT_ID;
 import static org.wso2.carbon.identity.oauth.common.OAuthConstants.TENANT_NAME_FROM_CONTEXT;
 
-@PrepareForTest({OAuthAppTenantResolverValve.class, OAuth2Util.class, LoggerUtils.class,
-        OAuthServerConfiguration.class, IdentityUtil.class, PrivilegedCarbonContext.class, IdentityTenantUtil.class,
-        FrameworkUtils.class})
-@SuppressStaticInitializationFor("org.wso2.carbon.context.CarbonContext")
-public class OAuthAppTenantResolverValveTest extends PowerMockTestCase {
+public class OAuthAppTenantResolverValveTest {
 
     private static final String DUMMY_RESOURCE_OAUTH_2 = "https://localhost:9443/oauth2/test/resource";
     private static final String DUMMY_RESOURCE_OAUTH_10A = "https://localhost:9443/oauth/test/resource";
@@ -89,14 +81,22 @@ public class OAuthAppTenantResolverValveTest extends PowerMockTestCase {
     private OAuthAppTenantResolverValve oAuthAppTenantResolverValve;
     private OAuthAppDO oAuthAppDO;
 
-    private ThreadLocal<Map<String, Object>> threadLocalProperties = new ThreadLocal<Map<String, Object>>() {
-        protected Map<String, Object> initialValue() {
-            return new HashMap();
-        }
-    };
+    private final AtomicReference<Object> capturedTenantFromNextValve = new AtomicReference<>();
+
+    private AutoCloseable openMocks;
+    private MockedStatic<FrameworkUtils> frameworkUtilsStatic;
+    private MockedStatic<IdentityTenantUtil> identityTenantUtilStatic;
+    private MockedStatic<OAuth2Util> oAuth2UtilStatic;
+    private MockedStatic<IdentityUtil> identityUtilStatic;
+    private MockedStatic<IdentityConfigParser> identityConfigParserStatic;
 
     @BeforeMethod
-    public void setUp() throws Exception {
+    public void setUp() {
+
+        // Ensure Carbon home is set to avoid static initialization issues in CarbonContext
+        setCarbonHome();
+
+        openMocks = MockitoAnnotations.openMocks(this);
 
         AuthenticatedUser user = new AuthenticatedUser();
         user.setTenantDomain(TENANT_DOMAIN);
@@ -105,55 +105,64 @@ public class OAuthAppTenantResolverValveTest extends PowerMockTestCase {
         oAuthAppDO = new OAuthAppDO();
         oAuthAppDO.setAppOwner(user);
 
-        mockStatic(PrivilegedCarbonContext.class);
-        when(PrivilegedCarbonContext.getThreadLocalCarbonContext()).thenReturn(mock(PrivilegedCarbonContext.class));
+        // Mock IdentityConfigParser to avoid file-based config initialization
+        identityConfigParserStatic = mockStatic(IdentityConfigParser.class);
+        IdentityConfigParser mockParser = mock(IdentityConfigParser.class);
+        identityConfigParserStatic.when(IdentityConfigParser::getInstance).thenReturn(mockParser);
+        Map<String, Object> emptyConfig = new HashMap<>();
+        when(mockParser.getConfiguration()).thenReturn(emptyConfig);
 
-        mockStatic(FrameworkUtils.class);
-        PowerMockito.doNothing()
-                .when(FrameworkUtils.class, "startTenantFlow", anyString());
+        frameworkUtilsStatic = mockStatic(FrameworkUtils.class);
+        frameworkUtilsStatic.when(() -> FrameworkUtils.startTenantFlow(anyString())).then(invocation -> null);
 
-        RealmService realmService = mock(RealmService.class);
-        TenantManager tenantManager = mock(TenantManager.class);
-        when(realmService.getTenantManager()).thenReturn(tenantManager);
-        when(tenantManager.getTenantId(TENANT_DOMAIN)).thenReturn(1);
+        identityTenantUtilStatic = mockStatic(IdentityTenantUtil.class);
+        identityTenantUtilStatic.when(() -> IdentityTenantUtil.getTenantId(TENANT_DOMAIN)).thenReturn(1);
 
-        mockStatic(IdentityTenantUtil.class);
-        when(IdentityTenantUtil.getTenantId(TENANT_DOMAIN)).thenReturn(1);
+        identityUtilStatic = mockStatic(IdentityUtil.class);
+        identityUtilStatic.when(() -> IdentityUtil.getServerURL("/oauth", true, true))
+                .thenReturn("https://localhost:9443/oauth");
+        identityUtilStatic.when(() -> IdentityUtil.getServerURL("/oauth2", true, true))
+                .thenReturn("https://localhost:9443/oauth2");
 
-        OAuthServerConfiguration oAuthServerConfigurationMock = mock(OAuthServerConfiguration.class);
-        mockStatic(OAuthServerConfiguration.class);
-        when(OAuthServerConfiguration.getInstance()).thenReturn(oAuthServerConfigurationMock);
-
-        mockStatic(LoggerUtils.class);
-        when(LoggerUtils.isDiagnosticLogsEnabled()).thenReturn(false);
-        mockStatic(OAuth2Util.class);
-
-        mockStatic(IdentityUtil.class);
-        threadLocalProperties.get().remove(TENANT_NAME_FROM_CONTEXT);
-        Whitebox.setInternalState(IdentityUtil.class, "threadLocalProperties", threadLocalProperties);
-        when(IdentityUtil.getServerURL("/oauth", true, true)).thenReturn("https://localhost:9443/oauth");
-        when(IdentityUtil.getServerURL("/oauth2", true, true)).thenReturn("https://localhost:9443/oauth2");
+        oAuth2UtilStatic = mockStatic(OAuth2Util.class);
 
         oAuthAppTenantResolverValve = spy(new OAuthAppTenantResolverValve());
     }
 
     private void invokeAppTenantResolverValve() throws IOException, ServletException {
 
-        doNothing().when(valve).invoke(request, response);
+        doAnswer(invocation -> {
+            // Capture the thread-local value before it's cleared in finally block.
+            capturedTenantFromNextValve.set(IdentityUtil.threadLocalProperties.get().get(TENANT_NAME_FROM_CONTEXT));
+            return null;
+        }).when(valve).invoke(request, response);
         oAuthAppTenantResolverValve.setNext(valve);
         oAuthAppTenantResolverValve.invoke(request, response);
+    }
+
+    @AfterMethod
+    public void tearDown() {
+        if (frameworkUtilsStatic != null) frameworkUtilsStatic.close();
+        if (identityTenantUtilStatic != null) identityTenantUtilStatic.close();
+        if (oAuth2UtilStatic != null) oAuth2UtilStatic.close();
+        if (identityUtilStatic != null) identityUtilStatic.close();
+        if (identityConfigParserStatic != null) identityConfigParserStatic.close();
+        if (openMocks != null) {
+            try { openMocks.close(); } catch (Exception ignored) {}
+        }
+        capturedTenantFromNextValve.set(null);
+        IdentityUtil.threadLocalProperties.get().remove(TENANT_NAME_FROM_CONTEXT);
     }
 
     @DataProvider
     public Object[][] invokeDataProvider() {
 
         return new Object[][]{
-                // requestPath, clientIdParam, headerCredentials, expectedAppTenant.
+                // requestPath, clientIdParam, headerCredentials, expectedAppTenant, bearerToken.
                 {DUMMY_RESOURCE_OAUTH_2, DUMMY_CLIENT_ID, null, TENANT_DOMAIN, null},
                 {DUMMY_RESOURCE_OAUTH_10A, DUMMY_CLIENT_ID, null, TENANT_DOMAIN, null},
                 {DUMMY_RESOURCE_NON_OAUTH, DUMMY_CLIENT_ID, null, null, null},
-                {DUMMY_RESOURCE_OAUTH_2, null, new String[]
-                        {DUMMY_CLIENT_ID, DUMMY_CLIENT_SECRET}, TENANT_DOMAIN, null},
+                {DUMMY_RESOURCE_OAUTH_2, null, new String[]{DUMMY_CLIENT_ID, DUMMY_CLIENT_SECRET}, TENANT_DOMAIN, null},
                 {DUMMY_RESOURCE_OAUTH_2, null, new String[]{"user1", "password"}, null, null},
                 {DUMMY_RESOURCE_NON_OAUTH, DUMMY_CLIENT_ID, null, null, DUMMY_BEARER_JWT_TOKEN},
         };
@@ -163,10 +172,6 @@ public class OAuthAppTenantResolverValveTest extends PowerMockTestCase {
     public void testInvoke(String requestPath, String clientIdParam, String[] headerCredentials,
                            String expectedAppTenant, String bearerToken) throws Exception {
 
-        // Suppress the execution of cleaning methods inorder to assert the correct behaviour.
-        PowerMockito.suppress(PowerMockito.method(
-                OAuthAppTenantResolverValve.class, "unsetThreadLocalContextTenantName"));
-
         when(request.getRequestURL()).thenReturn(new StringBuffer(requestPath));
         if (requestPath.startsWith("/oauth/")) {
             when(request.getParameter(OAUTH_CONSUMER_KEY)).thenReturn(clientIdParam);
@@ -174,40 +179,35 @@ public class OAuthAppTenantResolverValveTest extends PowerMockTestCase {
             when(request.getParameter(CLIENT_ID)).thenReturn(clientIdParam);
         }
 
-        when(OAuth2Util.getAppInformationByClientIdOnly(DUMMY_CLIENT_ID)).thenReturn(oAuthAppDO);
-        when(OAuth2Util.getTenantDomainOfOauthApp(oAuthAppDO)).thenReturn(TENANT_DOMAIN);
+        oAuth2UtilStatic.when(() -> OAuth2Util.getAppInformationByClientIdOnly(DUMMY_CLIENT_ID)).thenReturn(oAuthAppDO);
+        oAuth2UtilStatic.when(() -> OAuth2Util.getTenantDomainOfOauthApp(oAuthAppDO)).thenReturn(TENANT_DOMAIN);
+
         if (headerCredentials != null) {
-            when(OAuth2Util.isBasicAuthorizationHeaderExists(request)).thenReturn(true);
-            when(OAuth2Util.extractCredentialsFromAuthzHeader(request)).thenReturn(headerCredentials);
-        } else if(bearerToken != null) {
-            when(OAuth2Util.extractBearerTokenFromAuthzHeader(request)).thenReturn(bearerToken);
-            // when OAuth2Util.isJWT is called, call the real function
-            PowerMockito.when(OAuth2Util.class, "isJWT", anyString()).thenCallRealMethod();
-            PowerMockito.when(IdentityUtil.class, "validateJWTDepth", anyString()).thenCallRealMethod();
-            when(OAuth2Util.isBasicAuthorizationHeaderExists(request)).thenReturn(false);
+            oAuth2UtilStatic.when(() -> OAuth2Util.isBasicAuthorizationHeaderExists(request)).thenReturn(true);
+            oAuth2UtilStatic.when(() -> OAuth2Util.extractCredentialsFromAuthzHeader(request)).thenReturn(headerCredentials);
+        } else if (bearerToken != null) {
+            oAuth2UtilStatic.when(() -> OAuth2Util.extractBearerTokenFromAuthzHeader(request)).thenReturn(bearerToken);
+            oAuth2UtilStatic.when(() -> OAuth2Util.isJWT(bearerToken)).thenReturn(true);
+            oAuth2UtilStatic.when(() -> OAuth2Util.isBasicAuthorizationHeaderExists(request)).thenReturn(false);
         } else {
-            when(OAuth2Util.isBasicAuthorizationHeaderExists(request)).thenReturn(false);
+            oAuth2UtilStatic.when(() -> OAuth2Util.isBasicAuthorizationHeaderExists(request)).thenReturn(false);
         }
 
         invokeAppTenantResolverValve();
         if (StringUtils.isNotBlank(expectedAppTenant)) {
-            assertEquals(IdentityUtil.threadLocalProperties.get().get(TENANT_NAME_FROM_CONTEXT), expectedAppTenant);
+            assertEquals(capturedTenantFromNextValve.get(), expectedAppTenant);
         } else {
-            assertNull(IdentityUtil.threadLocalProperties.get().get(TENANT_NAME_FROM_CONTEXT));
+            assertNull(capturedTenantFromNextValve.get());
         }
     }
 
     @Test
     public void testInvokeWithException() throws Exception {
 
-        // Suppress the execution of cleaning methods inorder to assert the correct behaviour.
-        PowerMockito.suppress(PowerMockito.method(
-                OAuthAppTenantResolverValve.class, "unsetThreadLocalContextTenantName"));
-
         when(request.getRequestURL()).thenReturn(new StringBuffer(DUMMY_RESOURCE_OAUTH_2));
-        when(OAuth2Util.isBasicAuthorizationHeaderExists(request)).thenReturn(true);
-        when(OAuth2Util.extractCredentialsFromAuthzHeader(request)).thenThrow(
-                new OAuthClientAuthnException("error.message", "error.code"));
+        oAuth2UtilStatic.when(() -> OAuth2Util.isBasicAuthorizationHeaderExists(request)).thenReturn(true);
+        oAuth2UtilStatic.when(() -> OAuth2Util.extractCredentialsFromAuthzHeader(request))
+                .thenThrow(new OAuthClientAuthnException("error.message", "error.code"));
         invokeAppTenantResolverValve();
         assertNull(IdentityUtil.threadLocalProperties.get().get(TENANT_NAME_FROM_CONTEXT));
     }
@@ -218,10 +218,11 @@ public class OAuthAppTenantResolverValveTest extends PowerMockTestCase {
         when(request.getRequestURL()).thenReturn(new StringBuffer(DUMMY_RESOURCE_OAUTH_2));
         when(request.getParameter(CLIENT_ID)).thenReturn(CLIENT_ID);
 
-        when(OAuth2Util.getAppInformationByClientIdOnly(DUMMY_CLIENT_ID)).thenReturn(oAuthAppDO);
-        when(OAuth2Util.getTenantDomainOfOauthApp(oAuthAppDO)).thenReturn(TENANT_DOMAIN);
+        oAuth2UtilStatic.when(() -> OAuth2Util.getAppInformationByClientIdOnly(DUMMY_CLIENT_ID)).thenReturn(oAuthAppDO);
+        oAuth2UtilStatic.when(() -> OAuth2Util.getTenantDomainOfOauthApp(oAuthAppDO)).thenReturn(TENANT_DOMAIN);
 
         invokeAppTenantResolverValve();
+        // Should be cleared in finally block
         assertNull(IdentityUtil.threadLocalProperties.get().get(TENANT_NAME_FROM_CONTEXT));
     }
 }
