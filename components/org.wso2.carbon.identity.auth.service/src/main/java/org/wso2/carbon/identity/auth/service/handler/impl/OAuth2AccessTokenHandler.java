@@ -154,7 +154,7 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
 
                 /* If the token is impersonated access token issued for MY_ACCOUNT, block all the actions excepts
                     for discoverable actions. */
-                boolean isValidOperation = validateAllowedDuringImpersonation(authenticationContext.getResourceConfig(),
+                boolean isValidOperation = validateAllowedDuringImpersonation(authenticationContext,
                         oAuth2IntrospectionResponseDTO.getScope(),
                         oAuth2IntrospectionResponseDTO.getClientId());
                 if (!isValidOperation) {
@@ -324,22 +324,34 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
      * If the application is MY_ACCOUNT and the token is impersonated allow only
      * allowed operations during impersonation.
      *
-     * @param resourceConfig Resource Config.
-     * @param allowedScopes  Allowed scopes in the token.
-     * @param clientId       Client id.
+     * @param authenticationContext Authentication Context.
+     * @param allowedScopes         Allowed scopes in the token.
+     * @param clientId              Client id.
      * @return Whether the operation is allowed or not.
      */
-    private boolean validateAllowedDuringImpersonation(ResourceConfig resourceConfig, String allowedScopes,
-                                                       String clientId) {
+    private boolean validateAllowedDuringImpersonation(AuthenticationContext authenticationContext,
+                                                       String allowedScopes, String clientId) {
+
+        if (!MY_ACCOUNT_APPLICATION_CLIENT_ID.equals(clientId)) {
+            // Validation only needed for My account applications.
+            return true;
+        }
 
         List<String> scopes = Arrays.asList(OAuth2Util.buildScopeArray(allowedScopes));
+        if (!(scopes.contains(IMPERSONATION_SCOPE_NAME) || scopes.contains(IMPERSONATION_ORG_SCOPE_NAME))) {
+            // Validation only needed for impersonation scenario.
+            return true;
+        }
+
+        ResourceConfig resourceConfig = authenticationContext.getResourceConfig();
+        String httpMethod = authenticationContext.getAuthenticationRequest().getMethod();
         List<String> impersonateMyAccountResourceConfigs = IdentityConfigParser
                 .getImpersonateMyAccountResourceConfigs();
-        return !(MY_ACCOUNT_APPLICATION_CLIENT_ID.equals(clientId)
-                && (scopes.contains(IMPERSONATION_SCOPE_NAME) || scopes.contains(IMPERSONATION_ORG_SCOPE_NAME))
-                && !GET.equals(resourceConfig.getHttpMethod())
-                && impersonateMyAccountResourceConfigs.stream()
-                    .noneMatch(resource -> resourceConfig.getContext().contains(resource)));
+        boolean isAllowedResource = impersonateMyAccountResourceConfigs.stream()
+                .anyMatch(resource -> resourceConfig.getContext().contains(resource));
+
+        // Pass only the GET endpoints of allowed resources.
+        return isAllowedResource && GET.contains(httpMethod);
     }
 
     private void setActorToIdentityContext(OAuth2IntrospectionResponseDTO introspectionResponseDTO) {
