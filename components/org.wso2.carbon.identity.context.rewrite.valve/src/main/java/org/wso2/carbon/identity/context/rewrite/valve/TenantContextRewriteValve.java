@@ -119,7 +119,18 @@ public class TenantContextRewriteValve extends ValveBase {
         outerLoop:
         for (OrganizationRewriteContext context : contextsToRewriteInTenantPerspective) {
             Pattern patternTenantPerspective = Pattern.compile("^/t/[^/]+/o/[a-f0-9\\-]+?" + context.getContext());
-            if (patternTenantPerspective.matcher(requestURI).find() && CollectionUtils.isNotEmpty(context.getSubPaths())) {
+            if (patternTenantPerspective.matcher(requestURI).find()) {
+                if (CollectionUtils.isEmpty(context.getSubPaths())) {
+                    isContextRewrite = true;
+                    isWebApp = context.isWebApp();
+                    contextToForward = context.getContext();
+                    int startIndex = requestURI.indexOf("/o/") + 3;
+                    int endIndex = requestURI.indexOf("/", startIndex);
+                    String appOrgId = requestURI.substring(startIndex, endIndex);
+                    PrivilegedCarbonContext.getThreadLocalCarbonContext()
+                            .setApplicationResidentOrganizationId(appOrgId);
+                    break;
+                }
                 for (Pattern subPath : context.getSubPaths()) {
                     if (subPath.matcher(requestURI).find()) {
                         isContextRewrite = true;
@@ -353,6 +364,10 @@ public class TenantContextRewriteValve extends ValveBase {
         Object webAppSubPathContexts = configuration.get("OrgContextsToRewriteInTenantPerspective.WebApp.Context." +
                 "SubPaths.Path");
         setSubPathContexts(organizationRewriteContexts, webAppSubPathContexts);
+
+        // Add Servlet context support for tenant perspective.
+        Object servletBasePathContexts = configuration.get("OrgContextsToRewriteInTenantPerspective.Servlet.Context");
+        setOrganizationRewriteContexts(organizationRewriteContexts, servletBasePathContexts, false);
 
         return organizationRewriteContexts;
     }
