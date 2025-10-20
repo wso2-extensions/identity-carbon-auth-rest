@@ -189,9 +189,12 @@ public class TenantContextRewriteValve extends ValveBase {
                         requestURI = requestURI.replace(carbonWebContext + "/", "");
                     }
                     //Servlet
-                    if (StringUtils.isEmpty(PrivilegedCarbonContext.getThreadLocalCarbonContext()
-                            .getApplicationResidentOrganizationId())) {
-                        requestURI = requestURI.replace("/t/" + tenantDomain, "");
+                    requestURI = requestURI.replace("/t/" + tenantDomain, "");
+                    String appResidentOrgId =
+                            PrivilegedCarbonContext.getThreadLocalCarbonContext()
+                                    .getApplicationResidentOrganizationId();
+                    if (StringUtils.isNotEmpty(appResidentOrgId)) {
+                        requestURI = requestURI.replace("/o/" + appResidentOrgId, "");
                     }
                     request.getRequestDispatcher(requestURI).forward(request, response);
                 }
