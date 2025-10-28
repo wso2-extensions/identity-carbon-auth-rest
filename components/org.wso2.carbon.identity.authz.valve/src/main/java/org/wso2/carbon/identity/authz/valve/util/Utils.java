@@ -20,15 +20,19 @@ package org.wso2.carbon.identity.authz.valve.util;
 
 import org.apache.catalina.connector.Request;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
 import org.wso2.carbon.identity.application.common.model.User;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
 import org.wso2.carbon.identity.auth.service.util.Constants;
 import org.wso2.carbon.identity.authz.service.AuthorizationContext;
+import org.wso2.carbon.identity.authz.valve.internal.AuthorizationValveServiceHolder;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.oauth.dao.OAuthAppDO;
 import org.wso2.carbon.identity.oauth2.util.OAuth2Util;
+import org.wso2.carbon.identity.organization.management.service.exception.OrganizationManagementException;
 import org.wso2.carbon.utils.multitenancy.MultitenantConstants;
 
 import java.util.List;
@@ -36,6 +40,8 @@ import java.util.List;
 import static org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil.getResourceResidentTenantForTenantPerspective;
 
 public class Utils {
+
+    private static final Log LOG = LogFactory.getLog(Utils.class);
 
     public static String getTenantDomainFromURLMapping(Request request) {
 
@@ -117,7 +123,16 @@ public class Utils {
                 OAuthAppDO oAuthAppDO = (OAuthAppDO) authenticationContext.getParameter(
                         Constants.AUTH_CONTEXT_OAUTH_APP_PROPERTY);
                 tenantDomain = OAuth2Util.getTenantDomainOfOauthApp(oAuthAppDO);
-                return StringUtils.equals(((AuthenticatedUser) user).getAccessingOrganization(), tenantDomain);
+                String accessingTenantDomain;
+                try {
+                    accessingTenantDomain = AuthorizationValveServiceHolder.getInstance().getOrganizationManager()
+                            .resolveTenantDomain(((AuthenticatedUser) user).getAccessingOrganization());
+                } catch (OrganizationManagementException e) {
+                    LOG.warn("Unable to resolve tenant domain for organization: "
+                            + ((AuthenticatedUser) user).getAccessingOrganization(), e);
+                    return false;
+                }
+                return StringUtils.equals(accessingTenantDomain, tenantDomain);
             }
         }
         return false;
