@@ -130,7 +130,8 @@ public class TenantContextRewriteValve extends ValveBase {
                     PrivilegedCarbonContext.getThreadLocalCarbonContext()
                             .setApplicationResidentOrganizationId(appOrgId);
                     if (log.isDebugEnabled()) {
-                        log.debug("Set application resident organization ID: " + appOrgId + " for context: " + contextToForward);
+                        log.debug("Set application resident organization ID: " + appOrgId + " for context: "
+                                + contextToForward);
                     }
                     break;
                 }
