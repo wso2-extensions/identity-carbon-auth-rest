@@ -120,7 +120,7 @@ public class AuthenticationValve extends ValveBase {
 
             overrideSecuredResource(securedResource, normalizedRequestURI, request.getMethod());
 
-            setRemoteAddressAndUserAgentToMDC(request);
+            setRemoteAddressAndUserAgent(request);
 
             if (isUnauthorized(securedResource)) {
                 APIErrorResponseHandler.handleErrorResponse(null, response,
@@ -248,7 +248,12 @@ public class AuthenticationValve extends ValveBase {
         }
     }
 
-    private void setRemoteAddressAndUserAgentToMDC(Request request) {
+    /**
+     * Set remote address and user agent to thread local and MDC.
+     *
+     * @param request HTTP servlet request.
+     */
+    private void setRemoteAddressAndUserAgent(Request request) {
 
         String userAgent = request.getHeader(USER_AGENT);
         String forwardedUserAgent = request.getHeader(X_FORWARDED_USER_AGENT);
@@ -256,11 +261,19 @@ public class AuthenticationValve extends ValveBase {
             userAgent = forwardedUserAgent;
         }
         String remoteAddr = request.getRemoteAddr();
-        if (StringUtils.isNotEmpty(userAgent) && isLoggableParam(CONFIG_LOG_PARAM_USER_AGENT)) {
-            MDC.put(USER_AGENT, userAgent);
+
+        if (StringUtils.isNotEmpty(userAgent)) {
+            IdentityUtil.threadLocalProperties.get().put(USER_AGENT, userAgent);
+            if (isLoggableParam(CONFIG_LOG_PARAM_USER_AGENT)) {
+                MDC.put(USER_AGENT, userAgent);
+            }
         }
-        if (StringUtils.isNotEmpty(remoteAddr) && isLoggableParam(CONFIG_LOG_PARAM_REMOTE_ADDRESS)) {
-            MDC.put(REMOTE_ADDRESS, remoteAddr);
+
+        if (StringUtils.isNotEmpty(remoteAddr)) {
+            IdentityUtil.threadLocalProperties.get().put(REMOTE_ADDRESS, remoteAddr);
+            if (isLoggableParam(CONFIG_LOG_PARAM_REMOTE_ADDRESS)) {
+                MDC.put(REMOTE_ADDRESS, remoteAddr);
+            }
         }
     }
 
