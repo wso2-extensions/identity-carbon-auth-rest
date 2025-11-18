@@ -119,7 +119,22 @@ public class TenantContextRewriteValve extends ValveBase {
         outerLoop:
         for (OrganizationRewriteContext context : contextsToRewriteInTenantPerspective) {
             Pattern patternTenantPerspective = Pattern.compile("^/t/[^/]+/o/[a-f0-9\\-]+?" + context.getContext());
-            if (patternTenantPerspective.matcher(requestURI).find() && CollectionUtils.isNotEmpty(context.getSubPaths())) {
+            if (patternTenantPerspective.matcher(requestURI).find()) {
+                if (CollectionUtils.isEmpty(context.getSubPaths())) {
+                    isContextRewrite = true;
+                    isWebApp = context.isWebApp();
+                    contextToForward = context.getContext();
+                    int startIndex = requestURI.indexOf("/o/") + 3;
+                    int endIndex = requestURI.indexOf("/", startIndex);
+                    String appOrgId = requestURI.substring(startIndex, endIndex);
+                    PrivilegedCarbonContext.getThreadLocalCarbonContext()
+                            .setApplicationResidentOrganizationId(appOrgId);
+                    if (log.isDebugEnabled()) {
+                        log.debug("Set application resident organization ID: " + appOrgId + " for context: "
+                                + contextToForward);
+                    }
+                    break;
+                }
                 for (Pattern subPath : context.getSubPaths()) {
                     if (subPath.matcher(requestURI).find()) {
                         isContextRewrite = true;
@@ -178,9 +193,12 @@ public class TenantContextRewriteValve extends ValveBase {
                         requestURI = requestURI.replace(carbonWebContext + "/", "");
                     }
                     //Servlet
-                    if (StringUtils.isEmpty(PrivilegedCarbonContext.getThreadLocalCarbonContext()
-                            .getApplicationResidentOrganizationId())) {
-                        requestURI = requestURI.replace("/t/" + tenantDomain, "");
+                    requestURI = requestURI.replace("/t/" + tenantDomain, "");
+                    String appResidentOrgId =
+                            PrivilegedCarbonContext.getThreadLocalCarbonContext()
+                                    .getApplicationResidentOrganizationId();
+                    if (StringUtils.isNotEmpty(appResidentOrgId)) {
+                        requestURI = requestURI.replace("/o/" + appResidentOrgId, "");
                     }
                     request.getRequestDispatcher(requestURI).forward(request, response);
                 }
@@ -353,6 +371,10 @@ public class TenantContextRewriteValve extends ValveBase {
         Object webAppSubPathContexts = configuration.get("OrgContextsToRewriteInTenantPerspective.WebApp.Context." +
                 "SubPaths.Path");
         setSubPathContexts(organizationRewriteContexts, webAppSubPathContexts);
+
+        // Add Servlet context support for tenant perspective.
+        Object servletBasePathContexts = configuration.get("OrgContextsToRewriteInTenantPerspective.Servlet.Context");
+        setOrganizationRewriteContexts(organizationRewriteContexts, servletBasePathContexts, false);
 
         return organizationRewriteContexts;
     }
