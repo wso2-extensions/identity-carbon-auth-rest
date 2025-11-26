@@ -248,21 +248,42 @@ public class AuthenticationValve extends ValveBase {
         }
     }
 
-    private void setRemoteAddressAndUserAgentToMDC(Request request) {
+   private void setRemoteAddressAndUserAgentToMDC(Request request) {
 
-        String userAgent = request.getHeader(USER_AGENT);
-        String forwardedUserAgent = request.getHeader(X_FORWARDED_USER_AGENT);
-        if (StringUtils.isNotEmpty(forwardedUserAgent)) {
-            userAgent = forwardedUserAgent;
-        }
-        String remoteAddr = request.getRemoteAddr();
-        if (StringUtils.isNotEmpty(userAgent) && isLoggableParam(CONFIG_LOG_PARAM_USER_AGENT)) {
-            MDC.put(USER_AGENT, userAgent);
-        }
-        if (StringUtils.isNotEmpty(remoteAddr) && isLoggableParam(CONFIG_LOG_PARAM_REMOTE_ADDRESS)) {
-            MDC.put(REMOTE_ADDRESS, remoteAddr);
-        }
+    String userAgent = request.getHeader(USER_AGENT);
+    String forwardedUserAgent = request.getHeader(X_FORWARDED_USER_AGENT);
+    if (StringUtils.isNotEmpty(forwardedUserAgent)) {
+        userAgent = forwardedUserAgent;
     }
+
+    // FIX: Proper client IP extraction
+    String clientIp = null;
+
+    // Header 1: X-Forwarded-For (may contain multiple IPs)
+    String xForwardedFor = request.getHeader("X-Forwarded-For");
+    if (StringUtils.isNotBlank(xForwardedFor)) {
+        // Take first IP (real client IP)
+        clientIp = xForwardedFor.split(",")[0].trim();
+    }
+
+    // Header 2: X-Real-IP
+    if (StringUtils.isBlank(clientIp)) {
+        clientIp = request.getHeader("X-Real-IP");
+    }
+
+    // Fallback: Container remote address
+    if (StringUtils.isBlank(clientIp)) {
+        clientIp = request.getRemoteAddr();
+    }
+
+    // Add to MDC only if configured and not empty
+    if (StringUtils.isNotEmpty(userAgent) && isLoggableParam(CONFIG_LOG_PARAM_USER_AGENT)) {
+        MDC.put(USER_AGENT, userAgent);
+    }
+    if (StringUtils.isNotEmpty(clientIp) && isLoggableParam(CONFIG_LOG_PARAM_REMOTE_ADDRESS)) {
+        MDC.put(REMOTE_ADDRESS, clientIp);
+    }
+}
 
     private boolean isUnauthorized(ResourceConfig securedResource) {
 
