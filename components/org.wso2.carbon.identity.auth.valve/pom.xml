@@ -227,7 +227,7 @@
                             org.wso2.carbon.identity.core.util.*; version="${carbon.identity.package.import.version.range}",
                             org.wso2.carbon.identity.core.*; version="${carbon.identity.package.import.version.range}",
                             org.wso2.carbon.identity.auth.service.*;version="${org.wso2.carbon.identity.auth.service.version.range}",
-                            org.apache.catalina.*;version="1.7.0",
+                            org.apache.catalina.*;version="${tomcat.import.version.range}",
                             org.wso2.carbon.identity.oauth.common.exception;version="${org.wso2.carbon.identity.oauth.import.version.range}",
                             org.wso2.carbon.identity.oauth.common;version="${org.wso2.carbon.identity.oauth.import.version.range}",
                             org.wso2.carbon.identity.oauth.dao;version="${org.wso2.carbon.identity.oauth.import.version.range}",
