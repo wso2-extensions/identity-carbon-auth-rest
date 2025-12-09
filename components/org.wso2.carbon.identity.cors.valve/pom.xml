@@ -169,7 +169,7 @@
                             org.osgi.framework; version="${osgi.framework.imp.pkg.version.range}",
                             org.osgi.service.component; version="${osgi.service.component.imp.pkg.version.range}",
                             org.apache.commons.logging; version="${commons-logging.version}",
-                            org.apache.catalina.*;version="${tomcat.version}",
+                            org.apache.catalina.*;version="${tomcat.import.version.range}",
                             com.google.gson; version="${com.google.code.gson.osgi.version.range}",
                             org.apache.commons.lang; version="${commons-lang.wso2.osgi.version.range}",
                             org.wso2.carbon.identity.core.util;version="${carbon.identity.package.import.version.range}",

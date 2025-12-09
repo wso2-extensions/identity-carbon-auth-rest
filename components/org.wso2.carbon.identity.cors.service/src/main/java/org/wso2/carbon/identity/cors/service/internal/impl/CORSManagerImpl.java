@@ -20,6 +20,7 @@ package org.wso2.carbon.identity.cors.service.internal.impl;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.osgi.annotation.bundle.Capability;
 import org.wso2.carbon.identity.cors.mgt.core.constant.ErrorMessages;
 import org.wso2.carbon.identity.cors.mgt.core.exception.CORSManagementServiceException;
 import org.wso2.carbon.identity.cors.mgt.core.exception.CORSManagementServiceServerException;
@@ -38,6 +39,13 @@ import java.util.stream.Collectors;
 /**
  * CORSManager implementation.
  */
+@Capability(
+        namespace = "osgi.service",
+        attribute = {
+                "objectClass=org.wso2.carbon.identity.cors.service.CORSManager",
+                "service.scope=singleton"
+        }
+)
 public class CORSManagerImpl implements CORSManager {
 
     private static final Log log = LogFactory.getLog(CORSManagerImpl.class);
