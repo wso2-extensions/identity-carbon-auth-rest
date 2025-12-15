@@ -26,6 +26,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpHeaders;
 import org.json.JSONObject;
+import org.osgi.annotation.bundle.Capability;
 import org.slf4j.MDC;
 import org.wso2.carbon.CarbonConstants;
 import org.wso2.carbon.identity.application.authentication.framework.exception.UserIdNotFoundException;
@@ -83,7 +84,13 @@ import static org.wso2.carbon.identity.oauth2.impersonation.utils.Constants.IMPE
  * OAuth2AccessTokenHandler is for authenticate the request based on Token.
  * canHandle method will confirm whether this request can be handled by this authenticator or not.
  */
-
+@Capability(
+        namespace = "osgi.service",
+        attribute = {
+                "objectClass=org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler",
+                "service.scope=singleton"
+        }
+)
 public class OAuth2AccessTokenHandler extends AuthenticationHandler {
 
     private static final Log log = LogFactory.getLog(OAuth2AccessTokenHandler.class);
