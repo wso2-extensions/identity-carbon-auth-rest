@@ -18,7 +18,11 @@
 
 package org.wso2.carbon.identity.cors.valve.internal.handler;
 
+import org.apache.commons.lang.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
+import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
 import org.wso2.carbon.identity.cors.mgt.core.exception.CORSManagementServiceException;
 import org.wso2.carbon.identity.cors.mgt.core.model.CORSConfiguration;
 import org.wso2.carbon.identity.cors.mgt.core.model.Origin;
@@ -36,6 +40,8 @@ import javax.servlet.http.HttpServletResponse;
  * Request handler for the CORS valve.
  */
 public class CORSRequestHandler {
+
+    private static final Log log = LogFactory.getLog(CORSRequestHandler.class);
 
     /**
      * Get CORSManager instance.
@@ -58,15 +64,15 @@ public class CORSRequestHandler {
     public void handleActualRequest(HttpServletRequest request, HttpServletResponse response)
             throws CORSException, CORSManagementServiceException {
 
-        String tenantDomain = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain();
+        String tenantDomain = resolveTenantDomain(request);
         CORSConfiguration config = getCORSManager().getCORSConfiguration(tenantDomain);
-        addStandardHeaders(request, response, config);
+        addStandardHeaders(request, response, config, tenantDomain);
     }
 
-    private void addStandardHeaders(HttpServletRequest request, HttpServletResponse response, CORSConfiguration config)
+    private void addStandardHeaders(HttpServletRequest request, HttpServletResponse response,
+                                    CORSConfiguration config, String tenantDomain)
             throws CORSManagementServiceException {
 
-        String tenantDomain = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain();
         Origin requestOrigin = new Origin(request.getHeader(Header.ORIGIN));
 
         // Add a single Access-Control-Allow-Origin header.
@@ -116,7 +122,7 @@ public class CORSRequestHandler {
     public void handlePreflightRequest(HttpServletRequest request, HttpServletResponse response) throws
             CORSManagementServiceException, CORSException {
 
-        String tenantDomain = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain();
+        String tenantDomain = resolveTenantDomain(request);
         CORSConfiguration config = getCORSManager().getCORSConfiguration(tenantDomain);
 
         // Check origin against allow list
@@ -262,5 +268,26 @@ public class CORSRequestHandler {
         }
 
         return false;
+    }
+
+    /**
+     * Resolve tenant domain from the request URI
+     *
+     * @param request Request object which contains the request URI
+     * @return Resolved tenant domain
+     */
+    private String resolveTenantDomain(HttpServletRequest request) {
+
+        String tenantDomain = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain();
+        String resourceResidentTenantDomain = AuthConfigurationUtil
+                .getResourceResidentTenantForTenantPerspective(request.getRequestURI());
+        if (StringUtils.isNotEmpty(resourceResidentTenantDomain)) {
+            if (log.isDebugEnabled()) {
+                log.debug("Using resource resident tenant domain: " + resourceResidentTenantDomain +
+                        " to handle CORS for request: " + request.getRequestURI());
+            }
+            tenantDomain = resourceResidentTenantDomain;
+        }
+        return tenantDomain;
     }
 }
