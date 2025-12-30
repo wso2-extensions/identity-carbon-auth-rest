@@ -147,11 +147,11 @@ public class CORSRequestHandlerTest {
                 {true, false, "https://example.com"},
                 {true, true, "https://example.com"},
                 {false, true, "*"},
-                {false, false, ""},
+                {false, false, "https://example.com"},
         };
     }
 
-    @Test
+    @Test(dataProvider = "testHandleActualRequestWithOriginDataProvider")
     public void testHandleActualRequestWithAllowedOrigin(boolean supportsCredentials, boolean allowAnyOrigin,
                                                          String expectedAllowOrigin) throws Exception {
 
