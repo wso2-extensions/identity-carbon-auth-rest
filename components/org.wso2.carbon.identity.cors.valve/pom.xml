@@ -64,6 +64,10 @@
             <artifactId>org.wso2.carbon.identity.cors.service</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.wso2.carbon.identity.auth.rest</groupId>
+            <artifactId>org.wso2.carbon.identity.auth.service</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.jacoco</groupId>
             <artifactId>jacoco-maven-plugin</artifactId>
             <version>${jacoco.version}</version>
@@ -172,6 +176,7 @@
                             org.wso2.carbon.user.api; version="${carbon.user.api.imp.pkg.version.range}",
                             org.wso2.carbon.user.core.service; version="${carbon.kernel.imp.pkg.version.range}",
                             org.wso2.carbon.user.core.tenant; version="${carbon.kernel.imp.pkg.version.range}",
+                            org.wso2.carbon.identity.auth.service.util; version="${org.wso2.carbon.identity.auth.service.version.range}",
                         </Import-Package>
                         <Export-Package>
                             !org.wso2.carbon.identity.cors.valve.internal,
