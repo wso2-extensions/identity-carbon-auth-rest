@@ -19,6 +19,7 @@ package org.wso2.carbon.identity.auth.service.handler.impl;
 
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
+import org.apache.catalina.connector.Request;
 import org.apache.commons.lang.StringUtils;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
@@ -34,15 +35,24 @@ import org.testng.Assert;
 import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
 import org.wso2.carbon.identity.auth.service.util.Constants;
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
+import org.wso2.carbon.identity.oauth.common.exception.InvalidOAuthClientException;
+import org.wso2.carbon.identity.oauth.dao.OAuthAppDO;
 import org.wso2.carbon.identity.oauth2.IdentityOAuth2Exception;
 import org.wso2.carbon.identity.oauth2.OAuth2Constants;
 import org.wso2.carbon.identity.oauth2.dto.OAuth2IntrospectionResponseDTO;
+import org.wso2.carbon.identity.oauth2.token.bindings.TokenBinding;
+import org.wso2.carbon.identity.oauth2.util.OAuth2Util;
+import org.wso2.carbon.identity.organization.management.service.exception.OrganizationManagementException;
+import org.wso2.carbon.identity.organization.management.service.util.OrganizationManagementUtil;
 
 import java.lang.reflect.Method;
 import java.text.ParseException;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
@@ -225,4 +235,155 @@ public class OAuth2AccessTokenHandlerTest {
         Assert.assertNotNull(jwtClaimsSet, "JWT Claim Set is null");
     }
 
+    @DataProvider
+    public Object[][] isTokenBindingValidDataProvider() {
+
+        return new Object[][]{
+                // Test case 1: Valid token binding, validation enabled, binding valid - should return true
+                {"bindingRef123", "clientId", "accessToken", "tenantDomain", true, "Valid token binding"},
+
+                // Test case 2: Valid token binding, validation enabled, binding invalid - should return false
+                {"bindingRef123", "clientId", "accessToken", "tenantDomain", false, "Invalid token binding"},
+
+                // Test case 3: Token binding with organization tenant domain - should handle properly
+                {"bindingRef123", "clientId", "accessToken", "org1", true, "Organization tenant domain"},
+        };
+    }
+
+    @Test(dataProvider = "isTokenBindingValidDataProvider")
+    public void testIsTokenBindingValid(String bindingReference, String clientId, String accessToken,
+                                       String tenantDomain, boolean expectedResult, String testCase) throws Exception {
+
+        OAuth2AccessTokenHandler oAuth2AccessTokenHandler = new OAuth2AccessTokenHandler();
+
+        AuthenticationContext authenticationContext = mock(AuthenticationContext.class);
+        AuthenticationRequest authenticationRequest = mock(AuthenticationRequest.class);
+        Request request = mock(Request.class);
+        OAuthAppDO oAuthAppDO = mock(OAuthAppDO.class);
+        TokenBinding tokenBinding = bindingReference != null && !bindingReference.isEmpty()
+                ? new TokenBinding("cookie", bindingReference, "value")
+                : null;
+
+        when(authenticationContext.getAuthenticationRequest()).thenReturn(authenticationRequest);
+        when(authenticationRequest.getRequest()).thenReturn(request);
+        when(request.getRequestURI()).thenReturn("/api/users/v1/me");
+        when(oAuthAppDO.getApplicationName()).thenReturn("TestApp");
+
+        // Configure token binding validation based on test case
+        if ("Valid token binding".equals(testCase)) {
+            when(oAuthAppDO.isTokenBindingValidationEnabled()).thenReturn(true);
+        } else if ("Invalid token binding".equals(testCase)) {
+            when(oAuthAppDO.isTokenBindingValidationEnabled()).thenReturn(true);
+        } else if ("Validation disabled".equals(testCase)) {
+            when(oAuthAppDO.isTokenBindingValidationEnabled()).thenReturn(false);
+        } else {
+            when(oAuthAppDO.isTokenBindingValidationEnabled()).thenReturn(false);
+        }
+
+        try (MockedStatic<OAuth2Util> mockedOAuth2Util = mockStatic(OAuth2Util.class);
+             MockedStatic<OrganizationManagementUtil> mockedOrgMgmtUtil =
+                     mockStatic(OrganizationManagementUtil.class)) {
+
+            // Mock organization check
+            if (StringUtils.isNotBlank(tenantDomain) && "org1".equals(tenantDomain)) {
+                mockedOrgMgmtUtil.when(() -> OrganizationManagementUtil.isOrganization(tenantDomain))
+                        .thenReturn(true);
+                mockedOAuth2Util.when(() -> OAuth2Util.getAppInformationByClientId(clientId, tenantDomain))
+                        .thenReturn(oAuthAppDO);
+            } else {
+                if (StringUtils.isNotBlank(tenantDomain)) {
+                    mockedOrgMgmtUtil.when(() -> OrganizationManagementUtil.isOrganization(tenantDomain))
+                            .thenReturn(false);
+                }
+                mockedOAuth2Util.when(() -> OAuth2Util.getAppInformationByClientId(clientId))
+                        .thenReturn(oAuthAppDO);
+            }
+
+            // Mock token binding validation
+            if ("Valid token binding".equals(testCase)) {
+                mockedOAuth2Util.when(() -> OAuth2Util.isValidTokenBinding(any(TokenBinding.class),
+                                any(Request.class))).thenReturn(true);
+            } else if ("Invalid token binding".equals(testCase)) {
+                mockedOAuth2Util.when(() -> OAuth2Util.isValidTokenBinding(any(TokenBinding.class),
+                                any(Request.class))).thenReturn(false);
+            }
+
+            // Invoke the private method using reflection
+            Method isTokenBindingValidMethod = oAuth2AccessTokenHandler.getClass()
+                    .getDeclaredMethod("isTokenBindingValid", MessageContext.class, TokenBinding.class,
+                            String.class, String.class, String.class);
+            isTokenBindingValidMethod.setAccessible(true);
+
+            boolean result = (boolean) isTokenBindingValidMethod.invoke(oAuth2AccessTokenHandler,
+                    authenticationContext, tokenBinding, clientId, accessToken, tenantDomain);
+
+            Assert.assertEquals(result, expectedResult, "Test case failed: " + testCase);
+        }
+    }
+
+    @Test
+    public void testIsTokenBindingValidWithInvalidOAuthClientException() throws Exception {
+
+        OAuth2AccessTokenHandler oAuth2AccessTokenHandler = new OAuth2AccessTokenHandler();
+
+        AuthenticationContext authenticationContext = mock(AuthenticationContext.class);
+        AuthenticationRequest authenticationRequest = mock(AuthenticationRequest.class);
+        Request request = mock(Request.class);
+        TokenBinding tokenBinding = new TokenBinding("cookie", "bindingRef123", "value");
+
+        when(authenticationContext.getAuthenticationRequest()).thenReturn(authenticationRequest);
+        when(authenticationRequest.getRequest()).thenReturn(request);
+
+        try (MockedStatic<OAuth2Util> mockedOAuth2Util = mockStatic(OAuth2Util.class)) {
+
+            // Mock to throw InvalidOAuthClientException
+            mockedOAuth2Util.when(() -> OAuth2Util.getAppInformationByClientId(anyString()))
+                    .thenThrow(new InvalidOAuthClientException("Invalid OAuth client"));
+
+            // Invoke the private method using reflection
+            Method isTokenBindingValidMethod = oAuth2AccessTokenHandler.getClass()
+                    .getDeclaredMethod("isTokenBindingValid", MessageContext.class, TokenBinding.class,
+                            String.class, String.class, String.class);
+            isTokenBindingValidMethod.setAccessible(true);
+
+            boolean result = (boolean) isTokenBindingValidMethod.invoke(oAuth2AccessTokenHandler,
+                    authenticationContext, tokenBinding, "clientId", "accessToken", null);
+
+            Assert.assertFalse(result, "Should return false when InvalidOAuthClientException occurs");
+        }
+    }
+
+    @Test
+    public void testIsTokenBindingValidWithOrganizationManagementException() throws Exception {
+
+        OAuth2AccessTokenHandler oAuth2AccessTokenHandler = new OAuth2AccessTokenHandler();
+
+        AuthenticationContext authenticationContext = mock(AuthenticationContext.class);
+        AuthenticationRequest authenticationRequest = mock(AuthenticationRequest.class);
+        Request request = mock(Request.class);
+        TokenBinding tokenBinding = new TokenBinding("cookie", "bindingRef123", "value");
+        String tenantDomain = "org1";
+
+        when(authenticationContext.getAuthenticationRequest()).thenReturn(authenticationRequest);
+        when(authenticationRequest.getRequest()).thenReturn(request);
+
+        try (MockedStatic<OrganizationManagementUtil> mockedOrgMgmtUtil =
+                     mockStatic(OrganizationManagementUtil.class)) {
+
+            // Mock to throw OrganizationManagementException
+            mockedOrgMgmtUtil.when(() -> OrganizationManagementUtil.isOrganization(tenantDomain))
+                    .thenThrow(new OrganizationManagementException("Error checking organization"));
+
+            // Invoke the private method using reflection
+            Method isTokenBindingValidMethod = oAuth2AccessTokenHandler.getClass()
+                    .getDeclaredMethod("isTokenBindingValid", MessageContext.class, TokenBinding.class,
+                            String.class, String.class, String.class);
+            isTokenBindingValidMethod.setAccessible(true);
+
+            boolean result = (boolean) isTokenBindingValidMethod.invoke(oAuth2AccessTokenHandler,
+                    authenticationContext, tokenBinding, "clientId", "accessToken", tenantDomain);
+
+            Assert.assertFalse(result, "Should return false when OrganizationManagementException occurs");
+        }
+    }
 }
