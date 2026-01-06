@@ -155,6 +155,15 @@ public class TenantContextRewriteValve extends ValveBase {
                 IdentityUtil.threadLocalProperties.get().put(TENANT_NAME_FROM_CONTEXT, tenantDomain);
 
                 if (isWebApp) {
+                    // Set the application name in PrivilegedCarbonContext for tenant-qualified URLs if not already set.
+                    String existingApplicationName = PrivilegedCarbonContext.getThreadLocalCarbonContext()
+                            .getApplicationName();
+                    if (StringUtils.isBlank(existingApplicationName) && StringUtils.isNotBlank(contextToForward)) {
+                        String[] contextParts = contextToForward.split("/");
+                        if (contextParts.length > 1 && StringUtils.isNotBlank(contextParts[1])) {
+                            PrivilegedCarbonContext.getThreadLocalCarbonContext().setApplicationName(contextParts[1]);
+                        }
+                    }
                     String dispatchLocation = "/" + requestURI.replaceAll("/t/.*" + contextToForward, "");
                     /* Verify the request not start with /o/ for backward compatibility. If /o/ path is found middle of
                      the request it should be dispatched to organization APIs.
