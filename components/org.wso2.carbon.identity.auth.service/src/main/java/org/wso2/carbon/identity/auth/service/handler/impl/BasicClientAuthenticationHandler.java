@@ -22,6 +22,7 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.osgi.annotation.bundle.Capability;
 import org.apache.http.HttpHeaders;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
 import org.wso2.carbon.identity.auth.service.AuthenticationResult;
@@ -45,6 +46,13 @@ import static org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil.i
  * using the client credentials.
  * canHandle method will confirm whether this request can be handled by this authenticator or not.
  */
+@Capability(
+        namespace = "osgi.service",
+        attribute = {
+                "objectClass=org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler",
+                "service.scope=singleton"
+        }
+)
 public class BasicClientAuthenticationHandler extends AuthenticationHandler {
 
     private static final Log log = LogFactory.getLog(BasicClientAuthenticationHandler.class);

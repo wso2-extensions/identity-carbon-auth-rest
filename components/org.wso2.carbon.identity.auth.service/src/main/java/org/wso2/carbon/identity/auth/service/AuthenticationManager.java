@@ -20,6 +20,7 @@ package org.wso2.carbon.identity.auth.service;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.osgi.annotation.bundle.Capability;
 import org.wso2.carbon.identity.auth.service.exception.AuthClientException;
 import org.wso2.carbon.identity.auth.service.exception.AuthServerException;
 import org.wso2.carbon.identity.auth.service.exception.AuthenticationFailException;
@@ -41,6 +42,13 @@ import java.util.stream.Collectors;
  * <p/>
  * This is registered as an OSGi service and can consume as a Service.
  */
+@Capability(
+        namespace = "osgi.service",
+        attribute = {
+                "objectClass=org.wso2.carbon.identity.auth.service.AuthenticationManager",
+                "service.scope=singleton"
+        }
+)
 public class AuthenticationManager implements IdentityHandler {
 
     private static final Log log = LogFactory.getLog(AuthenticationManager.class);
