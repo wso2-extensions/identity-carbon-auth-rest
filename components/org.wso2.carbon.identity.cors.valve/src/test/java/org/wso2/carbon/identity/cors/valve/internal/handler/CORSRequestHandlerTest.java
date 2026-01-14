@@ -28,6 +28,7 @@ import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 import org.wso2.carbon.base.CarbonBaseConstants;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
+import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
 import org.wso2.carbon.identity.cors.mgt.core.model.CORSConfiguration;
 import org.wso2.carbon.identity.cors.mgt.core.model.Origin;
 import org.wso2.carbon.identity.cors.service.CORSManager;
@@ -44,6 +45,7 @@ import java.util.HashSet;
 
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -113,10 +115,14 @@ public class CORSRequestHandlerTest {
         when(corsConfiguration.isSupportsCredentials()).thenReturn(supportsCredentials);
         when(corsConfiguration.isAllowAnyOrigin()).thenReturn(allowAnyOrigin);
 
-        try (MockedStatic<CORSValveServiceHolder> mockedStatic = mockStatic(CORSValveServiceHolder.class)) {
+        try (MockedStatic<CORSValveServiceHolder> mockedStatic = mockStatic(CORSValveServiceHolder.class);
+             MockedStatic<AuthConfigurationUtil> mockedAuthConfigurationUtil = mockStatic(AuthConfigurationUtil.class)) {
             mockedStatic.when(CORSValveServiceHolder::getInstance).thenReturn(serviceHolder);
+            mockedAuthConfigurationUtil.when(() -> AuthConfigurationUtil.
+                    getResourceResidentTenantForTenantPerspective(anyString())).thenReturn(null);
 
             when(serviceHolder.getCorsManager()).thenReturn(corsManager);
+            when(request.getRequestURI()).thenReturn("/api/resource");
 
             // Default CORS configuration
             when(corsManager.getCORSConfiguration(anyString())).thenReturn(corsConfiguration);
@@ -158,8 +164,12 @@ public class CORSRequestHandlerTest {
         when(corsConfiguration.isSupportsCredentials()).thenReturn(supportsCredentials);
         when(corsConfiguration.isAllowAnyOrigin()).thenReturn(allowAnyOrigin);
 
-        try (MockedStatic<CORSValveServiceHolder> mockedStatic = mockStatic(CORSValveServiceHolder.class)) {
+        try (MockedStatic<CORSValveServiceHolder> mockedStatic = mockStatic(CORSValveServiceHolder.class);
+             MockedStatic<AuthConfigurationUtil> mockedAuthConfigurationUtil =
+                     mockStatic(AuthConfigurationUtil.class)) {
             mockedStatic.when(CORSValveServiceHolder::getInstance).thenReturn(serviceHolder);
+            mockedAuthConfigurationUtil.when(() -> AuthConfigurationUtil.
+                    getResourceResidentTenantForTenantPerspective(anyString())).thenReturn(null);
 
             when(serviceHolder.getCorsManager()).thenReturn(corsManager);
 
@@ -188,8 +198,12 @@ public class CORSRequestHandlerTest {
     @Test
     public void testHandleActualRequestWithExposedHeaders() throws Exception {
 
-        try (MockedStatic<CORSValveServiceHolder> mockedStatic = mockStatic(CORSValveServiceHolder.class)) {
+        try (MockedStatic<CORSValveServiceHolder> mockedStatic = mockStatic(CORSValveServiceHolder.class);
+             MockedStatic<AuthConfigurationUtil> mockedAuthConfigurationUtil =
+                     mockStatic(AuthConfigurationUtil.class)) {
             mockedStatic.when(CORSValveServiceHolder::getInstance).thenReturn(serviceHolder);
+            mockedAuthConfigurationUtil.when(() -> AuthConfigurationUtil.
+                    getResourceResidentTenantForTenantPerspective(anyString())).thenReturn(null);
 
             when(serviceHolder.getCorsManager()).thenReturn(corsManager);
 
@@ -211,8 +225,12 @@ public class CORSRequestHandlerTest {
     @Test
     public void testHandleActualRequestWithSpecificOrigins() throws Exception {
 
-        try (MockedStatic<CORSValveServiceHolder> mockedStatic = mockStatic(CORSValveServiceHolder.class)) {
+        try (MockedStatic<CORSValveServiceHolder> mockedStatic = mockStatic(CORSValveServiceHolder.class);
+             MockedStatic<AuthConfigurationUtil> mockedAuthConfigurationUtil =
+                     mockStatic(AuthConfigurationUtil.class)) {
             mockedStatic.when(CORSValveServiceHolder::getInstance).thenReturn(serviceHolder);
+            mockedAuthConfigurationUtil.when(() -> AuthConfigurationUtil.
+                    getResourceResidentTenantForTenantPerspective(anyString())).thenReturn(null);
 
             when(serviceHolder.getCorsManager()).thenReturn(corsManager);
 
@@ -229,6 +247,78 @@ public class CORSRequestHandlerTest {
 
             verify(response).addHeader(Header.ACCESS_CONTROL_ALLOW_ORIGIN, "https://example.com");
             verify(response).addHeader(Header.VARY, "Origin");
+        }
+    }
+
+    @Test
+    public void testHandleActualRequestWithResourceResidentTenant() throws Exception {
+
+        String resourceTenant = "tenant1.com";
+        try (MockedStatic<CORSValveServiceHolder> mockedCORSValveServiceHolder =
+                     mockStatic(CORSValveServiceHolder.class);
+             MockedStatic<AuthConfigurationUtil> mockedAuthConfigurationUtil =
+                     mockStatic(AuthConfigurationUtil.class)) {
+            mockedCORSValveServiceHolder.when(CORSValveServiceHolder::getInstance).thenReturn(serviceHolder);
+            mockedAuthConfigurationUtil.when(() -> AuthConfigurationUtil.
+                    getResourceResidentTenantForTenantPerspective(anyString())).thenReturn(resourceTenant);
+
+            when(serviceHolder.getCorsManager()).thenReturn(corsManager);
+            when(corsManager.getCORSConfiguration(resourceTenant)).thenReturn(corsConfiguration);
+            when(request.getHeader(Header.ORIGIN)).thenReturn("https://example.com");
+            when(request.getRequestURI()).thenReturn("/t/root.tenant/o/d2ab594e-6f87-465f-a132-70b36ea8dc69/api/resource");
+
+            when(corsManager.getCORSOrigins(resourceTenant))
+                    .thenReturn(new Origin[]{new Origin("https://example.com")});
+            when(corsConfiguration.isSupportsCredentials()).thenReturn(false);
+            when(corsConfiguration.isAllowAnyOrigin()).thenReturn(false);
+
+            corsRequestHandler.handleActualRequest(request, response);
+
+            // Verify tenant-specific configuration is used (called multiple times internally)
+            verify(corsManager, atLeastOnce()).getCORSConfiguration(resourceTenant);
+            verify(corsManager).getCORSOrigins(resourceTenant);
+            verify(response).addHeader(Header.ACCESS_CONTROL_ALLOW_ORIGIN, "https://example.com");
+            verify(response).addHeader(Header.VARY, "Origin");
+        }
+    }
+
+    @Test
+    public void testHandlePreflightRequestWithResourceResidentTenant() throws Exception {
+
+        String resourceTenant = "tenant1.com";
+        try (MockedStatic<CORSValveServiceHolder> mockedCORSValveServiceHolder =
+                     mockStatic(CORSValveServiceHolder.class);
+             MockedStatic<AuthConfigurationUtil> mockedAuthConfigurationUtil =
+                     mockStatic(AuthConfigurationUtil.class)) {
+            mockedCORSValveServiceHolder.when(CORSValveServiceHolder::getInstance).thenReturn(serviceHolder);
+            mockedAuthConfigurationUtil.when(() -> AuthConfigurationUtil.
+                    getResourceResidentTenantForTenantPerspective(anyString())).thenReturn(resourceTenant);
+
+            when(serviceHolder.getCorsManager()).thenReturn(corsManager);
+            when(corsManager.getCORSConfiguration(resourceTenant)).thenReturn(corsConfiguration);
+
+            when(request.getHeader(Header.ORIGIN)).thenReturn("https://example.com");
+            when(request.getHeader(Header.ACCESS_CONTROL_REQUEST_METHOD)).thenReturn("POST");
+            when(request.getHeader(Header.ACCESS_CONTROL_REQUEST_HEADERS)).thenReturn(null);
+            when(request.getRequestURI()).thenReturn("/t/root.tenant/o/d2ab594e-6f87-465f-a132-70b36ea8dc69/api/resource");
+
+            when(corsManager.getCORSOrigins(resourceTenant))
+                    .thenReturn(new Origin[]{new Origin("https://example.com")});
+            when(corsConfiguration.isSupportsCredentials()).thenReturn(false);
+            when(corsConfiguration.isAllowAnyOrigin()).thenReturn(false);
+            when(corsConfiguration.getSupportedMethods())
+                    .thenReturn(new HashSet<>(Arrays.asList("GET", "POST", "PUT")));
+            when(corsConfiguration.getSupportedHeaders())
+                    .thenReturn(new HashSet<>(Arrays.asList("Content-Type")));
+            when(corsConfiguration.isSupportAnyHeader()).thenReturn(false);
+            when(corsConfiguration.getMaxAge()).thenReturn(3600);
+
+            corsRequestHandler.handlePreflightRequest(request, response);
+
+            // Verify tenant-specific configuration is used (called multiple times internally)
+            verify(corsManager, atLeastOnce()).getCORSConfiguration(resourceTenant);
+            verify(corsManager).getCORSOrigins(resourceTenant);
+            verify(response).addHeader(Header.ACCESS_CONTROL_ALLOW_ORIGIN, "https://example.com");
         }
     }
 }

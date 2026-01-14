@@ -690,9 +690,8 @@ public class AuthConfigurationUtil {
                 return AuthenticationServiceHolder.getInstance().getOrganizationManager().
                         resolveTenantDomain(resourceOrgId);
             } catch (OrganizationManagementException e) {
-                if(log.isDebugEnabled())
-                {
-                    log.debug("Failed to resolve tenant for resourceOrgId: " + resourceOrgId);
+                if (log.isDebugEnabled()) {
+                    log.debug("Failed to resolve tenant for resourceOrgId: " + resourceOrgId, e);
                 }
             }
         }
