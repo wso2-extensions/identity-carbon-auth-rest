@@ -171,10 +171,21 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
                     setCurrentTokenIdThreadLocal(getTokenIdFromAccessToken(accessToken));
                 }
 
+                User authorizedUser = oAuth2IntrospectionResponseDTO.getAuthorizedUser();
+                String authorizedUserTenantDomain = null;
+                if (authorizedUser != null) {
+                    authorizedUserTenantDomain = authorizedUser.getTenantDomain();
+                }
+
                 TokenBinding tokenBinding = new TokenBinding(oAuth2IntrospectionResponseDTO.getBindingType(),
                         oAuth2IntrospectionResponseDTO.getBindingReference());
+                /*
+                 Tokens which are issued for the applications which are registered in sub organization,
+                 contains the tenant domain for the authorized user as the sub organization. Based on that
+                 we can get the application details by using both the client id and the tenant domain.
+                */
                 if (!isTokenBindingValid(messageContext, tokenBinding,
-                        oAuth2IntrospectionResponseDTO.getClientId(), accessToken)) {
+                        oAuth2IntrospectionResponseDTO.getClientId(), accessToken, authorizedUserTenantDomain)) {
                     return authenticationResult;
                 }
 
@@ -183,11 +194,8 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
                 authenticationResult.setAuthenticationStatus(AuthenticationStatus.SUCCESS);
                 setActorToIdentityContext(oAuth2IntrospectionResponseDTO);
 
-                User authorizedUser = oAuth2IntrospectionResponseDTO.getAuthorizedUser();
-                String authorizedUserTenantDomain = null;
                 if (authorizedUser != null) {
                     authenticationContext.setUser(authorizedUser);
-                    authorizedUserTenantDomain = authorizedUser.getTenantDomain();
                     if (authorizedUser instanceof AuthenticatedUser) {
                         IdentityUtil.threadLocalProperties.get()
                                 .put(Constants.IS_FEDERATED_USER,
@@ -509,10 +517,11 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
      * @param tokenBinding token binding.
      * @param clientId OAuth2 client id.
      * @param accessToken Bearer token from request.
+     * @param tenantDomain Tenant domain which the application needed to be searched.
      * @return true if token binding is valid.
      */
     private boolean isTokenBindingValid(MessageContext messageContext, TokenBinding tokenBinding, String clientId,
-                                        String accessToken) {
+                                        String accessToken, String tenantDomain) {
 
         if (tokenBinding == null || StringUtils.isBlank(tokenBinding.getBindingReference())) {
             if (log.isDebugEnabled()) {
@@ -523,9 +532,16 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
 
         OAuthAppDO oAuthAppDO;
         try {
-            oAuthAppDO = OAuth2Util.getAppInformationByClientId(clientId);
+            oAuthAppDO = StringUtils.isNotBlank(tenantDomain) &&
+                    OrganizationManagementUtil.isOrganization(tenantDomain)
+                    ? OAuth2Util.getAppInformationByClientId(clientId, tenantDomain)
+                    : OAuth2Util.getAppInformationByClientId(clientId);
         } catch (IdentityOAuth2Exception | InvalidOAuthClientException e) {
             log.error("Failed to retrieve application information by client id: " + clientId, e);
+            return false;
+        } catch (OrganizationManagementException e) {
+            log.error("Failed to retrieve application information by client id: " + clientId +
+                    " for tenant domain: " + tenantDomain, e);
             return false;
         }
 
