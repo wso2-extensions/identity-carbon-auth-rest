@@ -18,6 +18,7 @@
 package org.wso2.carbon.identity.authz.service;
 
 import org.apache.commons.lang.StringUtils;
+import org.osgi.annotation.bundle.Capability;
 import org.wso2.carbon.identity.auth.service.handler.HandlerManager;
 import org.wso2.carbon.identity.authz.service.exception.AuthzServiceServerException;
 import org.wso2.carbon.identity.authz.service.handler.AuthorizationHandler;
@@ -28,6 +29,13 @@ import org.wso2.carbon.identity.core.handler.InitConfig;
 
 import java.util.List;
 
+@Capability(
+        namespace = "osgi.service",
+        attribute = {
+                "objectClass=org.wso2.carbon.identity.authz.service.AuthorizationManager",
+                "service.scope=singleton"
+        }
+)
 public class AuthorizationManager implements IdentityHandler {
 
     private static AuthorizationManager authorizationManager = new AuthorizationManager();

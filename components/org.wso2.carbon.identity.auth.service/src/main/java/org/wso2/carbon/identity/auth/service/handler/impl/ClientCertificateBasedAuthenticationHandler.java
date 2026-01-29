@@ -22,6 +22,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.osgi.annotation.bundle.Capability;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
 import org.wso2.carbon.identity.application.common.model.User;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
@@ -63,6 +64,13 @@ import javax.naming.ldap.Rdn;
  * This handler checked whether the certificate is verified by the container.
  * If yes, the value of the 'User' HTTP header will be treated as the authenticated user.
  */
+@Capability(
+        namespace = "osgi.service",
+        attribute = {
+                "objectClass=org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler",
+                "service.scope=singleton"
+        }
+)
 public class ClientCertificateBasedAuthenticationHandler extends AuthenticationHandler {
 
     private static final Log log = LogFactory.getLog(ClientCertificateBasedAuthenticationHandler.class);
