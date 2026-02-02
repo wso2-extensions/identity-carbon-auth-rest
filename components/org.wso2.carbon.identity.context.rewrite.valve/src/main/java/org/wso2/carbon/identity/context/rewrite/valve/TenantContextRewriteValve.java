@@ -144,9 +144,15 @@ public class TenantContextRewriteValve extends ValveBase {
                         contextToForward = context.getContext();
                         int startIndex = requestURI.indexOf("/o/") + 3;
                         int endIndex = requestURI.indexOf("/", startIndex);
-                        String appOrgId = requestURI.substring(startIndex, endIndex);
+                        String accessingOrgId = requestURI.substring(startIndex, endIndex);
                         PrivilegedCarbonContext.getThreadLocalCarbonContext().
-                                setApplicationResidentOrganizationId(appOrgId);
+                                setApplicationResidentOrganizationId(accessingOrgId);
+                        PrivilegedCarbonContext.getThreadLocalCarbonContext().
+                                setAccessingOrganizationId(accessingOrgId);
+                        if (log.isDebugEnabled()) {
+                            log.debug("Set accessing organization ID: " + accessingOrgId + " for context: "
+                                    + contextToForward);
+                        }
                         break outerLoop;
                     }
                 }
