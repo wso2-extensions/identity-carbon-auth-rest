@@ -518,8 +518,8 @@
         <!-- Pax Logging Version -->
         <pax.logging.api.version>1.10.1</pax.logging.api.version>
 
-        <tomcat.version>9.0.85.wso2v2</tomcat.version>
-        <tomcat.import.version.range>[9.0.85, 10.0.0)</tomcat.import.version.range>
+        <tomcat.version>9.0.113.wso2v1</tomcat.version>
+        <tomcat.import.version.range>[9.0.113, 10.0.0)</tomcat.import.version.range>
 
         <!-- Database Version -->
         <h2database.version>2.2.220</h2database.version>
