@@ -23,6 +23,7 @@ import org.apache.catalina.connector.Request;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.osgi.annotation.bundle.Capability;
 import org.wso2.carbon.identity.application.common.model.User;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
 import org.wso2.carbon.identity.auth.service.AuthenticationResult;
@@ -44,6 +45,13 @@ import static org.wso2.carbon.identity.auth.service.util.Constants.JSESSIONID;
  * This handler is used to authenticate the rest APIs based on the set-cookie obtained from the AuthenticationAdmin
  * Service.
  */
+@Capability(
+        namespace = "osgi.service",
+        attribute = {
+                "objectClass=org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler",
+                "service.scope=singleton"
+        }
+)
 public class TomcatCookieAuthenticationHandler extends AuthenticationHandler {
 
     private static final Log log = LogFactory.getLog(TomcatCookieAuthenticationHandler.class);
