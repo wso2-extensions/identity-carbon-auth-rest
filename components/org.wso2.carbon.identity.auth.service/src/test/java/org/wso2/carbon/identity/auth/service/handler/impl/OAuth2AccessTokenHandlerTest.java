@@ -315,12 +315,13 @@ public class OAuth2AccessTokenHandlerTest {
 
             // Invoke the private method using reflection
             Method isTokenBindingValidMethod = oAuth2AccessTokenHandler.getClass()
-                    .getDeclaredMethod("isTokenBindingValid", MessageContext.class, TokenBinding.class,
-                            String.class, String.class, String.class);
+                    .getDeclaredMethod("isTokenBindingValid", MessageContext.class, String.class,
+                            TokenBinding.class, String.class, String.class, String.class);
             isTokenBindingValidMethod.setAccessible(true);
 
+            String tokenId = "test-token-id-123";
             boolean result = (boolean) isTokenBindingValidMethod.invoke(oAuth2AccessTokenHandler,
-                    authenticationContext, tokenBinding, clientId, accessToken, tenantDomain);
+                    authenticationContext, tokenId, tokenBinding, clientId, accessToken, tenantDomain);
 
             Assert.assertEquals(result, expectedResult, "Test case failed: " + testCase);
         }
@@ -347,12 +348,13 @@ public class OAuth2AccessTokenHandlerTest {
 
             // Invoke the private method using reflection
             Method isTokenBindingValidMethod = oAuth2AccessTokenHandler.getClass()
-                    .getDeclaredMethod("isTokenBindingValid", MessageContext.class, TokenBinding.class,
-                            String.class, String.class, String.class);
+                    .getDeclaredMethod("isTokenBindingValid", MessageContext.class, String.class,
+                            TokenBinding.class, String.class, String.class, String.class);
             isTokenBindingValidMethod.setAccessible(true);
 
+            String tokenId = "test-token-id-123";
             boolean result = (boolean) isTokenBindingValidMethod.invoke(oAuth2AccessTokenHandler,
-                    authenticationContext, tokenBinding, "clientId", "accessToken", null);
+                    authenticationContext, tokenId, tokenBinding, "clientId", "accessToken", null);
 
             Assert.assertFalse(result, "Should return false when InvalidOAuthClientException occurs");
         }
@@ -381,12 +383,13 @@ public class OAuth2AccessTokenHandlerTest {
 
             // Invoke the private method using reflection
             Method isTokenBindingValidMethod = oAuth2AccessTokenHandler.getClass()
-                    .getDeclaredMethod("isTokenBindingValid", MessageContext.class, TokenBinding.class,
-                            String.class, String.class, String.class);
+                    .getDeclaredMethod("isTokenBindingValid", MessageContext.class, String.class,
+                            TokenBinding.class, String.class, String.class, String.class);
             isTokenBindingValidMethod.setAccessible(true);
 
+            String tokenId = "test-token-id-123";
             boolean result = (boolean) isTokenBindingValidMethod.invoke(oAuth2AccessTokenHandler,
-                    authenticationContext, tokenBinding, "clientId", "accessToken", tenantDomain);
+                    authenticationContext, tokenId, tokenBinding, "clientId", "accessToken", tenantDomain);
 
             Assert.assertFalse(result, "Should return false when OrganizationManagementException occurs");
         }
