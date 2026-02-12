@@ -183,8 +183,13 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
                     String preserveLoggedInSessionForAllTokenBindings =
                             IdentityUtil.getProperty(PRESERVE_LOGGED_IN_SESSION_FOR_ALL_TOKEN_BINDINGS);
                     if (Boolean.parseBoolean(preserveLoggedInSessionForAllTokenBindings)) {
+                        log.debug("Preserve logged in session for all token bindings is enabled.");
                         String sessionId = getSessionIdFromTokenId(tokenId);
                         if (StringUtils.isNotEmpty(sessionId)) {
+                            if (log.isDebugEnabled()) {
+                                log.debug("Session ID: " + sessionId + " is found in the token data for token id: " +
+                                        tokenId);
+                            }
                             setCurrentSessionIdThreadLocal(sessionId);
                         }
                     }
