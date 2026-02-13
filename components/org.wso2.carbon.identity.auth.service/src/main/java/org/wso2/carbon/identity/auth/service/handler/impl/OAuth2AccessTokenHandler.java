@@ -591,6 +591,9 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
                 setCurrentSessionIdThreadLocal(tokenBinding.getBindingValue());
                 return;
             }
+            if (log.isDebugEnabled()) {
+                log.debug("Trying to resolve session id from the token data for access token: " + accessToken);
+            }
             setCurrentSessionIdThreadLocal(getTokenBindingValueFromAccessToken(accessToken));
             return;
         }

@@ -515,4 +515,154 @@ public class OAuth2AccessTokenHandlerTest {
             IdentityUtil.threadLocalProperties.remove();
         }
     }
+
+    @Test
+    public void testSetSessionIdToThreadLocalWithNonScimEndpoint() throws Exception {
+
+        OAuth2AccessTokenHandler oAuth2AccessTokenHandler = new OAuth2AccessTokenHandler();
+        Request request = mock(Request.class);
+        when(request.getRequestURI()).thenReturn("/api/users/v1/list");
+
+        Map<String, Object> threadLocalMap = new ConcurrentHashMap<>();
+        IdentityUtil.threadLocalProperties.set(threadLocalMap);
+
+        try {
+            Method method = oAuth2AccessTokenHandler.getClass()
+                    .getDeclaredMethod("setSessionIdToThreadLocal", Request.class, TokenBinding.class,
+                            String.class, String.class);
+            method.setAccessible(true);
+            method.invoke(oAuth2AccessTokenHandler, request, null, "accessToken", "tokenId");
+
+            Assert.assertNull(threadLocalMap.get(FrameworkConstants.CURRENT_SESSION_IDENTIFIER),
+                    "Session ID should not be set for non-SCIM /me endpoint");
+        } finally {
+            IdentityUtil.threadLocalProperties.get().clear();
+            IdentityUtil.threadLocalProperties.remove();
+        }
+    }
+
+    @Test
+    public void testSetSessionIdToThreadLocalWithSSOSessionBindingValue() throws Exception {
+
+        OAuth2AccessTokenHandler oAuth2AccessTokenHandler = new OAuth2AccessTokenHandler();
+        Request request = mock(Request.class);
+        when(request.getRequestURI()).thenReturn("/t/carbon.super/scim2/me");
+
+        String bindingValue = "sso-session-binding-value-123";
+        TokenBinding tokenBinding = new TokenBinding("sso-session", "bindingRef", bindingValue);
+
+        Map<String, Object> threadLocalMap = new ConcurrentHashMap<>();
+        IdentityUtil.threadLocalProperties.set(threadLocalMap);
+
+        try {
+            Method method = oAuth2AccessTokenHandler.getClass()
+                    .getDeclaredMethod("setSessionIdToThreadLocal", Request.class, TokenBinding.class,
+                            String.class, String.class);
+            method.setAccessible(true);
+            method.invoke(oAuth2AccessTokenHandler, request, tokenBinding, "accessToken", "tokenId");
+
+            Assert.assertEquals(threadLocalMap.get(FrameworkConstants.CURRENT_SESSION_IDENTIFIER), bindingValue,
+                    "Session ID should be set from the SSO-session token binding value");
+        } finally {
+            IdentityUtil.threadLocalProperties.get().clear();
+            IdentityUtil.threadLocalProperties.remove();
+        }
+    }
+
+    @Test
+    public void testSetSessionIdToThreadLocalWithSSOSessionBindingBlankValue() throws Exception {
+
+        OAuth2AccessTokenHandler oAuth2AccessTokenHandler = new OAuth2AccessTokenHandler();
+        Request request = mock(Request.class);
+        when(request.getRequestURI()).thenReturn("/t/carbon.super/scim2/me");
+
+        // SSO-session binding with blank value — should fallback to getTokenBindingValueFromAccessToken.
+        TokenBinding tokenBinding = new TokenBinding("sso-session", "bindingRef", "");
+
+        String expectedBindingValue = "resolved-binding-value";
+        AccessTokenDO accessTokenDO = mock(AccessTokenDO.class);
+        TokenBinding storedBinding = new TokenBinding("sso-session", "storedRef", expectedBindingValue);
+        when(accessTokenDO.getTokenBinding()).thenReturn(storedBinding);
+
+        Map<String, Object> threadLocalMap = new ConcurrentHashMap<>();
+        IdentityUtil.threadLocalProperties.set(threadLocalMap);
+
+        try (MockedStatic<OAuth2Util> mockedOAuth2Util = mockStatic(OAuth2Util.class)) {
+            mockedOAuth2Util.when(() -> OAuth2Util.findAccessToken(eq("accessToken"), eq(false)))
+                    .thenReturn(accessTokenDO);
+
+            Method method = oAuth2AccessTokenHandler.getClass()
+                    .getDeclaredMethod("setSessionIdToThreadLocal", Request.class, TokenBinding.class,
+                            String.class, String.class);
+            method.setAccessible(true);
+            method.invoke(oAuth2AccessTokenHandler, request, tokenBinding, "accessToken", "tokenId");
+
+            Assert.assertEquals(threadLocalMap.get(FrameworkConstants.CURRENT_SESSION_IDENTIFIER),
+                    expectedBindingValue,
+                    "Session ID should be resolved from access token when binding value is blank");
+        } finally {
+            IdentityUtil.threadLocalProperties.get().clear();
+            IdentityUtil.threadLocalProperties.remove();
+        }
+    }
+
+    @Test
+    public void testSetSessionIdToThreadLocalWithPreserveEnabledAndBlankTokenId() throws Exception {
+
+        OAuth2AccessTokenHandler oAuth2AccessTokenHandler = new OAuth2AccessTokenHandler();
+        Request request = mock(Request.class);
+        when(request.getRequestURI()).thenReturn("/t/carbon.super/scim2/me");
+
+        Map<String, Object> threadLocalMap = new ConcurrentHashMap<>();
+        IdentityUtil.threadLocalProperties.set(threadLocalMap);
+
+        try (MockedStatic<IdentityUtil> mockedIdentityUtil = mockStatic(IdentityUtil.class)) {
+            mockedIdentityUtil.when(() -> IdentityUtil.getProperty(
+                    Constants.PRESERVE_LOGGED_IN_SESSION_FOR_ALL_TOKEN_BINDINGS)).thenReturn("true");
+
+            Method method = oAuth2AccessTokenHandler.getClass()
+                    .getDeclaredMethod("setSessionIdToThreadLocal", Request.class, TokenBinding.class,
+                            String.class, String.class);
+            method.setAccessible(true);
+            // Blank token ID — should return without setting session ID.
+            method.invoke(oAuth2AccessTokenHandler, request, null, "accessToken", "");
+
+            Assert.assertNull(threadLocalMap.get(FrameworkConstants.CURRENT_SESSION_IDENTIFIER),
+                    "Session ID should not be set when token ID is blank");
+        } finally {
+            IdentityUtil.threadLocalProperties.get().clear();
+            IdentityUtil.threadLocalProperties.remove();
+        }
+    }
+
+    @Test
+    public void testSetSessionIdToThreadLocalWithPreserveDisabled() throws Exception {
+
+        OAuth2AccessTokenHandler oAuth2AccessTokenHandler = new OAuth2AccessTokenHandler();
+        Request request = mock(Request.class);
+        when(request.getRequestURI()).thenReturn("/t/carbon.super/scim2/me");
+
+        TokenBinding tokenBinding = new TokenBinding("cookie", "bindingRef", "cookieValue");
+
+        Map<String, Object> threadLocalMap = new ConcurrentHashMap<>();
+        IdentityUtil.threadLocalProperties.set(threadLocalMap);
+
+        try (MockedStatic<IdentityUtil> mockedIdentityUtil = mockStatic(IdentityUtil.class)) {
+            mockedIdentityUtil.when(() -> IdentityUtil.getProperty(
+                    Constants.PRESERVE_LOGGED_IN_SESSION_FOR_ALL_TOKEN_BINDINGS)).thenReturn("false");
+
+            Method method = oAuth2AccessTokenHandler.getClass()
+                    .getDeclaredMethod("setSessionIdToThreadLocal", Request.class, TokenBinding.class,
+                            String.class, String.class);
+            method.setAccessible(true);
+            method.invoke(oAuth2AccessTokenHandler, request, tokenBinding, "accessToken", "tokenId");
+
+            Assert.assertNull(threadLocalMap.get(FrameworkConstants.CURRENT_SESSION_IDENTIFIER),
+                    "Session ID should not be set when preserve session config is disabled");
+        } finally {
+            IdentityUtil.threadLocalProperties.get().clear();
+            IdentityUtil.threadLocalProperties.remove();
+        }
+    }
+
 }
