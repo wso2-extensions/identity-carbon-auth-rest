@@ -103,7 +103,8 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
     private final String SERVICE_PROVIDER_NAME = "serviceProvider";
     private final String SERVICE_PROVIDER_TENANT_DOMAIN = "serviceProviderTenantDomain";
     private final String SERVICE_PROVIDER_UUID = "serviceProviderUUID";
-    private final String SCIM_ME_ENDPOINT_URI = "scim2/me";
+    private static final String SCIM_ME_ENDPOINT_URI = "scim2/me";
+    private static final String USER_PASSWORD_UPDATE_ENDPOINT_URI = "api/users/v1/me/password";
     private final String AUT_APPLICATION = "APPLICATION";
     private final String AUT_APPLICATION_USER = "APPLICATION_USER";
 
@@ -177,8 +178,11 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
                 // If the request is coming to me endpoint, store the token id to the thread local.
                 String tokenId = "";
                 if (Optional.ofNullable(authenticationRequest.getRequest()).map(Request::getRequestURI)
-                        .filter(u -> u.toLowerCase().endsWith(SCIM_ME_ENDPOINT_URI)).isPresent()
-                        && accessToken != null) {
+                        .filter(u -> {
+                            String lowerUri = u.toLowerCase();
+                            return lowerUri.endsWith(SCIM_ME_ENDPOINT_URI) ||
+                                    lowerUri.endsWith(USER_PASSWORD_UPDATE_ENDPOINT_URI);
+                        }).isPresent() && accessToken != null) {
                     tokenId = getTokenIdFromAccessToken(accessToken);
                     setCurrentTokenIdThreadLocal(tokenId);
                 }
@@ -581,7 +585,8 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
     private void storeSessionIdInThreadLocal(Request request, TokenBinding tokenBinding,
                                             String accessToken, String tokenId) {
 
-        if (!request.getRequestURI().toLowerCase().endsWith(SCIM_ME_ENDPOINT_URI)) {
+        if (!request.getRequestURI().toLowerCase().endsWith(SCIM_ME_ENDPOINT_URI)
+                && !request.getRequestURI().toLowerCase().endsWith(USER_PASSWORD_UPDATE_ENDPOINT_URI)) {
             return;
         }
         setSessionIdToThreadLocal(tokenBinding, accessToken, tokenId);
