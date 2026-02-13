@@ -196,10 +196,13 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
                  contains the tenant domain for the authorized user as the sub organization. Based on that
                  we can get the application details by using both the client id and the tenant domain.
                 */
-                if (!isTokenBindingValid(messageContext, tokenId, tokenBinding,
-                        oAuth2IntrospectionResponseDTO.getClientId(), accessToken, authorizedUserTenantDomain)) {
+                if (!isTokenBindingValid(authenticationRequest, tokenBinding,
+                        oAuth2IntrospectionResponseDTO.getClientId(), authorizedUserTenantDomain)) {
                     return authenticationResult;
                 }
+
+                // Store the token id in thread local, regardless of token binding.
+                setSessionIdToThreadLocal(authenticationRequest.getRequest(), tokenBinding, accessToken, tokenId);
 
                 handleImpersonatedAccessToken(authenticationContext, accessToken, oAuth2IntrospectionResponseDTO);
 
@@ -525,24 +528,18 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
     /**
      * Validate access token binding value.
      *
-     * @param messageContext message context.
+     * @param authenticationRequest Authentication request.
      * @param tokenBinding token binding.
      * @param clientId OAuth2 client id.
-     * @param accessToken Bearer token from request.
      * @param tenantDomain Tenant domain which the application needed to be searched.
      * @return true if token binding is valid.
      */
-    private boolean isTokenBindingValid(MessageContext messageContext, String tokenId, TokenBinding tokenBinding,
-                                        String clientId, String accessToken, String tenantDomain) {
+    private boolean isTokenBindingValid(AuthenticationRequest authenticationRequest, TokenBinding tokenBinding,
+                                        String clientId, String tenantDomain) {
 
-        boolean preserveLoggedInSessionForAllTokenBindings = Boolean.parseBoolean(
-                IdentityUtil.getProperty(PRESERVE_LOGGED_IN_SESSION_FOR_ALL_TOKEN_BINDINGS));
         if (tokenBinding == null || StringUtils.isBlank(tokenBinding.getBindingReference())) {
             if (log.isDebugEnabled()) {
                 log.debug("TokenBinding or binding reference is empty.");
-            }
-            if (preserveLoggedInSessionForAllTokenBindings) {
-                setCurrentSessionIdFromTokenId(tokenId);
             }
             return true;
         }
@@ -562,32 +559,16 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
             return false;
         }
 
-        Request authenticationRequest =
-                ((AuthenticationContext) messageContext).getAuthenticationRequest().getRequest();
         if (!oAuthAppDO.isTokenBindingValidationEnabled()) {
             if (log.isDebugEnabled()) {
                 log.debug("TokenBinding validation is not enabled for application: " + oAuthAppDO.getApplicationName());
             }
-            if (authenticationRequest.getRequestURI().toLowerCase().endsWith(SCIM_ME_ENDPOINT_URI)) {
-                if (isSSOSessionBasedTokenBinding(tokenBinding.getBindingType())) {
-                    setCurrentSessionIdThreadLocal(getTokenBindingValueFromAccessToken(accessToken));
-                } else if (preserveLoggedInSessionForAllTokenBindings) {
-                    setCurrentSessionIdFromTokenId(tokenId);
-                }
-            }
             return true;
         }
 
-        if (OAuth2Util.isValidTokenBinding(tokenBinding, authenticationRequest)) {
+        if (OAuth2Util.isValidTokenBinding(tokenBinding, authenticationRequest.getRequest())) {
             if (log.isDebugEnabled()) {
                 log.debug("TokenBinding validation is successful. TokenBinding: " + tokenBinding.getBindingType());
-            }
-            if (authenticationRequest.getRequestURI().toLowerCase().endsWith(SCIM_ME_ENDPOINT_URI)) {
-                if (isSSOSessionBasedTokenBinding(tokenBinding.getBindingType())) {
-                    setCurrentSessionIdThreadLocal(tokenBinding.getBindingValue());
-                } else if (preserveLoggedInSessionForAllTokenBindings) {
-                    setCurrentSessionIdFromTokenId(tokenId);
-                }
             }
             return true;
         }
@@ -597,19 +578,40 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
         return false;
     }
 
-    private void setCurrentSessionIdFromTokenId(String tokenId) {
+    private void setSessionIdToThreadLocal(Request authenticationRequest, TokenBinding tokenBinding,
+                                            String accessToken, String tokenId) {
 
-        log.debug("Preserve logged in session for all token bindings.");
-        if (StringUtils.isBlank(tokenId)) {
-            log.debug("Token id is empty. Cannot retrieve the session id from token data.");
+        if (!authenticationRequest.getRequestURI().toLowerCase().endsWith(SCIM_ME_ENDPOINT_URI)) {
             return;
         }
-        String sessionId = getSessionIdFromTokenId(tokenId);
-        if (StringUtils.isNotEmpty(sessionId)) {
-            if (log.isDebugEnabled()) {
-                log.debug("Session ID: " + sessionId + " is found in the token data for token id: " + tokenId);
+
+        // First, try to resolve session ID from SSO-session-based token binding.
+        if (tokenBinding != null && isSSOSessionBasedTokenBinding(tokenBinding.getBindingType())) {
+            if (StringUtils.isNotBlank(tokenBinding.getBindingValue())) {
+                setCurrentSessionIdThreadLocal(tokenBinding.getBindingValue());
+                return;
             }
-            setCurrentSessionIdThreadLocal(sessionId);
+            setCurrentSessionIdThreadLocal(getTokenBindingValueFromAccessToken(accessToken));
+            return;
+        }
+
+        // Fallback: resolve session ID from token data.
+        boolean preserveLoggedInSessionForAllTokenBindings = Boolean.parseBoolean(
+                IdentityUtil.getProperty(PRESERVE_LOGGED_IN_SESSION_FOR_ALL_TOKEN_BINDINGS));
+        if (preserveLoggedInSessionForAllTokenBindings) {
+            log.debug("Preserve logged in session for all token bindings.");
+            if (StringUtils.isBlank(tokenId)) {
+                log.debug("Token id is empty. Cannot retrieve the session id from token data.");
+                return;
+            }
+            String sessionId = getSessionIdFromTokenId(tokenId);
+            if (StringUtils.isNotEmpty(sessionId)) {
+                if (log.isDebugEnabled()) {
+                    log.debug("Session ID: " + sessionId + " is found in the token data for token id: "
+                            + tokenId);
+                }
+                setCurrentSessionIdThreadLocal(sessionId);
+            }
         }
     }
 

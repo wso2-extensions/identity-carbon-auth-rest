@@ -245,23 +245,22 @@ public class OAuth2AccessTokenHandlerTest {
 
         return new Object[][]{
                 // Test case 1: Valid token binding, validation enabled, binding valid - should return true
-                {"bindingRef123", "clientId", "accessToken", "tenantDomain", true, "Valid token binding"},
+                {"bindingRef123", "clientId", "tenantDomain", true, "Valid token binding"},
 
                 // Test case 2: Valid token binding, validation enabled, binding invalid - should return false
-                {"bindingRef123", "clientId", "accessToken", "tenantDomain", false, "Invalid token binding"},
+                {"bindingRef123", "clientId", "tenantDomain", false, "Invalid token binding"},
 
                 // Test case 3: Token binding with organization tenant domain - should handle properly
-                {"bindingRef123", "clientId", "accessToken", "org1", true, "Organization tenant domain"},
+                {"bindingRef123", "clientId", "org1", true, "Organization tenant domain"},
         };
     }
 
     @Test(dataProvider = "isTokenBindingValidDataProvider")
-    public void testIsTokenBindingValid(String bindingReference, String clientId, String accessToken,
+    public void testIsTokenBindingValid(String bindingReference, String clientId,
                                        String tenantDomain, boolean expectedResult, String testCase) throws Exception {
 
         OAuth2AccessTokenHandler oAuth2AccessTokenHandler = new OAuth2AccessTokenHandler();
 
-        AuthenticationContext authenticationContext = mock(AuthenticationContext.class);
         AuthenticationRequest authenticationRequest = mock(AuthenticationRequest.class);
         Request request = mock(Request.class);
         OAuthAppDO oAuthAppDO = mock(OAuthAppDO.class);
@@ -269,7 +268,6 @@ public class OAuth2AccessTokenHandlerTest {
                 ? new TokenBinding("cookie", bindingReference, "value")
                 : null;
 
-        when(authenticationContext.getAuthenticationRequest()).thenReturn(authenticationRequest);
         when(authenticationRequest.getRequest()).thenReturn(request);
         when(request.getRequestURI()).thenReturn("/api/users/v1/me");
         when(oAuthAppDO.getApplicationName()).thenReturn("TestApp");
@@ -315,13 +313,12 @@ public class OAuth2AccessTokenHandlerTest {
 
             // Invoke the private method using reflection
             Method isTokenBindingValidMethod = oAuth2AccessTokenHandler.getClass()
-                    .getDeclaredMethod("isTokenBindingValid", MessageContext.class, String.class,
-                            TokenBinding.class, String.class, String.class, String.class);
+                    .getDeclaredMethod("isTokenBindingValid", AuthenticationRequest.class, TokenBinding.class,
+                            String.class, String.class);
             isTokenBindingValidMethod.setAccessible(true);
 
-            String tokenId = "test-token-id-123";
             boolean result = (boolean) isTokenBindingValidMethod.invoke(oAuth2AccessTokenHandler,
-                    authenticationContext, tokenId, tokenBinding, clientId, accessToken, tenantDomain);
+                    authenticationRequest, tokenBinding, clientId, tenantDomain);
 
             Assert.assertEquals(result, expectedResult, "Test case failed: " + testCase);
         }
@@ -332,12 +329,10 @@ public class OAuth2AccessTokenHandlerTest {
 
         OAuth2AccessTokenHandler oAuth2AccessTokenHandler = new OAuth2AccessTokenHandler();
 
-        AuthenticationContext authenticationContext = mock(AuthenticationContext.class);
         AuthenticationRequest authenticationRequest = mock(AuthenticationRequest.class);
         Request request = mock(Request.class);
         TokenBinding tokenBinding = new TokenBinding("cookie", "bindingRef123", "value");
 
-        when(authenticationContext.getAuthenticationRequest()).thenReturn(authenticationRequest);
         when(authenticationRequest.getRequest()).thenReturn(request);
 
         try (MockedStatic<OAuth2Util> mockedOAuth2Util = mockStatic(OAuth2Util.class)) {
@@ -348,13 +343,12 @@ public class OAuth2AccessTokenHandlerTest {
 
             // Invoke the private method using reflection
             Method isTokenBindingValidMethod = oAuth2AccessTokenHandler.getClass()
-                    .getDeclaredMethod("isTokenBindingValid", MessageContext.class, String.class,
-                            TokenBinding.class, String.class, String.class, String.class);
+                    .getDeclaredMethod("isTokenBindingValid", AuthenticationRequest.class, TokenBinding.class,
+                            String.class, String.class);
             isTokenBindingValidMethod.setAccessible(true);
 
-            String tokenId = "test-token-id-123";
             boolean result = (boolean) isTokenBindingValidMethod.invoke(oAuth2AccessTokenHandler,
-                    authenticationContext, tokenId, tokenBinding, "clientId", "accessToken", null);
+                    authenticationRequest, tokenBinding, "clientId", null);
 
             Assert.assertFalse(result, "Should return false when InvalidOAuthClientException occurs");
         }
@@ -365,13 +359,11 @@ public class OAuth2AccessTokenHandlerTest {
 
         OAuth2AccessTokenHandler oAuth2AccessTokenHandler = new OAuth2AccessTokenHandler();
 
-        AuthenticationContext authenticationContext = mock(AuthenticationContext.class);
         AuthenticationRequest authenticationRequest = mock(AuthenticationRequest.class);
         Request request = mock(Request.class);
         TokenBinding tokenBinding = new TokenBinding("cookie", "bindingRef123", "value");
         String tenantDomain = "org1";
 
-        when(authenticationContext.getAuthenticationRequest()).thenReturn(authenticationRequest);
         when(authenticationRequest.getRequest()).thenReturn(request);
 
         try (MockedStatic<OrganizationManagementUtil> mockedOrgMgmtUtil =
@@ -383,13 +375,12 @@ public class OAuth2AccessTokenHandlerTest {
 
             // Invoke the private method using reflection
             Method isTokenBindingValidMethod = oAuth2AccessTokenHandler.getClass()
-                    .getDeclaredMethod("isTokenBindingValid", MessageContext.class, String.class,
-                            TokenBinding.class, String.class, String.class, String.class);
+                    .getDeclaredMethod("isTokenBindingValid", AuthenticationRequest.class, TokenBinding.class,
+                            String.class, String.class);
             isTokenBindingValidMethod.setAccessible(true);
 
-            String tokenId = "test-token-id-123";
             boolean result = (boolean) isTokenBindingValidMethod.invoke(oAuth2AccessTokenHandler,
-                    authenticationContext, tokenId, tokenBinding, "clientId", "accessToken", tenantDomain);
+                    authenticationRequest, tokenBinding, "clientId", tenantDomain);
 
             Assert.assertFalse(result, "Should return false when OrganizationManagementException occurs");
         }
