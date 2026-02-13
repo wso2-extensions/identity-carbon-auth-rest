@@ -29,17 +29,20 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
+import org.wso2.carbon.identity.application.authentication.framework.util.FrameworkConstants;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
 import org.wso2.carbon.identity.auth.service.AuthenticationRequest;
 import org.testng.Assert;
 import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
 import org.wso2.carbon.identity.auth.service.util.Constants;
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
+import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.identity.oauth.common.exception.InvalidOAuthClientException;
 import org.wso2.carbon.identity.oauth.dao.OAuthAppDO;
 import org.wso2.carbon.identity.oauth2.IdentityOAuth2Exception;
 import org.wso2.carbon.identity.oauth2.OAuth2Constants;
 import org.wso2.carbon.identity.oauth2.dto.OAuth2IntrospectionResponseDTO;
+import org.wso2.carbon.identity.oauth2.model.AccessTokenDO;
 import org.wso2.carbon.identity.oauth2.token.bindings.TokenBinding;
 import org.wso2.carbon.identity.oauth2.util.OAuth2Util;
 import org.wso2.carbon.identity.organization.management.service.exception.OrganizationManagementException;
@@ -49,8 +52,10 @@ import java.lang.reflect.Method;
 import java.text.ParseException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -240,23 +245,22 @@ public class OAuth2AccessTokenHandlerTest {
 
         return new Object[][]{
                 // Test case 1: Valid token binding, validation enabled, binding valid - should return true
-                {"bindingRef123", "clientId", "accessToken", "tenantDomain", true, "Valid token binding"},
+                {"bindingRef123", "clientId", "tenantDomain", true, "Valid token binding"},
 
                 // Test case 2: Valid token binding, validation enabled, binding invalid - should return false
-                {"bindingRef123", "clientId", "accessToken", "tenantDomain", false, "Invalid token binding"},
+                {"bindingRef123", "clientId", "tenantDomain", false, "Invalid token binding"},
 
                 // Test case 3: Token binding with organization tenant domain - should handle properly
-                {"bindingRef123", "clientId", "accessToken", "org1", true, "Organization tenant domain"},
+                {"bindingRef123", "clientId", "org1", true, "Organization tenant domain"},
         };
     }
 
     @Test(dataProvider = "isTokenBindingValidDataProvider")
-    public void testIsTokenBindingValid(String bindingReference, String clientId, String accessToken,
+    public void testIsTokenBindingValid(String bindingReference, String clientId,
                                        String tenantDomain, boolean expectedResult, String testCase) throws Exception {
 
         OAuth2AccessTokenHandler oAuth2AccessTokenHandler = new OAuth2AccessTokenHandler();
 
-        AuthenticationContext authenticationContext = mock(AuthenticationContext.class);
         AuthenticationRequest authenticationRequest = mock(AuthenticationRequest.class);
         Request request = mock(Request.class);
         OAuthAppDO oAuthAppDO = mock(OAuthAppDO.class);
@@ -264,7 +268,6 @@ public class OAuth2AccessTokenHandlerTest {
                 ? new TokenBinding("cookie", bindingReference, "value")
                 : null;
 
-        when(authenticationContext.getAuthenticationRequest()).thenReturn(authenticationRequest);
         when(authenticationRequest.getRequest()).thenReturn(request);
         when(request.getRequestURI()).thenReturn("/api/users/v1/me");
         when(oAuthAppDO.getApplicationName()).thenReturn("TestApp");
@@ -310,12 +313,12 @@ public class OAuth2AccessTokenHandlerTest {
 
             // Invoke the private method using reflection
             Method isTokenBindingValidMethod = oAuth2AccessTokenHandler.getClass()
-                    .getDeclaredMethod("isTokenBindingValid", MessageContext.class, TokenBinding.class,
-                            String.class, String.class, String.class);
+                    .getDeclaredMethod("isTokenBindingValid", AuthenticationRequest.class, TokenBinding.class,
+                            String.class, String.class);
             isTokenBindingValidMethod.setAccessible(true);
 
             boolean result = (boolean) isTokenBindingValidMethod.invoke(oAuth2AccessTokenHandler,
-                    authenticationContext, tokenBinding, clientId, accessToken, tenantDomain);
+                    authenticationRequest, tokenBinding, clientId, tenantDomain);
 
             Assert.assertEquals(result, expectedResult, "Test case failed: " + testCase);
         }
@@ -326,12 +329,10 @@ public class OAuth2AccessTokenHandlerTest {
 
         OAuth2AccessTokenHandler oAuth2AccessTokenHandler = new OAuth2AccessTokenHandler();
 
-        AuthenticationContext authenticationContext = mock(AuthenticationContext.class);
         AuthenticationRequest authenticationRequest = mock(AuthenticationRequest.class);
         Request request = mock(Request.class);
         TokenBinding tokenBinding = new TokenBinding("cookie", "bindingRef123", "value");
 
-        when(authenticationContext.getAuthenticationRequest()).thenReturn(authenticationRequest);
         when(authenticationRequest.getRequest()).thenReturn(request);
 
         try (MockedStatic<OAuth2Util> mockedOAuth2Util = mockStatic(OAuth2Util.class)) {
@@ -342,12 +343,12 @@ public class OAuth2AccessTokenHandlerTest {
 
             // Invoke the private method using reflection
             Method isTokenBindingValidMethod = oAuth2AccessTokenHandler.getClass()
-                    .getDeclaredMethod("isTokenBindingValid", MessageContext.class, TokenBinding.class,
-                            String.class, String.class, String.class);
+                    .getDeclaredMethod("isTokenBindingValid", AuthenticationRequest.class, TokenBinding.class,
+                            String.class, String.class);
             isTokenBindingValidMethod.setAccessible(true);
 
             boolean result = (boolean) isTokenBindingValidMethod.invoke(oAuth2AccessTokenHandler,
-                    authenticationContext, tokenBinding, "clientId", "accessToken", null);
+                    authenticationRequest, tokenBinding, "clientId", null);
 
             Assert.assertFalse(result, "Should return false when InvalidOAuthClientException occurs");
         }
@@ -358,13 +359,11 @@ public class OAuth2AccessTokenHandlerTest {
 
         OAuth2AccessTokenHandler oAuth2AccessTokenHandler = new OAuth2AccessTokenHandler();
 
-        AuthenticationContext authenticationContext = mock(AuthenticationContext.class);
         AuthenticationRequest authenticationRequest = mock(AuthenticationRequest.class);
         Request request = mock(Request.class);
         TokenBinding tokenBinding = new TokenBinding("cookie", "bindingRef123", "value");
         String tenantDomain = "org1";
 
-        when(authenticationContext.getAuthenticationRequest()).thenReturn(authenticationRequest);
         when(authenticationRequest.getRequest()).thenReturn(request);
 
         try (MockedStatic<OrganizationManagementUtil> mockedOrgMgmtUtil =
@@ -376,14 +375,285 @@ public class OAuth2AccessTokenHandlerTest {
 
             // Invoke the private method using reflection
             Method isTokenBindingValidMethod = oAuth2AccessTokenHandler.getClass()
-                    .getDeclaredMethod("isTokenBindingValid", MessageContext.class, TokenBinding.class,
-                            String.class, String.class, String.class);
+                    .getDeclaredMethod("isTokenBindingValid", AuthenticationRequest.class, TokenBinding.class,
+                            String.class, String.class);
             isTokenBindingValidMethod.setAccessible(true);
 
             boolean result = (boolean) isTokenBindingValidMethod.invoke(oAuth2AccessTokenHandler,
-                    authenticationContext, tokenBinding, "clientId", "accessToken", tenantDomain);
+                    authenticationRequest, tokenBinding, "clientId", tenantDomain);
 
             Assert.assertFalse(result, "Should return false when OrganizationManagementException occurs");
         }
     }
+
+    @DataProvider
+    public Object[][] getTokenIdFromAccessTokenDataProvider() {
+
+        return new Object[][]{
+                // Test case 1: Valid access token returns token ID
+                {"valid-access-token", "token-id-123", false},
+
+                // Test case 2: Access token not found returns null
+                {"invalid-access-token", null, false},
+
+                // Test case 3: Exception during token lookup
+                {"error-access-token", null, true},
+        };
+    }
+
+    @Test(dataProvider = "getTokenIdFromAccessTokenDataProvider")
+    public void testGetTokenIdFromAccessToken(String accessToken, String expectedTokenId, boolean throwException)
+            throws Exception {
+
+        OAuth2AccessTokenHandler oAuth2AccessTokenHandler = new OAuth2AccessTokenHandler();
+        AccessTokenDO accessTokenDO = expectedTokenId != null ? mock(AccessTokenDO.class) : null;
+
+        try (MockedStatic<OAuth2Util> mockedOAuth2Util = mockStatic(OAuth2Util.class)) {
+
+            if (throwException) {
+                mockedOAuth2Util.when(() -> OAuth2Util.findAccessToken(eq(accessToken), anyBoolean()))
+                        .thenThrow(new IdentityOAuth2Exception("Token lookup error"));
+            } else {
+                mockedOAuth2Util.when(() -> OAuth2Util.findAccessToken(eq(accessToken), anyBoolean()))
+                        .thenReturn(accessTokenDO);
+                if (accessTokenDO != null) {
+                    when(accessTokenDO.getTokenId()).thenReturn(expectedTokenId);
+                }
+            }
+
+            // Invoke private method using reflection
+            Method getTokenIdFromAccessTokenMethod = oAuth2AccessTokenHandler.getClass()
+                    .getDeclaredMethod("getTokenIdFromAccessToken", String.class);
+            getTokenIdFromAccessTokenMethod.setAccessible(true);
+
+            String result = (String) getTokenIdFromAccessTokenMethod.invoke(oAuth2AccessTokenHandler, accessToken);
+
+            Assert.assertEquals(result, expectedTokenId,
+                    "Token ID should match expected value (null if not found or error)");
+        }
+    }
+
+    @Test
+    public void testSetCurrentSessionIdThreadLocal() throws Exception {
+
+        OAuth2AccessTokenHandler oAuth2AccessTokenHandler = new OAuth2AccessTokenHandler();
+        String sessionId = "test-session-123";
+
+        // Initialize thread local
+        Map<String, Object> threadLocalMap = new ConcurrentHashMap<>();
+        IdentityUtil.threadLocalProperties.set(threadLocalMap);
+
+        try {
+            // Invoke private method using reflection
+            Method setCurrentSessionIdThreadLocalMethod = oAuth2AccessTokenHandler.getClass()
+                    .getDeclaredMethod("setCurrentSessionIdThreadLocal", String.class);
+            setCurrentSessionIdThreadLocalMethod.setAccessible(true);
+
+            setCurrentSessionIdThreadLocalMethod.invoke(oAuth2AccessTokenHandler, sessionId);
+
+            // Verify session ID was set in thread local
+            Assert.assertEquals(threadLocalMap.get(FrameworkConstants.CURRENT_SESSION_IDENTIFIER), sessionId,
+                    "Session ID should be set in thread local");
+        } finally {
+            // Cleanup
+            IdentityUtil.threadLocalProperties.get().clear();
+            IdentityUtil.threadLocalProperties.remove();
+        }
+    }
+
+    @Test
+    public void testSetCurrentSessionIdThreadLocalWithNullValue() throws Exception {
+
+        OAuth2AccessTokenHandler oAuth2AccessTokenHandler = new OAuth2AccessTokenHandler();
+
+        // Initialize thread local
+        Map<String, Object> threadLocalMap = new ConcurrentHashMap<>();
+        IdentityUtil.threadLocalProperties.set(threadLocalMap);
+
+        try {
+            // Invoke private method using reflection with null
+            Method setCurrentSessionIdThreadLocalMethod = oAuth2AccessTokenHandler.getClass()
+                    .getDeclaredMethod("setCurrentSessionIdThreadLocal", String.class);
+            setCurrentSessionIdThreadLocalMethod.setAccessible(true);
+
+            setCurrentSessionIdThreadLocalMethod.invoke(oAuth2AccessTokenHandler, (String) null);
+
+            // Verify session ID was NOT set in thread local (method checks for blank)
+            Assert.assertNull(threadLocalMap.get(FrameworkConstants.CURRENT_SESSION_IDENTIFIER),
+                    "Session ID should not be set for null value");
+        } finally {
+            // Cleanup
+            IdentityUtil.threadLocalProperties.get().clear();
+            IdentityUtil.threadLocalProperties.remove();
+        }
+    }
+
+    @Test
+    public void testSetCurrentTokenIdThreadLocal() throws Exception {
+
+        OAuth2AccessTokenHandler oAuth2AccessTokenHandler = new OAuth2AccessTokenHandler();
+        String tokenId = "test-token-123";
+
+        // Initialize thread local
+        Map<String, Object> threadLocalMap = new ConcurrentHashMap<>();
+        IdentityUtil.threadLocalProperties.set(threadLocalMap);
+
+        try {
+            // Invoke private method using reflection
+            Method setCurrentTokenIdThreadLocalMethod = oAuth2AccessTokenHandler.getClass()
+                    .getDeclaredMethod("setCurrentTokenIdThreadLocal", String.class);
+            setCurrentTokenIdThreadLocalMethod.setAccessible(true);
+
+            setCurrentTokenIdThreadLocalMethod.invoke(oAuth2AccessTokenHandler, tokenId);
+
+            // Verify token ID was set in thread local
+            Assert.assertEquals(threadLocalMap.get(FrameworkConstants.CURRENT_TOKEN_IDENTIFIER), tokenId,
+                    "Token ID should be set in thread local");
+        } finally {
+            // Cleanup
+            IdentityUtil.threadLocalProperties.get().clear();
+            IdentityUtil.threadLocalProperties.remove();
+        }
+    }
+
+    @Test
+    public void testSetSessionIdToThreadLocalWithNonSSOBinding() throws Exception {
+
+        OAuth2AccessTokenHandler oAuth2AccessTokenHandler = new OAuth2AccessTokenHandler();
+        TokenBinding tokenBinding = new TokenBinding("cookie", "bindingRef", "cookieValue");
+
+        Map<String, Object> threadLocalMap = new ConcurrentHashMap<>();
+        IdentityUtil.threadLocalProperties.set(threadLocalMap);
+
+        try (MockedStatic<IdentityUtil> mockedIdentityUtil = mockStatic(IdentityUtil.class)) {
+            mockedIdentityUtil.when(() -> IdentityUtil.getProperty(
+                    Constants.PRESERVE_LOGGED_IN_SESSION_FOR_ALL_TOKEN_BINDINGS)).thenReturn("false");
+
+            Method method = oAuth2AccessTokenHandler.getClass()
+                    .getDeclaredMethod("setSessionIdToThreadLocal", TokenBinding.class,
+                            String.class, String.class);
+            method.setAccessible(true);
+            method.invoke(oAuth2AccessTokenHandler, tokenBinding, "accessToken", "tokenId");
+
+            Assert.assertNull(threadLocalMap.get(FrameworkConstants.CURRENT_SESSION_IDENTIFIER),
+                    "Session ID should not be set for non-SSO binding when preserve is disabled");
+        } finally {
+            IdentityUtil.threadLocalProperties.get().clear();
+            IdentityUtil.threadLocalProperties.remove();
+        }
+    }
+
+    @Test
+    public void testSetSessionIdToThreadLocalWithSSOSessionBindingValue() throws Exception {
+
+        OAuth2AccessTokenHandler oAuth2AccessTokenHandler = new OAuth2AccessTokenHandler();
+        String bindingValue = "sso-session-binding-value-123";
+        TokenBinding tokenBinding = new TokenBinding("sso-session", "bindingRef", bindingValue);
+
+        Map<String, Object> threadLocalMap = new ConcurrentHashMap<>();
+        IdentityUtil.threadLocalProperties.set(threadLocalMap);
+
+        try {
+            Method method = oAuth2AccessTokenHandler.getClass()
+                    .getDeclaredMethod("setSessionIdToThreadLocal", TokenBinding.class,
+                            String.class, String.class);
+            method.setAccessible(true);
+            method.invoke(oAuth2AccessTokenHandler, tokenBinding, "accessToken", "tokenId");
+
+            Assert.assertEquals(threadLocalMap.get(FrameworkConstants.CURRENT_SESSION_IDENTIFIER), bindingValue,
+                    "Session ID should be set from the SSO-session token binding value");
+        } finally {
+            IdentityUtil.threadLocalProperties.get().clear();
+            IdentityUtil.threadLocalProperties.remove();
+        }
+    }
+
+    @Test
+    public void testSetSessionIdToThreadLocalWithSSOSessionBindingBlankValue() throws Exception {
+
+        OAuth2AccessTokenHandler oAuth2AccessTokenHandler = new OAuth2AccessTokenHandler();
+        // SSO-session binding with blank value — should fallback to getTokenBindingValueFromAccessToken.
+        TokenBinding tokenBinding = new TokenBinding("sso-session", "bindingRef", "");
+
+        String expectedBindingValue = "resolved-binding-value";
+        AccessTokenDO accessTokenDO = mock(AccessTokenDO.class);
+        TokenBinding storedBinding = new TokenBinding("sso-session", "storedRef", expectedBindingValue);
+        when(accessTokenDO.getTokenBinding()).thenReturn(storedBinding);
+
+        Map<String, Object> threadLocalMap = new ConcurrentHashMap<>();
+        IdentityUtil.threadLocalProperties.set(threadLocalMap);
+
+        try (MockedStatic<OAuth2Util> mockedOAuth2Util = mockStatic(OAuth2Util.class)) {
+            mockedOAuth2Util.when(() -> OAuth2Util.findAccessToken(eq("accessToken"), eq(false)))
+                    .thenReturn(accessTokenDO);
+
+            Method method = oAuth2AccessTokenHandler.getClass()
+                    .getDeclaredMethod("setSessionIdToThreadLocal", TokenBinding.class,
+                            String.class, String.class);
+            method.setAccessible(true);
+            method.invoke(oAuth2AccessTokenHandler, tokenBinding, "accessToken", "tokenId");
+
+            Assert.assertEquals(threadLocalMap.get(FrameworkConstants.CURRENT_SESSION_IDENTIFIER),
+                    expectedBindingValue,
+                    "Session ID should be resolved from access token when binding value is blank");
+        } finally {
+            IdentityUtil.threadLocalProperties.get().clear();
+            IdentityUtil.threadLocalProperties.remove();
+        }
+    }
+
+    @Test
+    public void testSetSessionIdToThreadLocalWithPreserveEnabledAndBlankTokenId() throws Exception {
+
+        OAuth2AccessTokenHandler oAuth2AccessTokenHandler = new OAuth2AccessTokenHandler();
+
+        Map<String, Object> threadLocalMap = new ConcurrentHashMap<>();
+        IdentityUtil.threadLocalProperties.set(threadLocalMap);
+
+        try (MockedStatic<IdentityUtil> mockedIdentityUtil = mockStatic(IdentityUtil.class)) {
+            mockedIdentityUtil.when(() -> IdentityUtil.getProperty(
+                    Constants.PRESERVE_LOGGED_IN_SESSION_FOR_ALL_TOKEN_BINDINGS)).thenReturn("true");
+
+            Method method = oAuth2AccessTokenHandler.getClass()
+                    .getDeclaredMethod("setSessionIdToThreadLocal", TokenBinding.class,
+                            String.class, String.class);
+            method.setAccessible(true);
+            // Blank token ID — should return without setting session ID.
+            method.invoke(oAuth2AccessTokenHandler, null, "accessToken", "");
+
+            Assert.assertNull(threadLocalMap.get(FrameworkConstants.CURRENT_SESSION_IDENTIFIER),
+                    "Session ID should not be set when token ID is blank");
+        } finally {
+            IdentityUtil.threadLocalProperties.get().clear();
+            IdentityUtil.threadLocalProperties.remove();
+        }
+    }
+
+    @Test
+    public void testSetSessionIdToThreadLocalWithPreserveDisabled() throws Exception {
+
+        OAuth2AccessTokenHandler oAuth2AccessTokenHandler = new OAuth2AccessTokenHandler();
+        TokenBinding tokenBinding = new TokenBinding("cookie", "bindingRef", "cookieValue");
+
+        Map<String, Object> threadLocalMap = new ConcurrentHashMap<>();
+        IdentityUtil.threadLocalProperties.set(threadLocalMap);
+
+        try (MockedStatic<IdentityUtil> mockedIdentityUtil = mockStatic(IdentityUtil.class)) {
+            mockedIdentityUtil.when(() -> IdentityUtil.getProperty(
+                    Constants.PRESERVE_LOGGED_IN_SESSION_FOR_ALL_TOKEN_BINDINGS)).thenReturn("false");
+
+            Method method = oAuth2AccessTokenHandler.getClass()
+                    .getDeclaredMethod("setSessionIdToThreadLocal", TokenBinding.class,
+                            String.class, String.class);
+            method.setAccessible(true);
+            method.invoke(oAuth2AccessTokenHandler, tokenBinding, "accessToken", "tokenId");
+
+            Assert.assertNull(threadLocalMap.get(FrameworkConstants.CURRENT_SESSION_IDENTIFIER),
+                    "Session ID should not be set when preserve session config is disabled");
+        } finally {
+            IdentityUtil.threadLocalProperties.get().clear();
+            IdentityUtil.threadLocalProperties.remove();
+        }
+    }
+
 }

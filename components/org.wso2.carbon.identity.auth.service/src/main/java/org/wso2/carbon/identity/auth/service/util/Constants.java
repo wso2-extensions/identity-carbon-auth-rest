@@ -90,6 +90,9 @@ public class Constants {
     public static final String AUTHENTICATION_TYPE = "authenticationType";
     public final static String VALIDATE_LEGACY_PERMISSIONS = "validateLegacyPermissions";
 
+    public static final String PRESERVE_LOGGED_IN_SESSION_FOR_ALL_TOKEN_BINDINGS
+            = "PasswordUpdate.PreserveLoggedInSessionForAllTokenBindings";
+
     // Audit Log Constants.
     public static final String INITIATOR = "Initiator";
     public static final String ACTION = "Action";
