@@ -201,8 +201,8 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
                     return authenticationResult;
                 }
 
-                // Store the token id in thread local, regardless of token binding.
-                setSessionIdToThreadLocal(authenticationRequest.getRequest(), tokenBinding, accessToken, tokenId);
+                // Store the session id in thread local for endpoints that require session context.
+                storeSessionIdInThreadLocal(authenticationRequest.getRequest(), tokenBinding, accessToken, tokenId);
 
                 handleImpersonatedAccessToken(authenticationContext, accessToken, oAuth2IntrospectionResponseDTO);
 
@@ -578,12 +578,16 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
         return false;
     }
 
-    private void setSessionIdToThreadLocal(Request authenticationRequest, TokenBinding tokenBinding,
+    private void storeSessionIdInThreadLocal(Request request, TokenBinding tokenBinding,
                                             String accessToken, String tokenId) {
 
-        if (!authenticationRequest.getRequestURI().toLowerCase().endsWith(SCIM_ME_ENDPOINT_URI)) {
+        if (!request.getRequestURI().toLowerCase().endsWith(SCIM_ME_ENDPOINT_URI)) {
             return;
         }
+        setSessionIdToThreadLocal(tokenBinding, accessToken, tokenId);
+    }
+
+    private void setSessionIdToThreadLocal(TokenBinding tokenBinding, String accessToken, String tokenId) {
 
         // First, try to resolve session ID from SSO-session-based token binding.
         if (tokenBinding != null && isSSOSessionBasedTokenBinding(tokenBinding.getBindingType())) {
