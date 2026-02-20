@@ -1,7 +1,7 @@
 /*
- * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016-2026, WSO2 LLC. (http://www.wso2.com).
  *
- * WSO2 Inc. licenses this file to you under the Apache License,
+ * WSO2 LLC. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License.
  * You may obtain a copy of the License at
@@ -104,7 +104,7 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
     private final String SERVICE_PROVIDER_TENANT_DOMAIN = "serviceProviderTenantDomain";
     private final String SERVICE_PROVIDER_UUID = "serviceProviderUUID";
     private static final String SCIM_ME_ENDPOINT_URI = "scim2/me";
-    private static final String USER_PASSWORD_UPDATE_ENDPOINT_URI = "api/users/v1/me/password";
+    private static final String USER_PASSWORD_UPDATE_ENDPOINT_URI = "api/users/v1/me/change-password";
     private final String AUT_APPLICATION = "APPLICATION";
     private final String AUT_APPLICATION_USER = "APPLICATION_USER";
 
