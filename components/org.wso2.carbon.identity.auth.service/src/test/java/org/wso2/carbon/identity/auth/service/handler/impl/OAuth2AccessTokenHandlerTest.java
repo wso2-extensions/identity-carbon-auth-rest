@@ -656,4 +656,55 @@ public class OAuth2AccessTokenHandlerTest {
         }
     }
 
+    @DataProvider
+    public Object[][] getMeEndpointUriData() {
+
+        return new Object[][]{
+                {"/api/users/v1/me/change-password"},
+                {"/t/carbon.super/api/users/v1/me/change-password"},
+                {"/scim2/me"},
+                {"/t/carbon.super/scim2/me"},
+        };
+    }
+
+    /**
+     * Verifies that when a request targets the SCIM /me or user password-change endpoint and
+     * an SSO-session-based token binding with a valid binding value is used, the session ID
+     * is taken directly from the binding value and placed in the thread local.
+     */
+    @Test(dataProvider = "getMeEndpointUriData",
+            description = "Verifies that when a request targets the SCIM /me or user password-change " +
+                    "endpoint and an SSO-session-based token binding with a valid binding value is used, " +
+                    "the session ID is taken directly from the binding value and placed in the thread local.")
+    public void testStoreSessionIdInThreadLocalWithMeEndpointsAndSSOBinding(String requestUri)
+            throws Exception {
+
+        OAuth2AccessTokenHandler oAuth2AccessTokenHandler = new OAuth2AccessTokenHandler();
+        Request request = mock(Request.class);
+
+        // SSO-session binding: the binding value itself is the session ID.
+        String expectedSessionId = "sso-test-session-id";
+        TokenBinding ssoBinding = new TokenBinding(
+                OAuth2Constants.TokenBinderType.SSO_SESSION_BASED_TOKEN_BINDER, "bindingRef", expectedSessionId);
+
+        when(request.getRequestURI()).thenReturn(requestUri);
+
+        Map<String, Object> threadLocalMap = new ConcurrentHashMap<>();
+        IdentityUtil.threadLocalProperties.set(threadLocalMap);
+
+        try {
+            Method method = oAuth2AccessTokenHandler.getClass()
+                    .getDeclaredMethod("storeSessionIdInThreadLocal", Request.class, TokenBinding.class,
+                            String.class, String.class);
+            method.setAccessible(true);
+            method.invoke(oAuth2AccessTokenHandler, request, ssoBinding, "accessToken", "tokenId");
+
+            Assert.assertEquals(threadLocalMap.get(FrameworkConstants.CURRENT_SESSION_IDENTIFIER),
+                    expectedSessionId,
+                    "Session ID should be stored in thread local from SSO binding value for URI: " + requestUri);
+        } finally {
+            IdentityUtil.threadLocalProperties.get().clear();
+            IdentityUtil.threadLocalProperties.remove();
+        }
+    }
 }
