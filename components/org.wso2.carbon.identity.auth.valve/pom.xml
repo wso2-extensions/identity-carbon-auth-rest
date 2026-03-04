@@ -235,6 +235,7 @@
                             org.wso2.carbon.identity.oauth2.client.authentication;version="${org.wso2.carbon.identity.oauth.import.version.range}",
                             org.wso2.carbon.identity.oauth2.util;version="${org.wso2.carbon.identity.oauth.import.version.range}",
                             org.wso2.carbon.identity.base; version="${carbon.identity.package.import.version.range}",
+                            org.wso2.carbon.utils.multitenancy; version="${carbon.kernel.imp.pkg.version.range}"
                         </Import-Package>
                         <Export-Package>org.wso2.carbon.identity.auth.valve.*;
                             version="${org.wso2.carbon.identity.auth.valve.version}"
