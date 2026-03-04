@@ -36,6 +36,7 @@ import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.identity.auth.valve.internal.AuthenticationValveDataHolder;
+import org.wso2.carbon.identity.auth.valve.internal.AuthenticationValveServiceHolder;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
 import org.wso2.carbon.identity.auth.service.AuthenticationManager;
@@ -73,6 +74,15 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doAnswer;
 import static org.wso2.carbon.base.MultitenantConstants.SUPER_TENANT_DOMAIN_NAME;
 import static org.wso2.carbon.base.MultitenantConstants.SUPER_TENANT_ID;
+import org.wso2.carbon.identity.base.IdentityRuntimeException;
+import org.wso2.carbon.identity.core.ServiceURL;
+import org.wso2.carbon.identity.core.ServiceURLBuilder;
+import org.wso2.carbon.identity.core.URLBuilderException;
+import org.wso2.carbon.user.core.service.RealmService;
+import org.wso2.carbon.user.core.tenant.TenantManager;
+import org.mockito.ArgumentCaptor;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.wso2.carbon.identity.auth.service.util.Constants.IDP_NAME;
 import static org.wso2.carbon.identity.auth.service.util.Constants.IS_FEDERATED_USER;
 import static org.wso2.carbon.identity.auth.valve.util.CarbonUtils.mockRealmService;
@@ -406,6 +416,110 @@ public class AuthenticationValveTest {
         final Map<String, Object> attributes = mockAttributeMap();
         AuthenticationContext authContext = (AuthenticationContext) attributes.get(AUTH_CONTEXT);
         Assert.assertNull(authContext);
+    }
+
+    @Test
+    public void testInvokeForInvalidTenantDomainRedirectsToAuthPortalWhenEnabled() throws Exception {
+
+        mockRealmService(false);
+        when(request.getContentType()).thenReturn("text/html");
+
+        try (MockedStatic<IdentityUtil> mockedIdentityUtil = mockStatic(IdentityUtil.class);
+             MockedStatic<ServiceURLBuilder> mockedServiceURLBuilder = mockStatic(ServiceURLBuilder.class)) {
+
+            mockedIdentityUtil.when(() -> IdentityUtil.getProperty(
+                    "BrandingConfiguration.UseInvalidTenantDomainErrorPageFromAuthPortal")).thenReturn("true");
+
+            ServiceURLBuilder mockUrlBuilder = mock(ServiceURLBuilder.class);
+            ServiceURL mockServiceURL = mock(ServiceURL.class);
+            String expectedRedirectUrl = "https://localhost:9443/authenticationendpoint/invalid_tenant_domain.do"
+                    + "?error=invalid.tenant.domain&invalidTenantDomain=" + SUPER_TENANT_DOMAIN_NAME;
+
+            mockedServiceURLBuilder.when(ServiceURLBuilder::create).thenReturn(mockUrlBuilder);
+            when(mockUrlBuilder.setTenant(SUPER_TENANT_DOMAIN_NAME)).thenReturn(mockUrlBuilder);
+            when(mockUrlBuilder.addPath("authenticationendpoint/invalid_tenant_domain.do")).thenReturn(mockUrlBuilder);
+            when(mockUrlBuilder.addParameter("error", "invalid.tenant.domain")).thenReturn(mockUrlBuilder);
+            when(mockUrlBuilder.addParameter("invalidTenantDomain", SUPER_TENANT_DOMAIN_NAME))
+                    .thenReturn(mockUrlBuilder);
+            when(mockUrlBuilder.build()).thenReturn(mockServiceURL);
+            when(mockServiceURL.getAbsolutePublicURL()).thenReturn(expectedRedirectUrl);
+
+            invokeAuthenticationValve();
+
+            ArgumentCaptor<String> redirectUrlCaptor = ArgumentCaptor.forClass(String.class);
+            verify(response).sendRedirect(redirectUrlCaptor.capture());
+            Assert.assertEquals(redirectUrlCaptor.getValue(), expectedRedirectUrl);
+        }
+    }
+
+    @Test
+    public void testInvokeForInvalidTenantDomainRedirectsToAuthPortalForInternalServerError() throws Exception {
+
+        RealmService mockRealmSvc = mock(RealmService.class);
+        AuthenticationValveServiceHolder.getInstance().setRealmService(mockRealmSvc);
+        TenantManager tenantManager = mock(TenantManager.class);
+        when(mockRealmSvc.getTenantManager()).thenReturn(tenantManager);
+        when(tenantManager.isTenantActive(any(Integer.class)))
+                .thenThrow(new IdentityRuntimeException("Some unexpected validation error."));
+        when(request.getContentType()).thenReturn("text/html");
+
+        try (MockedStatic<IdentityUtil> mockedIdentityUtil = mockStatic(IdentityUtil.class);
+             MockedStatic<ServiceURLBuilder> mockedServiceURLBuilder = mockStatic(ServiceURLBuilder.class)) {
+
+            mockedIdentityUtil.when(() -> IdentityUtil.getProperty(
+                    "BrandingConfiguration.UseInvalidTenantDomainErrorPageFromAuthPortal")).thenReturn("true");
+
+            ServiceURLBuilder mockUrlBuilder = mock(ServiceURLBuilder.class);
+            ServiceURL mockServiceURL = mock(ServiceURL.class);
+            String expectedRedirectUrl = "https://localhost:9443/authenticationendpoint/invalid_tenant_domain.do"
+                    + "?error=tenant.domain.validation.error&invalidTenantDomain=" + SUPER_TENANT_DOMAIN_NAME;
+
+            mockedServiceURLBuilder.when(ServiceURLBuilder::create).thenReturn(mockUrlBuilder);
+            when(mockUrlBuilder.setTenant(SUPER_TENANT_DOMAIN_NAME)).thenReturn(mockUrlBuilder);
+            when(mockUrlBuilder.addPath("authenticationendpoint/invalid_tenant_domain.do")).thenReturn(mockUrlBuilder);
+            when(mockUrlBuilder.addParameter("error", "tenant.domain.validation.error")).thenReturn(mockUrlBuilder);
+            when(mockUrlBuilder.addParameter("invalidTenantDomain", SUPER_TENANT_DOMAIN_NAME))
+                    .thenReturn(mockUrlBuilder);
+            when(mockUrlBuilder.build()).thenReturn(mockServiceURL);
+            when(mockServiceURL.getAbsolutePublicURL()).thenReturn(expectedRedirectUrl);
+
+            invokeAuthenticationValve();
+
+            ArgumentCaptor<String> redirectUrlCaptor = ArgumentCaptor.forClass(String.class);
+            verify(response).sendRedirect(redirectUrlCaptor.capture());
+            Assert.assertEquals(redirectUrlCaptor.getValue(), expectedRedirectUrl);
+        }
+    }
+
+    @Test
+    public void testInvokeForInvalidTenantDomainFallsBackToHtmlOnURLBuilderException() throws Exception {
+
+        mockRealmService(false);
+        String customErrorPage = "<p>$error.msg</p>";
+        AuthenticationValveDataHolder.getInstance().setInvalidTenantDomainErrorPage(customErrorPage);
+        PrintWriter printWriter = mock(PrintWriter.class);
+        when(response.getWriter()).thenReturn(printWriter);
+        when(request.getContentType()).thenReturn("text/html");
+
+        try (MockedStatic<IdentityUtil> mockedIdentityUtil = mockStatic(IdentityUtil.class);
+             MockedStatic<ServiceURLBuilder> mockedServiceURLBuilder = mockStatic(ServiceURLBuilder.class)) {
+
+            mockedIdentityUtil.when(() -> IdentityUtil.getProperty(
+                    "BrandingConfiguration.UseInvalidTenantDomainErrorPageFromAuthPortal")).thenReturn("true");
+
+            ServiceURLBuilder mockUrlBuilder = mock(ServiceURLBuilder.class);
+            mockedServiceURLBuilder.when(ServiceURLBuilder::create).thenReturn(mockUrlBuilder);
+            when(mockUrlBuilder.setTenant(any())).thenReturn(mockUrlBuilder);
+            when(mockUrlBuilder.addPath(any())).thenReturn(mockUrlBuilder);
+            when(mockUrlBuilder.addParameter(any(), any())).thenReturn(mockUrlBuilder);
+            when(mockUrlBuilder.build()).thenThrow(new URLBuilderException("Failed to build URL."));
+
+            invokeAuthenticationValve();
+
+            verify(response, never()).sendRedirect(any(String.class));
+            String expectedErrorMsg = SUPER_TENANT_DOMAIN_NAME + " is an invalid tenant domain";
+            verify(printWriter).print(customErrorPage.replace("$error.msg", expectedErrorMsg));
+        }
     }
 
     private void setIdentityErrorThreadLocal() {

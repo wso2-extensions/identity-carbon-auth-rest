@@ -49,6 +49,8 @@ import org.wso2.carbon.identity.auth.valve.internal.AuthenticationValveServiceHo
 import org.wso2.carbon.identity.auth.valve.util.APIErrorResponseHandler;
 import org.wso2.carbon.identity.auth.valve.util.AuthHandlerManager;
 import org.wso2.carbon.identity.base.IdentityRuntimeException;
+import org.wso2.carbon.identity.core.ServiceURLBuilder;
+import org.wso2.carbon.identity.core.URLBuilderException;
 import org.wso2.carbon.identity.core.util.IdentityConfigParser;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
@@ -56,6 +58,7 @@ import org.wso2.carbon.identity.oauth.dcr.exception.DCRMException;
 import org.wso2.carbon.identity.oauth.dcr.model.DCRConfiguration;
 import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.user.core.tenant.TenantManager;
+import org.wso2.carbon.utils.multitenancy.MultitenantConstants;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
@@ -96,6 +99,8 @@ public class AuthenticationValve extends ValveBase {
     private static final String URL_PATH_FILTER_REGEX = "(.*)/((\\.+)|(.*;+.*)|%2e.*)/(.*)";
     private static final Pattern URL_MATCHING_PATTERN = Pattern.compile(URL_PATH_FILTER_REGEX,
             Pattern.CASE_INSENSITIVE);
+    private static final String USE_INVALID_TENANT_DOMAIN_ERROR_PAGE_FROM_AUTH_PORTAL_CONFIG =
+            "BrandingConfiguration.UseInvalidTenantDomainErrorPageFromAuthPortal";
 
     private static final Log log = LogFactory.getLog(AuthenticationValve.class);
 
@@ -434,6 +439,27 @@ public class AuthenticationValve extends ValveBase {
             errorResponse.addProperty("description", errorMsg);
             response.getWriter().print(errorResponse.toString());
         } else {
+            if (useInvalidTenantDomainErrorPageFromAuthPortal()) {
+                try {
+                    String errorMessage = "invalid.tenant.domain";
+                    if (error == HttpServletResponse.SC_INTERNAL_SERVER_ERROR) {
+                        errorMessage = "tenant.domain.validation.error";
+                    }
+                    ServiceURLBuilder urlBuilder =
+                            ServiceURLBuilder.create().setTenant(MultitenantConstants.SUPER_TENANT_DOMAIN_NAME)
+                                    .addPath("authenticationendpoint/invalid_tenant_domain.do")
+                                    .addParameter("error", errorMessage);
+                    if (StringUtils.isNotBlank(tenantDomain)) {
+                        urlBuilder = urlBuilder.addParameter("invalidTenantDomain", tenantDomain);
+                    }
+                    response.sendRedirect(urlBuilder.build().getAbsolutePublicURL());
+                    return;
+                } catch (URLBuilderException | IOException e) {
+                    log.error("An error occurred while redirecting to the invalid_tenant_domain_response.jsp " +
+                            "page. Falling back to the invalid_tenant_domain_response.html page.", e);
+                }
+            }
+
             response.setContentType("text/html");
             String errorPage = AuthenticationValveDataHolder.getInstance().getInvalidTenantDomainErrorPage();
             if (StringUtils.isEmpty(errorPage)) {
@@ -476,5 +502,19 @@ public class AuthenticationValve extends ValveBase {
             throw new AuthenticationFailException("Given URL contain un-normalized content. URL validation failed for "
                     + url);
         }
+    }
+
+    /**
+     * If the configuration is set to `true`, the error page provided by the `authenticationendpoint`
+     * application (invalid_tenant_domain_response.jsp) is used.
+     * Otherwise, the page located at `repository/resources/identity/pages/invalid_tenant_domain_response.html`
+     * is used.
+     *
+     * @return true if the configuration is set to `true`, false otherwise.
+     */
+    private boolean useInvalidTenantDomainErrorPageFromAuthPortal() {
+
+        return Boolean.parseBoolean(
+                IdentityUtil.getProperty(USE_INVALID_TENANT_DOMAIN_ERROR_PAGE_FROM_AUTH_PORTAL_CONFIG));
     }
 }
