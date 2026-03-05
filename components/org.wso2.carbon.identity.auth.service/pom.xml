@@ -68,6 +68,10 @@
         </dependency>
         <dependency>
             <groupId>org.wso2.carbon.identity.framework</groupId>
+            <artifactId>org.wso2.carbon.identity.compatibility.settings.core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.wso2.carbon.identity.framework</groupId>
             <artifactId>org.wso2.carbon.identity.application.authentication.framework</artifactId>
             <exclusions>
                 <exclusion>
@@ -221,6 +225,7 @@
                 <extensions>true</extensions>
                 <configuration>
                     <instructions>
+                        <_contract>!JavaServlet,*</_contract>
                         <Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
                         <Bundle-Name>${project.artifactId}</Bundle-Name>
                         <Private-Package>
@@ -245,6 +250,7 @@
                             org.wso2.carbon.identity.application.common.model.*;
                             version="${carbon.identity.package.import.version.range}"
                             org.wso2.carbon.identity.core.*; version="${carbon.identity.package.import.version.range}",
+                            org.wso2.carbon.identity.compatibility.settings.core.*; version="${carbon.identity.package.import.version.range}",
                             org.wso2.carbon.identity.oauth2.*;
                             version="${org.wso2.carbon.identity.oauth.import.version.range}",
                             org.wso2.carbon.identity.organization.management.service; version="${org.wso2.carbon.identity.organization.management.core.version.range}",

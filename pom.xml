@@ -112,6 +112,11 @@
                 <artifactId>org.wso2.carbon.identity.configuration.mgt.core</artifactId>
                 <version>${identity.framework.version}</version>
             </dependency>
+            <dependency>
+                <groupId>org.wso2.carbon.identity.framework</groupId>
+                <artifactId>org.wso2.carbon.identity.compatibility.settings.core</artifactId>
+                <version>${identity.framework.version}</version>
+            </dependency>
 
             <dependency>
                 <groupId>org.wso2.carbon.identity.auth.rest</groupId>
@@ -444,7 +449,7 @@
         <org.wso2.carbon.identity.cors.valve.version>${project.version}</org.wso2.carbon.identity.cors.valve.version>
 
         <!--Carbon identity version-->
-        <identity.framework.version>7.8.506</identity.framework.version>
+        <identity.framework.version>7.10.35</identity.framework.version>
         <carbon.identity.package.import.version.range>[5.17.8, 8.0.0)</carbon.identity.package.import.version.range>
 
         <org.wso2.carbon.identity.oauth.version>7.0.342</org.wso2.carbon.identity.oauth.version>

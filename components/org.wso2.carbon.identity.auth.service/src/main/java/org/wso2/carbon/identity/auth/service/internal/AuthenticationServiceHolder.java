@@ -1,7 +1,7 @@
 /*
- * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016-2026, WSO2 LLC. (http://www.wso2.com).
  *
- * WSO2 Inc. licenses this file to you under the Apache License,
+ * WSO2 LLC. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License.
  * You may obtain a copy of the License at
@@ -20,6 +20,7 @@ package org.wso2.carbon.identity.auth.service.internal;
 
 import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
 import org.wso2.carbon.identity.auth.service.handler.ResourceHandler;
+import org.wso2.carbon.identity.compatibility.settings.core.service.CompatibilitySettingsService;
 import org.wso2.carbon.identity.core.handler.MessageHandlerComparator;
 import org.wso2.carbon.identity.organization.management.service.OrganizationManager;
 import org.wso2.carbon.identity.organization.management.service.OrganizationUserResidentResolverService;
@@ -40,6 +41,7 @@ public class AuthenticationServiceHolder {
     private RealmService realmService = null;
     private OrganizationManager organizationManager = null;
     private OrganizationUserResidentResolverService organizationUserResidentResolverService = null;
+    private CompatibilitySettingsService compatibilitySettingsService = null;
     private List<AuthenticationHandler> authenticationHandlers = new ArrayList<>();
     private List<ResourceHandler> resourceHandlers = new ArrayList<>();
 
@@ -80,6 +82,16 @@ public class AuthenticationServiceHolder {
                                                                    organizationUserResidentResolverService) {
 
         this.organizationUserResidentResolverService = organizationUserResidentResolverService;
+    }
+
+    public CompatibilitySettingsService getCompatibilitySettingsService() {
+
+        return compatibilitySettingsService;
+    }
+
+    public void setCompatibilitySettingsService(CompatibilitySettingsService compatibilitySettingsService) {
+
+        this.compatibilitySettingsService = compatibilitySettingsService;
     }
 
     public void addAuthenticationHandler(AuthenticationHandler authenticationHandler) {
