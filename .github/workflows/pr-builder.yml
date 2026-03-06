@@ -10,6 +10,11 @@ on:
     branches: [main, master]
   workflow_dispatch:
 
+# This cancels previous runs when a new commit is pushed to the same PR.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 env:
   MAVEN_OPTS: -Xmx4g -Xms1g
 
