@@ -333,7 +333,6 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
                         "Error while retrieving compatibility setting for " + DISABLE_BASIC_AUTH_FOR_ME_ENDPOINT_CONFIG,
                         e);
             }
-
         }
     }
 }
