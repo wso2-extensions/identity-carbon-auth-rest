@@ -209,7 +209,9 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
 
                                     // Block basic authentication for SCIM2 /me endpoint if compatibility config is
                                     // enabled.
-                                    blockScim2MeEndpointForBasicAuthIfRequired(requestURI, tenantDomain);
+                                    if (requestURI.contains(SCIM2_ME_ENDPOINT_URI)) {
+                                        blockScim2MeEndpointForBasicAuthIfRequired(requestURI, tenantDomain);
+                                    }
 
                                     if (requestURI.contains(TOTP_ENDPOINT_URI) ||
                                             requestURI.contains(FIDO_ENDPOINT_URI) ||
@@ -309,30 +311,28 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
     private void blockScim2MeEndpointForBasicAuthIfRequired(String requestURI, String tenantDomain)
             throws AuthenticationFailException {
 
-        if (requestURI.contains(SCIM2_ME_ENDPOINT_URI)) {
-            CompatibilitySettingsService compatibilitySettingsService =
-                    AuthenticationServiceHolder.getInstance().getCompatibilitySettingsService();
-            try {
-                CompatibilitySetting disabledBasicAuthForMeEndpointCompatibilitySetting =
-                        compatibilitySettingsService.getCompatibilitySettingsByGroupAndSetting(tenantDomain,
-                                SCIM2_COMPATIBILITY_SETTING_GROUP, DISABLE_BASIC_AUTH_FOR_ME_ENDPOINT_CONFIG);
+        CompatibilitySettingsService compatibilitySettingsService =
+                AuthenticationServiceHolder.getInstance().getCompatibilitySettingsService();
+        try {
+            CompatibilitySetting disabledBasicAuthForMeEndpointCompatibilitySetting =
+                    compatibilitySettingsService.getCompatibilitySettingsByGroupAndSetting(tenantDomain,
+                            SCIM2_COMPATIBILITY_SETTING_GROUP, DISABLE_BASIC_AUTH_FOR_ME_ENDPOINT_CONFIG);
 
-                boolean isDisableBasicAuthForMeEndpoint =
-                        Boolean.parseBoolean(
-                                disabledBasicAuthForMeEndpointCompatibilitySetting.getCompatibilitySettings()
-                                        .get(SCIM2_COMPATIBILITY_SETTING_GROUP)
-                                        .getSettingValue(DISABLE_BASIC_AUTH_FOR_ME_ENDPOINT_CONFIG));
+            boolean isDisableBasicAuthForMeEndpoint =
+                    Boolean.parseBoolean(
+                            disabledBasicAuthForMeEndpointCompatibilitySetting.getCompatibilitySettings()
+                                    .get(SCIM2_COMPATIBILITY_SETTING_GROUP)
+                                    .getSettingValue(DISABLE_BASIC_AUTH_FOR_ME_ENDPOINT_CONFIG));
 
-                if (isDisableBasicAuthForMeEndpoint) {
-                    String errorMessage = "Basic authentication is not allowed for scim2/Me endpoint";
-                    log.debug(errorMessage);
-                    throw new AuthenticationFailException(errorMessage);
-                }
-            } catch (CompatibilitySettingException e) {
-                log.error(
-                        "Error while retrieving compatibility setting for " + DISABLE_BASIC_AUTH_FOR_ME_ENDPOINT_CONFIG,
-                        e);
+            if (isDisableBasicAuthForMeEndpoint) {
+                String errorMessage = "Basic authentication is not allowed for scim2/Me endpoint";
+                log.debug(errorMessage);
+                throw new AuthenticationFailException(errorMessage);
             }
+        } catch (CompatibilitySettingException e) {
+            log.error(
+                    "Error while retrieving compatibility setting for " + DISABLE_BASIC_AUTH_FOR_ME_ENDPOINT_CONFIG,
+                    e);
         }
     }
 }

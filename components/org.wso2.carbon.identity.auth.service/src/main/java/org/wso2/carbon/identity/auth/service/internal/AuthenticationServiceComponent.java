@@ -220,17 +220,13 @@ public class AuthenticationServiceComponent {
     )
     protected void setCompatibilitySettingsService(CompatibilitySettingsService compatibilitySettingsService) {
 
-        if (log.isDebugEnabled()) {
-            log.debug("Setting the compatibility settings service.");
-        }
+        log.debug("Setting the compatibility settings service.");
         AuthenticationServiceHolder.getInstance().setCompatibilitySettingsService(compatibilitySettingsService);
     }
 
     protected void unsetCompatibilitySettingsService(CompatibilitySettingsService compatibilitySettingsService) {
 
-        if (log.isDebugEnabled()) {
-            log.debug("Unset compatibility settings service.");
-        }
+        log.debug("Unset compatibility settings service.");
         AuthenticationServiceHolder.getInstance().setCompatibilitySettingsService(null);
     }
 }
