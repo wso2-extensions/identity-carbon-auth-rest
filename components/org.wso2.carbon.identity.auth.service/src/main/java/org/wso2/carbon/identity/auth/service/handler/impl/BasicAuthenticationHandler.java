@@ -311,16 +311,27 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
 
         CompatibilitySettingsService compatibilitySettingsService =
                 AuthenticationServiceHolder.getInstance().getCompatibilitySettingsService();
-        try {
-            CompatibilitySetting disabledBasicAuthForMeEndpointCompatibilitySetting =
-                    compatibilitySettingsService.getCompatibilitySettingsByGroupAndSetting(tenantDomain,
-                            SCIM2_COMPATIBILITY_SETTING_GROUP, DISABLE_BASIC_AUTH_FOR_ME_ENDPOINT_CONFIG);
 
-            boolean isDisableBasicAuthForMeEndpoint =
-                    Boolean.parseBoolean(
-                            disabledBasicAuthForMeEndpointCompatibilitySetting.getCompatibilitySettings()
-                                    .get(SCIM2_COMPATIBILITY_SETTING_GROUP)
-                                    .getSettingValue(DISABLE_BASIC_AUTH_FOR_ME_ENDPOINT_CONFIG));
+        CompatibilitySetting disabledBasicAuthForMeEndpointCompatibilitySetting = null;
+        try {
+            if (compatibilitySettingsService != null) {
+                disabledBasicAuthForMeEndpointCompatibilitySetting =
+                        compatibilitySettingsService.getCompatibilitySettingsByGroupAndSetting(
+                                tenantDomain, SCIM2_COMPATIBILITY_SETTING_GROUP,
+                                DISABLE_BASIC_AUTH_FOR_ME_ENDPOINT_CONFIG);
+            }
+
+            boolean isDisableBasicAuthForMeEndpoint = false;
+            if (disabledBasicAuthForMeEndpointCompatibilitySetting != null &&
+                    disabledBasicAuthForMeEndpointCompatibilitySetting.getCompatibilitySettings() != null &&
+                    disabledBasicAuthForMeEndpointCompatibilitySetting.getCompatibilitySettings()
+                            .get(SCIM2_COMPATIBILITY_SETTING_GROUP) != null) {
+
+                String settingValue = disabledBasicAuthForMeEndpointCompatibilitySetting.getCompatibilitySettings()
+                        .get(SCIM2_COMPATIBILITY_SETTING_GROUP)
+                        .getSettingValue(DISABLE_BASIC_AUTH_FOR_ME_ENDPOINT_CONFIG);
+                isDisableBasicAuthForMeEndpoint = Boolean.parseBoolean(settingValue);
+            }
 
             if (isDisableBasicAuthForMeEndpoint) {
                 String errorMessage = "Basic authentication is not allowed for scim2/Me endpoint";
