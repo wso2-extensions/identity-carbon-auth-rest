@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  ~ Copyright (c) 2015-2023, WSO2 LLC. (http://www.wso2.com).
+  ~ Copyright (c) 2015-2026, WSO2 LLC. (http://www.wso2.com).
   ~
   ~ WSO2 LLC. licenses this file to you under the Apache License,
   ~ Version 2.0 (the "License"); you may not use this file except
@@ -27,7 +27,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.wso2.carbon.identity.auth.rest</groupId>
     <artifactId>identity-carbon-auth-rest</artifactId>
-    <version>1.12.3-SNAPSHOT</version>
+    <version>1.12.5-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>WSO2 Carbon - Auth/Authz Modules</name>
     <description>
@@ -56,6 +56,7 @@
         <module>features/org.wso2.carbon.identity.authz.server.feature</module>
         <module>features/org.wso2.carbon.identity.context.rewrite.server.feature</module>
         <module>features/org.wso2.carbon.identity.cors.server.feature</module>
+        <module>features/org.wso2.carbon.identity.custom.header.server.feature</module>
     </modules>
 
     <dependencyManagement>
@@ -152,6 +153,11 @@
             <dependency>
                 <groupId>org.wso2.carbon.identity.auth.rest</groupId>
                 <artifactId>org.wso2.carbon.identity.cors.valve</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.wso2.carbon.identity.auth.rest</groupId>
+                <artifactId>org.wso2.carbon.identity.custom.header.filter</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -447,6 +453,8 @@
         </org.wso2.carbon.identity.cors.service.version.range>
 
         <org.wso2.carbon.identity.cors.valve.version>${project.version}</org.wso2.carbon.identity.cors.valve.version>
+
+        <org.wso2.carbon.identity.custom.header.filter.version>${project.version}</org.wso2.carbon.identity.custom.header.filter.version>
 
         <!--Carbon identity version-->
         <identity.framework.version>7.10.35</identity.framework.version>
