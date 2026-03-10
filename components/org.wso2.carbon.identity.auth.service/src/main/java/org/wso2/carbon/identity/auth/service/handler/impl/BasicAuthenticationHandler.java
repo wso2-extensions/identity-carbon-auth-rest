@@ -39,7 +39,7 @@ import org.wso2.carbon.identity.auth.service.util.Constants;
 import org.wso2.carbon.identity.base.IdentityRuntimeException;
 import org.wso2.carbon.identity.compatibility.settings.core.exception.CompatibilitySettingException;
 import org.wso2.carbon.identity.compatibility.settings.core.model.CompatibilitySetting;
-import org.wso2.carbon.identity.compatibility.settings.core.model.CompatibilitySettingGroup;
+import org.wso2.carbon.identity.compatibility.settings.core.service.CompatibilitySettingsService;
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
 import org.wso2.carbon.identity.core.context.IdentityContext;
 import org.wso2.carbon.identity.core.context.model.UserActor;
@@ -54,7 +54,6 @@ import org.wso2.carbon.user.core.common.User;
 import org.wso2.carbon.user.core.constants.UserCoreClaimConstants;
 import org.wso2.carbon.user.core.util.UserCoreUtil;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
-import org.wso2.carbon.identity.compatibility.settings.core.service.CompatibilitySettingsService;
 
 import java.nio.charset.Charset;
 
@@ -207,10 +206,10 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
                                     String requestURI = authenticationRequest.getRequest().getRequestURI()
                                             .toLowerCase();
 
-                                    // Block basic authentication for SCIM2 /me endpoint if compatibility config is
+                                    // Block basic authentication for scim2/Me endpoint if compatibility config is
                                     // enabled.
                                     if (requestURI.contains(SCIM2_ME_ENDPOINT_URI)) {
-                                        blockScim2MeEndpointForBasicAuthIfRequired(requestURI, tenantDomain);
+                                        blockScim2MeEndpointForBasicAuthIfRequired(tenantDomain);
                                     }
 
                                     if (requestURI.contains(TOTP_ENDPOINT_URI) ||
@@ -304,11 +303,10 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
     /**
      * Blocks basic authentication for the scim2/Me endpoint if the compatibility setting is enabled.
      *
-     * @param requestURI The request URI to check if it contains the scim2/Me endpoint.
      * @param tenantDomain The tenant domain used to retrieve the compatibility settings.
      * @throws AuthenticationFailException If basic authentication is disabled for the scim2/Me endpoint.
      */
-    private void blockScim2MeEndpointForBasicAuthIfRequired(String requestURI, String tenantDomain)
+    private void blockScim2MeEndpointForBasicAuthIfRequired(String tenantDomain)
             throws AuthenticationFailException {
 
         CompatibilitySettingsService compatibilitySettingsService =
