@@ -62,7 +62,7 @@
                             org.wso2.carbon.identity.configuration.mgt.core.*; version="${carbon.identity.package.import.version.range}",
                             org.wso2.carbon.identity.core.*; version="${carbon.identity.package.import.version.range}",
                             org.wso2.carbon.context.*; version="${carbon.kernel.imp.pkg.version.range}",
-                            javax.servlet.*,
+                            javax.servlet.*; version="${imp.pkg.version.javax.servlet}",
                         </Import-Package>
                     </instructions>
                 </configuration>
