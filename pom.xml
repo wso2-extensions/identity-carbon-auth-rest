@@ -457,7 +457,7 @@
         <org.wso2.carbon.identity.custom.header.filter.version>${project.version}</org.wso2.carbon.identity.custom.header.filter.version>
 
         <!--Carbon identity version-->
-        <identity.framework.version>7.10.35</identity.framework.version>
+        <identity.framework.version>7.10.71</identity.framework.version>
         <carbon.identity.package.import.version.range>[5.17.8, 8.0.0)</carbon.identity.package.import.version.range>
 
         <org.wso2.carbon.identity.oauth.version>7.0.342</org.wso2.carbon.identity.oauth.version>
