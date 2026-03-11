@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2025, WSO2 LLC. (http://www.wso2.com).
+ * Copyright (c) 2016-2026, WSO2 LLC. (http://www.wso2.com).
  *
  * WSO2 LLC. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -37,6 +37,9 @@ import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
 import org.wso2.carbon.identity.auth.service.internal.AuthenticationServiceHolder;
 import org.wso2.carbon.identity.auth.service.util.Constants;
 import org.wso2.carbon.identity.base.IdentityRuntimeException;
+import org.wso2.carbon.identity.compatibility.settings.core.CompatibilitySettingsManagerImpl;
+import org.wso2.carbon.identity.compatibility.settings.core.exception.CompatibilitySettingException;
+import org.wso2.carbon.identity.compatibility.settings.core.model.CompatibilitySetting;
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
 import org.wso2.carbon.identity.core.context.IdentityContext;
 import org.wso2.carbon.identity.core.context.model.UserActor;
@@ -78,7 +81,10 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
     private final String FIDO2_ENDPOINT_URI = "api/users/v2/me/webauthn";
     private final String BACKUP_CODE_ENDPOINT_URI = "api/users/v1/me/backup-code";
     private final String MFA_ENDPOINT_URI = "api/users/v1/me/mfa";
+    private final String SCIM2_ME_ENDPOINT_URI = "scim2/me";
     private final String ORGANIZATION_PATH_PARAM = "/o/";
+    private final String SCIM2_COMPATIBILITY_SETTING_GROUP = "scim2";
+    private final String DISABLE_BASIC_AUTH_FOR_ME_ENDPOINT_CONFIG = "disableBasicAuthForMeEndpoint";
 
     @Override
     public void init(InitConfig initConfig) {
@@ -199,6 +205,13 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
                                 if (authenticationRequest.getRequest() != null) {
                                     String requestURI = authenticationRequest.getRequest().getRequestURI()
                                             .toLowerCase();
+
+                                    // Block basic authentication for scim2/Me endpoint if compatibility config is
+                                    // enabled.
+                                    if (requestURI.contains(SCIM2_ME_ENDPOINT_URI)) {
+                                        blockScim2MeEndpointForBasicAuthIfRequired(tenantDomain);
+                                    }
+
                                     if (requestURI.contains(TOTP_ENDPOINT_URI) ||
                                             requestURI.contains(FIDO_ENDPOINT_URI) ||
                                             requestURI.contains(FIDO2_ENDPOINT_URI) ||
@@ -285,5 +298,50 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
                 .username(user.getUsername())
                 .build();
         IdentityContext.getThreadLocalIdentityContext().setActor(userActor);
+    }
+
+    /**
+     * Blocks basic authentication for the scim2/Me endpoint if the compatibility setting is enabled.
+     *
+     * @param tenantDomain The tenant domain used to retrieve the compatibility settings.
+     * @throws AuthenticationFailException If basic authentication is disabled for the scim2/Me endpoint.
+     */
+    private void blockScim2MeEndpointForBasicAuthIfRequired(String tenantDomain)
+            throws AuthenticationFailException {
+
+        CompatibilitySettingsManagerImpl compatibilitySettingsManager =
+                (CompatibilitySettingsManagerImpl) AuthenticationServiceHolder.getInstance().getCompatibilitySettingsManager();
+
+        CompatibilitySetting disabledBasicAuthForMeEndpointCompatibilitySetting = null;
+        try {
+            if (compatibilitySettingsManager != null) {
+                disabledBasicAuthForMeEndpointCompatibilitySetting =
+                        compatibilitySettingsManager.getCompatibilitySettingsByGroupAndSetting(
+                                tenantDomain, SCIM2_COMPATIBILITY_SETTING_GROUP,
+                                DISABLE_BASIC_AUTH_FOR_ME_ENDPOINT_CONFIG);
+            }
+
+            boolean isDisableBasicAuthForMeEndpoint = false;
+            if (disabledBasicAuthForMeEndpointCompatibilitySetting != null &&
+                    disabledBasicAuthForMeEndpointCompatibilitySetting.getCompatibilitySettings() != null &&
+                    disabledBasicAuthForMeEndpointCompatibilitySetting.getCompatibilitySettings()
+                            .get(SCIM2_COMPATIBILITY_SETTING_GROUP) != null) {
+
+                String settingValue = disabledBasicAuthForMeEndpointCompatibilitySetting.getCompatibilitySettings()
+                        .get(SCIM2_COMPATIBILITY_SETTING_GROUP)
+                        .getSettingValue(DISABLE_BASIC_AUTH_FOR_ME_ENDPOINT_CONFIG);
+                isDisableBasicAuthForMeEndpoint = Boolean.parseBoolean(settingValue);
+            }
+
+            if (isDisableBasicAuthForMeEndpoint) {
+                String errorMessage = "Basic authentication is not allowed for scim2/Me endpoint";
+                log.debug(errorMessage);
+                throw new AuthenticationFailException(errorMessage);
+            }
+        } catch (CompatibilitySettingException e) {
+            log.error(
+                    "Error while retrieving compatibility setting for " + DISABLE_BASIC_AUTH_FOR_ME_ENDPOINT_CONFIG,
+                    e);
+        }
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2025, WSO2 LLC. (https://www.wso2.com).
+ * Copyright (c) 2016-2026, WSO2 LLC. (https://www.wso2.com).
  *
  * WSO2 LLC. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -32,6 +32,7 @@ import org.wso2.carbon.identity.auth.service.handler.impl.ClientCertificateBased
 import org.wso2.carbon.identity.auth.service.handler.impl.OAuth2AccessTokenHandler;
 import org.wso2.carbon.identity.auth.service.handler.impl.TomcatCookieAuthenticationHandler;
 import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
+import org.wso2.carbon.identity.compatibility.settings.core.CompatibilitySettingsManager;
 import org.wso2.carbon.identity.core.handler.HandlerComparator;
 import org.wso2.carbon.identity.core.util.IdentityCoreInitializedEvent;
 import org.wso2.carbon.identity.organization.management.service.OrganizationManager;
@@ -208,6 +209,25 @@ public class AuthenticationServiceComponent {
             log.debug("Unset organization user resident resolver service.");
         }
         AuthenticationServiceHolder.getInstance().setOrganizationUserResidentResolverService(null);
+    }
+
+    @Reference(
+            name = "compatibilitySettingsManager",
+            service = CompatibilitySettingsManager.class,
+            cardinality = ReferenceCardinality.MANDATORY,
+            policy = ReferencePolicy.DYNAMIC,
+            unbind = "unsetCompatibilitySettingsManager"
+    )
+    protected void setCompatibilitySettingsManager(CompatibilitySettingsManager compatibilitySettingsManager) {
+
+        log.debug("Setting the compatibility settings service.");
+        AuthenticationServiceHolder.getInstance().setCompatibilitySettingsManager(compatibilitySettingsManager);
+    }
+
+    protected void unsetCompatibilitySettingsManager(CompatibilitySettingsManager compatibilitySettingsManager) {
+
+        log.debug("Unset compatibility settings service.");
+        AuthenticationServiceHolder.getInstance().setCompatibilitySettingsManager(null);
     }
 }
 

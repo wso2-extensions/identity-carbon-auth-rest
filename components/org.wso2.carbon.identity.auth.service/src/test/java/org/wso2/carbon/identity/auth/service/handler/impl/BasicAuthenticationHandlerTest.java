@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, WSO2 LLC. (http://www.wso2.com).
+ * Copyright (c) 2025-2026, WSO2 LLC. (http://www.wso2.com).
  *
  * WSO2 LLC. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -38,6 +38,10 @@ import org.wso2.carbon.identity.auth.service.internal.AuthenticationServiceHolde
 import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
 import org.wso2.carbon.identity.auth.service.util.CommonTestUtils;
 import org.wso2.carbon.identity.base.IdentityRuntimeException;
+import org.wso2.carbon.identity.compatibility.settings.core.CompatibilitySettingsManagerImpl;
+import org.wso2.carbon.identity.compatibility.settings.core.exception.CompatibilitySettingException;
+import org.wso2.carbon.identity.compatibility.settings.core.model.CompatibilitySetting;
+import org.wso2.carbon.identity.compatibility.settings.core.model.CompatibilitySettingGroup;
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
 import org.wso2.carbon.identity.core.context.IdentityContext;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
@@ -55,6 +59,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+
+import org.apache.catalina.connector.Request;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -92,6 +98,12 @@ public class BasicAuthenticationHandlerTest {
     @Mock
     private AuthenticationServiceHolder mockAuthenticationServiceHolder;
 
+    @Mock
+    private CompatibilitySettingsManagerImpl mockCompatibilitySettingsManager;
+
+    @Mock
+    private Request mockRequest;
+
     private BasicAuthenticationHandler basicAuthenticationHandler;
     private MockedStatic<AuthConfigurationUtil> mockedAuthConfigurationUtil;
     private MockedStatic<MultitenantUtils> mockedMultitenantUtils;
@@ -102,6 +114,7 @@ public class BasicAuthenticationHandlerTest {
 
     private static final int TEST_TENANT_ID = 1;
     private static final String TEST_TENANT_DOMAIN = "test.com";
+    private static final String SCIM2 = "scim2";
 
     @BeforeClass
     public void init() {
@@ -137,6 +150,7 @@ public class BasicAuthenticationHandlerTest {
         when(AuthenticationServiceHolder.getInstance()).thenReturn(mockAuthenticationServiceHolder);
         when(mockAuthenticationServiceHolder.getRealmService()).thenReturn(mockRealmService);
         when(mockAuthenticationServiceHolder.getOrganizationManager()).thenReturn(mockOrganizationManager);
+        when(mockAuthenticationServiceHolder.getCompatibilitySettingsManager()).thenReturn(mockCompatibilitySettingsManager);
 
         // Instead of stubbing the field getter, set the ThreadLocal directly.
         Map<String, Object> threadLocalMap = new HashMap<>();
@@ -272,5 +286,232 @@ public class BasicAuthenticationHandlerTest {
         String authHeader = "Basic " + Base64.encodeBase64String("alice".getBytes(StandardCharsets.UTF_8));
         when(mockAuthenticationRequest.getHeader(HttpHeaders.AUTHORIZATION)).thenReturn(authHeader);
         basicAuthenticationHandler.doAuthenticate(mockAuthenticationContext);
+    }
+
+    @Test(expectedExceptions = AuthenticationFailException.class,
+            expectedExceptionsMessageRegExp = "Basic authentication is not allowed for scim2/Me endpoint")
+    public void testDoAuthenticateScim2MeEndpointWithBasicAuthDisabled() throws Exception {
+
+        String username = "alice@example.com";
+        String password = "temp123";
+        String usernameWithTenantDomain = username + "@" + TEST_TENANT_DOMAIN;
+        String apiResource = "/t/" + TEST_TENANT_DOMAIN + "/scim2/me";
+        String authHeader = "Basic " +
+                Base64.encodeBase64String((usernameWithTenantDomain + ":" + password).getBytes(StandardCharsets.UTF_8));
+
+        when(mockAuthenticationRequest.getHeader(HttpHeaders.AUTHORIZATION)).thenReturn(authHeader);
+        when(mockAuthenticationRequest.getRequestUri()).thenReturn(apiResource);
+        when(mockAuthenticationRequest.getRequest()).thenReturn(mockRequest);
+        when(mockRequest.getRequestURI()).thenReturn(apiResource);
+
+        mockedIdentityTenantUtil.when(() -> IdentityTenantUtil.getTenantIdOfUser(usernameWithTenantDomain))
+                .thenReturn(TEST_TENANT_ID);
+        mockedMultitenantUtils.when(() -> MultitenantUtils.getTenantDomain(usernameWithTenantDomain))
+                .thenReturn(TEST_TENANT_DOMAIN);
+        when(MultitenantUtils.getTenantAwareUsername(usernameWithTenantDomain)).thenReturn(username);
+        when(MultitenantUtils.isEmailUserName()).thenReturn(false);
+
+        when(mockRealmService.getTenantUserRealm(anyInt())).thenReturn(mockUserRealm);
+        when(mockUserRealm.getUserStoreManager()).thenReturn(mockUserStoreManager);
+
+        org.wso2.carbon.user.core.common.AuthenticationResult mockAuthResult =
+                mock(org.wso2.carbon.user.core.common.AuthenticationResult.class);
+        when(mockAuthResult.getAuthenticationStatus())
+                .thenReturn(org.wso2.carbon.user.core.common.AuthenticationResult.AuthenticationStatus.SUCCESS);
+
+        User mockUser = mock(User.class);
+        when(mockUser.getUserID()).thenReturn("user-123");
+        when(mockUser.getUsername()).thenReturn(username);
+        Optional<User> optionalUser = Optional.of(mockUser);
+        when(mockAuthResult.getAuthenticatedUser()).thenReturn(optionalUser);
+
+        when(mockUserStoreManager.authenticateWithID(
+                eq(UserCoreClaimConstants.USERNAME_CLAIM_URI),
+                eq(username),
+                eq(password),
+                any(String.class)))
+                .thenReturn(mockAuthResult);
+
+        mockedUserCoreUtil.when(UserCoreUtil::getDomainFromThreadLocal).thenReturn("PRIMARY");
+
+        // Setup compatibility settings to disable basic auth for scim2/me.
+        CompatibilitySetting mockCompatibilitySetting = mock(CompatibilitySetting.class);
+        CompatibilitySettingGroup mockSettingGroup = mock(CompatibilitySettingGroup.class);
+        Map<String, CompatibilitySettingGroup> settingsMap = new HashMap<>();
+        settingsMap.put(SCIM2, mockSettingGroup);
+
+        when(mockCompatibilitySettingsManager.getCompatibilitySettingsByGroupAndSetting(
+                eq(TEST_TENANT_DOMAIN), eq(SCIM2), eq("disableBasicAuthForMeEndpoint")))
+                .thenReturn(mockCompatibilitySetting);
+        when(mockCompatibilitySetting.getCompatibilitySettings()).thenReturn(settingsMap);
+        when(mockSettingGroup.getSettingValue("disableBasicAuthForMeEndpoint")).thenReturn("true");
+
+        basicAuthenticationHandler.doAuthenticate(mockAuthenticationContext);
+    }
+
+    @Test
+    public void testDoAuthenticateScim2MeEndpointWithBasicAuthEnabled() throws Exception {
+
+        String username = "alice@example.com";
+        String password = "temp123";
+        String usernameWithTenantDomain = username + "@" + TEST_TENANT_DOMAIN;
+        String apiResource = "/t/" + TEST_TENANT_DOMAIN + "/scim2/me";
+        String authHeader = "Basic " +
+                Base64.encodeBase64String((usernameWithTenantDomain + ":" + password).getBytes(StandardCharsets.UTF_8));
+
+        when(mockAuthenticationRequest.getHeader(HttpHeaders.AUTHORIZATION)).thenReturn(authHeader);
+        when(mockAuthenticationRequest.getRequestUri()).thenReturn(apiResource);
+        when(mockAuthenticationRequest.getRequest()).thenReturn(mockRequest);
+        when(mockRequest.getRequestURI()).thenReturn(apiResource);
+
+        mockedIdentityTenantUtil.when(() -> IdentityTenantUtil.getTenantIdOfUser(usernameWithTenantDomain))
+                .thenReturn(TEST_TENANT_ID);
+        mockedMultitenantUtils.when(() -> MultitenantUtils.getTenantDomain(usernameWithTenantDomain))
+                .thenReturn(TEST_TENANT_DOMAIN);
+        when(MultitenantUtils.getTenantAwareUsername(usernameWithTenantDomain)).thenReturn(username);
+        when(MultitenantUtils.isEmailUserName()).thenReturn(false);
+
+        when(mockRealmService.getTenantUserRealm(anyInt())).thenReturn(mockUserRealm);
+        when(mockUserRealm.getUserStoreManager()).thenReturn(mockUserStoreManager);
+
+        org.wso2.carbon.user.core.common.AuthenticationResult mockAuthResult =
+                mock(org.wso2.carbon.user.core.common.AuthenticationResult.class);
+        when(mockAuthResult.getAuthenticationStatus())
+                .thenReturn(org.wso2.carbon.user.core.common.AuthenticationResult.AuthenticationStatus.SUCCESS);
+
+        User mockUser = mock(User.class);
+        when(mockUser.getUserID()).thenReturn("user-123");
+        when(mockUser.getUsername()).thenReturn(username);
+        Optional<User> optionalUser = Optional.of(mockUser);
+        when(mockAuthResult.getAuthenticatedUser()).thenReturn(optionalUser);
+
+        when(mockUserStoreManager.authenticateWithID(
+                eq(UserCoreClaimConstants.USERNAME_CLAIM_URI),
+                eq(username),
+                eq(password),
+                any(String.class)))
+                .thenReturn(mockAuthResult);
+
+        mockedUserCoreUtil.when(UserCoreUtil::getDomainFromThreadLocal).thenReturn("PRIMARY");
+
+        // Setup compatibility settings to allow basic auth for scim2/me.
+        CompatibilitySetting mockCompatibilitySetting = mock(CompatibilitySetting.class);
+        CompatibilitySettingGroup mockSettingGroup = mock(CompatibilitySettingGroup.class);
+        Map<String, CompatibilitySettingGroup> settingsMap = new HashMap<>();
+        settingsMap.put(SCIM2, mockSettingGroup);
+
+        when(mockCompatibilitySettingsManager.getCompatibilitySettingsByGroupAndSetting(
+                eq(TEST_TENANT_DOMAIN), eq(SCIM2), eq("disableBasicAuthForMeEndpoint")))
+                .thenReturn(mockCompatibilitySetting);
+        when(mockCompatibilitySetting.getCompatibilitySettings()).thenReturn(settingsMap);
+        when(mockSettingGroup.getSettingValue("disableBasicAuthForMeEndpoint")).thenReturn("false");
+
+        AuthenticationResult result = basicAuthenticationHandler.doAuthenticate(mockAuthenticationContext);
+        Assert.assertEquals(result.getAuthenticationStatus(), AuthenticationStatus.SUCCESS);
+    }
+
+    @Test
+    public void testDoAuthenticateScim2MeEndpointWithCompatibilitySettingException() throws Exception {
+
+        String username = "alice@example.com";
+        String password = "temp123";
+        String usernameWithTenantDomain = username + "@" + TEST_TENANT_DOMAIN;
+        String apiResource = "/t/" + TEST_TENANT_DOMAIN + "/scim2/me";
+        String authHeader = "Basic " +
+                Base64.encodeBase64String((usernameWithTenantDomain + ":" + password).getBytes(StandardCharsets.UTF_8));
+
+        when(mockAuthenticationRequest.getHeader(HttpHeaders.AUTHORIZATION)).thenReturn(authHeader);
+        when(mockAuthenticationRequest.getRequestUri()).thenReturn(apiResource);
+        when(mockAuthenticationRequest.getRequest()).thenReturn(mockRequest);
+        when(mockRequest.getRequestURI()).thenReturn(apiResource);
+
+        mockedIdentityTenantUtil.when(() -> IdentityTenantUtil.getTenantIdOfUser(usernameWithTenantDomain))
+                .thenReturn(TEST_TENANT_ID);
+        mockedMultitenantUtils.when(() -> MultitenantUtils.getTenantDomain(usernameWithTenantDomain))
+                .thenReturn(TEST_TENANT_DOMAIN);
+        when(MultitenantUtils.getTenantAwareUsername(usernameWithTenantDomain)).thenReturn(username);
+        when(MultitenantUtils.isEmailUserName()).thenReturn(false);
+
+        when(mockRealmService.getTenantUserRealm(anyInt())).thenReturn(mockUserRealm);
+        when(mockUserRealm.getUserStoreManager()).thenReturn(mockUserStoreManager);
+
+        org.wso2.carbon.user.core.common.AuthenticationResult mockAuthResult =
+                mock(org.wso2.carbon.user.core.common.AuthenticationResult.class);
+        when(mockAuthResult.getAuthenticationStatus())
+                .thenReturn(org.wso2.carbon.user.core.common.AuthenticationResult.AuthenticationStatus.SUCCESS);
+
+        User mockUser = mock(User.class);
+        when(mockUser.getUserID()).thenReturn("user-123");
+        when(mockUser.getUsername()).thenReturn(username);
+        Optional<User> optionalUser = Optional.of(mockUser);
+        when(mockAuthResult.getAuthenticatedUser()).thenReturn(optionalUser);
+
+        when(mockUserStoreManager.authenticateWithID(
+                eq(UserCoreClaimConstants.USERNAME_CLAIM_URI),
+                eq(username),
+                eq(password),
+                any(String.class)))
+                .thenReturn(mockAuthResult);
+
+        mockedUserCoreUtil.when(UserCoreUtil::getDomainFromThreadLocal).thenReturn("PRIMARY");
+
+        // Setup compatibility settings to throw exception.
+        when(mockCompatibilitySettingsManager.getCompatibilitySettingsByGroupAndSetting(
+                eq(TEST_TENANT_DOMAIN), eq(SCIM2), eq("disableBasicAuthForMeEndpoint")))
+                .thenThrow(new CompatibilitySettingException("Setting not found"));
+
+        // Should still authenticate successfully when CompatibilitySettingException is thrown.
+        AuthenticationResult result = basicAuthenticationHandler.doAuthenticate(mockAuthenticationContext);
+        Assert.assertEquals(result.getAuthenticationStatus(), AuthenticationStatus.SUCCESS);
+    }
+
+    @Test
+    public void testDoAuthenticateNonScim2MeEndpoint() throws Exception {
+
+        String username = "alice@example.com";
+        String password = "temp123";
+        String usernameWithTenantDomain = username + "@" + TEST_TENANT_DOMAIN;
+        String apiResource = "/api/resource";
+        String authHeader = "Basic " +
+                Base64.encodeBase64String((usernameWithTenantDomain + ":" + password).getBytes(StandardCharsets.UTF_8));
+
+        when(mockAuthenticationRequest.getHeader(HttpHeaders.AUTHORIZATION)).thenReturn(authHeader);
+        when(mockAuthenticationRequest.getRequestUri()).thenReturn(apiResource);
+        when(mockAuthenticationRequest.getRequest()).thenReturn(mockRequest);
+        when(mockRequest.getRequestURI()).thenReturn(apiResource);
+
+        mockedIdentityTenantUtil.when(() -> IdentityTenantUtil.getTenantIdOfUser(usernameWithTenantDomain))
+                .thenReturn(TEST_TENANT_ID);
+        mockedMultitenantUtils.when(() -> MultitenantUtils.getTenantDomain(usernameWithTenantDomain))
+                .thenReturn(TEST_TENANT_DOMAIN);
+        when(MultitenantUtils.getTenantAwareUsername(usernameWithTenantDomain)).thenReturn(username);
+        when(MultitenantUtils.isEmailUserName()).thenReturn(false);
+
+        when(mockRealmService.getTenantUserRealm(anyInt())).thenReturn(mockUserRealm);
+        when(mockUserRealm.getUserStoreManager()).thenReturn(mockUserStoreManager);
+
+        org.wso2.carbon.user.core.common.AuthenticationResult mockAuthResult =
+                mock(org.wso2.carbon.user.core.common.AuthenticationResult.class);
+        when(mockAuthResult.getAuthenticationStatus())
+                .thenReturn(org.wso2.carbon.user.core.common.AuthenticationResult.AuthenticationStatus.SUCCESS);
+
+        User mockUser = mock(User.class);
+        when(mockUser.getUserID()).thenReturn("user-123");
+        when(mockUser.getUsername()).thenReturn(username);
+        Optional<User> optionalUser = Optional.of(mockUser);
+        when(mockAuthResult.getAuthenticatedUser()).thenReturn(optionalUser);
+
+        when(mockUserStoreManager.authenticateWithID(
+                eq(UserCoreClaimConstants.USERNAME_CLAIM_URI),
+                eq(username),
+                eq(password),
+                any(String.class)))
+                .thenReturn(mockAuthResult);
+
+        mockedUserCoreUtil.when(UserCoreUtil::getDomainFromThreadLocal).thenReturn("PRIMARY");
+
+        // Should not call compatibility settings service for non-scim2/me endpoint.
+        AuthenticationResult result = basicAuthenticationHandler.doAuthenticate(mockAuthenticationContext);
+        Assert.assertEquals(result.getAuthenticationStatus(), AuthenticationStatus.SUCCESS);
     }
 }
