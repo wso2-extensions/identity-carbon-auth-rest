@@ -32,7 +32,7 @@ import org.wso2.carbon.identity.auth.service.handler.impl.ClientCertificateBased
 import org.wso2.carbon.identity.auth.service.handler.impl.OAuth2AccessTokenHandler;
 import org.wso2.carbon.identity.auth.service.handler.impl.TomcatCookieAuthenticationHandler;
 import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
-import org.wso2.carbon.identity.compatibility.settings.core.service.CompatibilitySettingsService;
+import org.wso2.carbon.identity.compatibility.settings.core.CompatibilitySettingsManager;
 import org.wso2.carbon.identity.core.handler.HandlerComparator;
 import org.wso2.carbon.identity.core.util.IdentityCoreInitializedEvent;
 import org.wso2.carbon.identity.organization.management.service.OrganizationManager;
@@ -212,22 +212,22 @@ public class AuthenticationServiceComponent {
     }
 
     @Reference(
-            name = "compatibilitySettingsService",
-            service = CompatibilitySettingsService.class,
+            name = "compatibilitySettingsManager",
+            service = CompatibilitySettingsManager.class,
             cardinality = ReferenceCardinality.MANDATORY,
             policy = ReferencePolicy.DYNAMIC,
-            unbind = "unsetCompatibilitySettingsService"
+            unbind = "unsetCompatibilitySettingsManager"
     )
-    protected void setCompatibilitySettingsService(CompatibilitySettingsService compatibilitySettingsService) {
+    protected void setCompatibilitySettingsManager(CompatibilitySettingsManager compatibilitySettingsManager) {
 
         log.debug("Setting the compatibility settings service.");
-        AuthenticationServiceHolder.getInstance().setCompatibilitySettingsService(compatibilitySettingsService);
+        AuthenticationServiceHolder.getInstance().setCompatibilitySettingsManager(compatibilitySettingsManager);
     }
 
-    protected void unsetCompatibilitySettingsService(CompatibilitySettingsService compatibilitySettingsService) {
+    protected void unsetCompatibilitySettingsManager(CompatibilitySettingsManager compatibilitySettingsManager) {
 
         log.debug("Unset compatibility settings service.");
-        AuthenticationServiceHolder.getInstance().setCompatibilitySettingsService(null);
+        AuthenticationServiceHolder.getInstance().setCompatibilitySettingsManager(null);
     }
 }
 

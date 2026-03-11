@@ -37,9 +37,9 @@ import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
 import org.wso2.carbon.identity.auth.service.internal.AuthenticationServiceHolder;
 import org.wso2.carbon.identity.auth.service.util.Constants;
 import org.wso2.carbon.identity.base.IdentityRuntimeException;
+import org.wso2.carbon.identity.compatibility.settings.core.CompatibilitySettingsManagerImpl;
 import org.wso2.carbon.identity.compatibility.settings.core.exception.CompatibilitySettingException;
 import org.wso2.carbon.identity.compatibility.settings.core.model.CompatibilitySetting;
-import org.wso2.carbon.identity.compatibility.settings.core.service.CompatibilitySettingsService;
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
 import org.wso2.carbon.identity.core.context.IdentityContext;
 import org.wso2.carbon.identity.core.context.model.UserActor;
@@ -309,14 +309,14 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
     private void blockScim2MeEndpointForBasicAuthIfRequired(String tenantDomain)
             throws AuthenticationFailException {
 
-        CompatibilitySettingsService compatibilitySettingsService =
-                AuthenticationServiceHolder.getInstance().getCompatibilitySettingsService();
+        CompatibilitySettingsManagerImpl compatibilitySettingsManager =
+                (CompatibilitySettingsManagerImpl) AuthenticationServiceHolder.getInstance().getCompatibilitySettingsManager();
 
         CompatibilitySetting disabledBasicAuthForMeEndpointCompatibilitySetting = null;
         try {
-            if (compatibilitySettingsService != null) {
+            if (compatibilitySettingsManager != null) {
                 disabledBasicAuthForMeEndpointCompatibilitySetting =
-                        compatibilitySettingsService.getCompatibilitySettingsByGroupAndSetting(
+                        compatibilitySettingsManager.getCompatibilitySettingsByGroupAndSetting(
                                 tenantDomain, SCIM2_COMPATIBILITY_SETTING_GROUP,
                                 DISABLE_BASIC_AUTH_FOR_ME_ENDPOINT_CONFIG);
             }

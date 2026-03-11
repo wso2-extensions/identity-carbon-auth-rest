@@ -38,10 +38,10 @@ import org.wso2.carbon.identity.auth.service.internal.AuthenticationServiceHolde
 import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
 import org.wso2.carbon.identity.auth.service.util.CommonTestUtils;
 import org.wso2.carbon.identity.base.IdentityRuntimeException;
+import org.wso2.carbon.identity.compatibility.settings.core.CompatibilitySettingsManagerImpl;
 import org.wso2.carbon.identity.compatibility.settings.core.exception.CompatibilitySettingException;
 import org.wso2.carbon.identity.compatibility.settings.core.model.CompatibilitySetting;
 import org.wso2.carbon.identity.compatibility.settings.core.model.CompatibilitySettingGroup;
-import org.wso2.carbon.identity.compatibility.settings.core.service.CompatibilitySettingsService;
 import org.wso2.carbon.identity.core.bean.context.MessageContext;
 import org.wso2.carbon.identity.core.context.IdentityContext;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
@@ -99,7 +99,7 @@ public class BasicAuthenticationHandlerTest {
     private AuthenticationServiceHolder mockAuthenticationServiceHolder;
 
     @Mock
-    private CompatibilitySettingsService mockCompatibilitySettingsService;
+    private CompatibilitySettingsManagerImpl mockCompatibilitySettingsManager;
 
     @Mock
     private Request mockRequest;
@@ -150,7 +150,7 @@ public class BasicAuthenticationHandlerTest {
         when(AuthenticationServiceHolder.getInstance()).thenReturn(mockAuthenticationServiceHolder);
         when(mockAuthenticationServiceHolder.getRealmService()).thenReturn(mockRealmService);
         when(mockAuthenticationServiceHolder.getOrganizationManager()).thenReturn(mockOrganizationManager);
-        when(mockAuthenticationServiceHolder.getCompatibilitySettingsService()).thenReturn(mockCompatibilitySettingsService);
+        when(mockAuthenticationServiceHolder.getCompatibilitySettingsManager()).thenReturn(mockCompatibilitySettingsManager);
 
         // Instead of stubbing the field getter, set the ThreadLocal directly.
         Map<String, Object> threadLocalMap = new HashMap<>();
@@ -340,7 +340,7 @@ public class BasicAuthenticationHandlerTest {
         Map<String, CompatibilitySettingGroup> settingsMap = new HashMap<>();
         settingsMap.put(SCIM2, mockSettingGroup);
 
-        when(mockCompatibilitySettingsService.getCompatibilitySettingsByGroupAndSetting(
+        when(mockCompatibilitySettingsManager.getCompatibilitySettingsByGroupAndSetting(
                 eq(TEST_TENANT_DOMAIN), eq(SCIM2), eq("disableBasicAuthForMeEndpoint")))
                 .thenReturn(mockCompatibilitySetting);
         when(mockCompatibilitySetting.getCompatibilitySettings()).thenReturn(settingsMap);
@@ -400,7 +400,7 @@ public class BasicAuthenticationHandlerTest {
         Map<String, CompatibilitySettingGroup> settingsMap = new HashMap<>();
         settingsMap.put(SCIM2, mockSettingGroup);
 
-        when(mockCompatibilitySettingsService.getCompatibilitySettingsByGroupAndSetting(
+        when(mockCompatibilitySettingsManager.getCompatibilitySettingsByGroupAndSetting(
                 eq(TEST_TENANT_DOMAIN), eq(SCIM2), eq("disableBasicAuthForMeEndpoint")))
                 .thenReturn(mockCompatibilitySetting);
         when(mockCompatibilitySetting.getCompatibilitySettings()).thenReturn(settingsMap);
@@ -456,7 +456,7 @@ public class BasicAuthenticationHandlerTest {
         mockedUserCoreUtil.when(UserCoreUtil::getDomainFromThreadLocal).thenReturn("PRIMARY");
 
         // Setup compatibility settings to throw exception.
-        when(mockCompatibilitySettingsService.getCompatibilitySettingsByGroupAndSetting(
+        when(mockCompatibilitySettingsManager.getCompatibilitySettingsByGroupAndSetting(
                 eq(TEST_TENANT_DOMAIN), eq(SCIM2), eq("disableBasicAuthForMeEndpoint")))
                 .thenThrow(new CompatibilitySettingException("Setting not found"));
 

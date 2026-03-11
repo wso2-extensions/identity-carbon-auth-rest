@@ -20,7 +20,7 @@ package org.wso2.carbon.identity.auth.service.internal;
 
 import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
 import org.wso2.carbon.identity.auth.service.handler.ResourceHandler;
-import org.wso2.carbon.identity.compatibility.settings.core.service.CompatibilitySettingsService;
+import org.wso2.carbon.identity.compatibility.settings.core.CompatibilitySettingsManager;
 import org.wso2.carbon.identity.core.handler.MessageHandlerComparator;
 import org.wso2.carbon.identity.organization.management.service.OrganizationManager;
 import org.wso2.carbon.identity.organization.management.service.OrganizationUserResidentResolverService;
@@ -41,7 +41,7 @@ public class AuthenticationServiceHolder {
     private RealmService realmService = null;
     private OrganizationManager organizationManager = null;
     private OrganizationUserResidentResolverService organizationUserResidentResolverService = null;
-    private CompatibilitySettingsService compatibilitySettingsService = null;
+    private CompatibilitySettingsManager compatibilitySettingsManager = null;
     private List<AuthenticationHandler> authenticationHandlers = new ArrayList<>();
     private List<ResourceHandler> resourceHandlers = new ArrayList<>();
 
@@ -84,14 +84,14 @@ public class AuthenticationServiceHolder {
         this.organizationUserResidentResolverService = organizationUserResidentResolverService;
     }
 
-    public CompatibilitySettingsService getCompatibilitySettingsService() {
+    public CompatibilitySettingsManager getCompatibilitySettingsManager() {
 
-        return compatibilitySettingsService;
+        return compatibilitySettingsManager;
     }
 
-    public void setCompatibilitySettingsService(CompatibilitySettingsService compatibilitySettingsService) {
+    public void setCompatibilitySettingsManager(CompatibilitySettingsManager compatibilitySettingsManager) {
 
-        this.compatibilitySettingsService = compatibilitySettingsService;
+        this.compatibilitySettingsManager = compatibilitySettingsManager;
     }
 
     public void addAuthenticationHandler(AuthenticationHandler authenticationHandler) {
