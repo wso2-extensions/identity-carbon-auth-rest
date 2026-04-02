@@ -460,7 +460,7 @@
         <identity.framework.version>7.10.73</identity.framework.version>
         <carbon.identity.package.import.version.range>[5.17.8, 8.0.0)</carbon.identity.package.import.version.range>
 
-        <org.wso2.carbon.identity.oauth.version>7.0.342</org.wso2.carbon.identity.oauth.version>
+        <org.wso2.carbon.identity.oauth.version>7.4.82</org.wso2.carbon.identity.oauth.version>
         <org.wso2.carbon.identity.oauth.import.version.range>[6.2.18, 8.0.0)
         </org.wso2.carbon.identity.oauth.import.version.range>
 

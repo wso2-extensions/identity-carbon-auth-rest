@@ -18,6 +18,7 @@
 
 package org.wso2.carbon.identity.authz.valve.internal;
 
+import org.wso2.carbon.identity.application.authentication.framework.handler.orgdiscovery.OrganizationDiscoveryHandler;
 import org.wso2.carbon.identity.authz.service.AuthorizationManager;
 import org.wso2.carbon.identity.organization.management.service.OrganizationManager;
 
@@ -32,6 +33,7 @@ public class AuthorizationValveServiceHolder {
     private static AuthorizationValveServiceHolder authorizationValveServiceHolder = new
             AuthorizationValveServiceHolder();
     private OrganizationManager organizationManager;
+    private OrganizationDiscoveryHandler organizationDiscoveryHandler;
 
     private List<AuthorizationManager> authorizationManagerList = new ArrayList<>();
 
@@ -59,5 +61,15 @@ public class AuthorizationValveServiceHolder {
             OrganizationManager organizationManager) {
 
         this.organizationManager = organizationManager;
+    }
+
+    public OrganizationDiscoveryHandler getOrganizationDiscoveryHandler() {
+
+        return organizationDiscoveryHandler;
+    }
+
+    public void setOrganizationDiscoveryHandler(OrganizationDiscoveryHandler organizationDiscoveryHandler) {
+
+        this.organizationDiscoveryHandler = organizationDiscoveryHandler;
     }
 }

@@ -73,6 +73,7 @@ public class Constants {
     public final static String BASIC_CLIENT_AUTH_HANDLER = "BasicClientAuthentication";
 
     public final static String AUTH_CONTEXT_OAUTH_APP_PROPERTY = "oAuthAppDO";
+    public final static String SERVICE_PROVIDER_UUID = "serviceProviderUUID";
 
     public static final String AUTHENTICATED_WITH_BASIC_AUTH = "AuthenticatedWithBasicAuth";
     public static final String IS_FEDERATED_USER = "isFederatedUser";

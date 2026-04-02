@@ -42,6 +42,7 @@ import org.wso2.carbon.identity.auth.service.AuthenticationRequest;
 import org.wso2.carbon.identity.auth.service.AuthenticationResult;
 import org.wso2.carbon.identity.auth.service.AuthenticationStatus;
 import org.wso2.carbon.identity.auth.service.handler.AuthenticationHandler;
+import org.wso2.carbon.identity.auth.service.internal.AuthenticationServiceHolder;
 import org.wso2.carbon.identity.auth.service.module.ResourceConfig;
 import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
 import org.wso2.carbon.identity.auth.service.util.Constants;
@@ -236,19 +237,57 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
                 authenticationContext.addParameter(Constants.OAUTH2_VALIDATE_SCOPE,
                         AuthConfigurationUtil.getInstance().isScopeValidationEnabled());
 
+                String serviceProviderTenantDomain = null;
+                /*
+                 Set OAuthAppDO to the authentication context to be used when checking the sub org user belongs to the
+                 requested tenant or has the shared access.
+                */
+                OAuthAppDO oAuthAppDO = null;
+                try {
+                    /*
+                     Tokens which are issued for authorized users in sub organization, can be issued from a sub org
+                     application or from an SaaS application in ancestor tenant. OAuth app is resolved by traversing
+                     the organization hierarchy.
+                    */
+                    if (StringUtils.isNotEmpty(authorizedUserTenantDomain) && OrganizationManagementUtil.
+                            isOrganization(authorizedUserTenantDomain)) {
+                        String authorizedUserOrgId = AuthenticationServiceHolder.getInstance().getOrganizationManager()
+                                .resolveOrganizationId(authorizedUserTenantDomain);
+                        oAuthAppDO = OAuth2Util.getAppInformationFromOrgHierarchy(
+                                oAuth2IntrospectionResponseDTO.getClientId(), authorizedUserOrgId);
+                        serviceProviderTenantDomain = OAuth2Util.getTenantDomainOfOauthApp(oAuthAppDO);
+                    } else {
+                        serviceProviderTenantDomain =
+                                OAuth2Util.getTenantDomainOfOauthApp(oAuth2IntrospectionResponseDTO.getClientId());
+                    }
+                } catch (InvalidOAuthClientException | IdentityOAuth2Exception e) {
+                    if (log.isDebugEnabled()) {
+                        log.debug("Error occurred while getting the OAuth App tenantDomain by Consumer key: "
+                                + oAuth2IntrospectionResponseDTO.getClientId(), e);
+                    }
+                } catch (OrganizationManagementException e) {
+                    if (log.isDebugEnabled()) {
+                        log.debug("Error occurred while checking the tenant domain: " +
+                                authorizedUserTenantDomain + " is an organization.", e);
+                    }
+                }
+                if (oAuthAppDO != null) {
+                    authenticationContext.addParameter(Constants.AUTH_CONTEXT_OAUTH_APP_PROPERTY, oAuthAppDO);
+                }
+
                 ServiceProvider serviceProvider = null;
                 String serviceProviderName = null;
                 String serviceProviderUUID = null;
                 try {
                     /*
-                     Tokens which are issued for the applications which are registered in sub organization,
-                     contains the tenant domain for the authorized user as the sub organization. Based on that
-                     we can get the application details by using both the client id and the tenant domain.
+                     Tokens which are issued for authorized users in sub organization, can be issued from a sub org
+                     application or from an SaaS application in ancestor tenant. OAuth app is resolved by using the
+                     tenant domain resolved by traversing the organization hierarchy.
                     */
                     if (StringUtils.isNotEmpty(authorizedUserTenantDomain) && OrganizationManagementUtil.
                             isOrganization(authorizedUserTenantDomain)) {
                         serviceProvider = OAuth2Util.getServiceProvider(oAuth2IntrospectionResponseDTO.getClientId(),
-                                authorizedUserTenantDomain);
+                                serviceProviderTenantDomain);
                     } else {
                         serviceProvider = OAuth2Util.getServiceProvider(oAuth2IntrospectionResponseDTO.getClientId());
                     }
@@ -264,61 +303,6 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
                 } catch (IdentityOAuth2Exception e) {
                     if (log.isDebugEnabled()) {
                         log.debug("Error occurred while getting the Service Provider by Consumer key: "
-                                + oAuth2IntrospectionResponseDTO.getClientId(), e);
-                    }
-                } catch (OrganizationManagementException e) {
-                    if (log.isDebugEnabled()) {
-                        log.debug("Error occurred while checking the tenant domain: " +
-                                authorizedUserTenantDomain + " is an organization.", e);
-                    }
-                }
-
-                /*
-                 Set OAuthAppDO to the authentication context to be used when checking the user belongs to the
-                 requested tenant. This needs to be executed in the sub organization level.
-                */
-                OAuthAppDO oAuthAppDO = null;
-                try {
-                    if (StringUtils.isNotEmpty(authorizedUserTenantDomain) && OrganizationManagementUtil.
-                            isOrganization(authorizedUserTenantDomain)) {
-                        oAuthAppDO = OAuth2Util.getAppInformationByClientId(
-                                oAuth2IntrospectionResponseDTO.getClientId(), authorizedUserTenantDomain);
-                    }
-                } catch (IdentityOAuth2Exception | InvalidOAuthClientException e) {
-                    if (log.isDebugEnabled()) {
-                        log.debug("Error occurred while getting the OAuth App by Consumer key: "
-                                + oAuth2IntrospectionResponseDTO.getClientId() + " and tenant domain: " +
-                                authorizedUserTenantDomain, e);
-                    }
-                } catch (OrganizationManagementException e) {
-                    if (log.isDebugEnabled()) {
-                        log.debug("Error occurred while checking the tenant domain: " +
-                                authorizedUserTenantDomain + " is an organization.", e);
-                    }
-                }
-                if (oAuthAppDO != null) {
-                    authenticationContext.addParameter(Constants.AUTH_CONTEXT_OAUTH_APP_PROPERTY, oAuthAppDO);
-                }
-
-                String serviceProviderTenantDomain = null;
-                try {
-                    /*
-                     Tokens which are issued for the applications which are registered in sub organization,
-                     contains the tenant domain for the authorized user as the sub organization. Based on that
-                     we can get the application tenant domain detail by using both the client id and the tenant domain.
-                    */
-                    if (StringUtils.isNotEmpty(authorizedUserTenantDomain) && OrganizationManagementUtil.
-                            isOrganization(authorizedUserTenantDomain)) {
-                        serviceProviderTenantDomain =
-                                OAuth2Util.getTenantDomainOfOauthApp(oAuth2IntrospectionResponseDTO.getClientId(),
-                                        authorizedUserTenantDomain);
-                    } else {
-                        serviceProviderTenantDomain =
-                                OAuth2Util.getTenantDomainOfOauthApp(oAuth2IntrospectionResponseDTO.getClientId());
-                    }
-                } catch (InvalidOAuthClientException | IdentityOAuth2Exception e) {
-                    if (log.isDebugEnabled()) {
-                        log.debug("Error occurred while getting the OAuth App tenantDomain by Consumer key: "
                                 + oAuth2IntrospectionResponseDTO.getClientId(), e);
                     }
                 } catch (OrganizationManagementException e) {
@@ -550,10 +534,13 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
 
         OAuthAppDO oAuthAppDO;
         try {
-            oAuthAppDO = StringUtils.isNotBlank(tenantDomain) &&
-                    OrganizationManagementUtil.isOrganization(tenantDomain)
-                    ? OAuth2Util.getAppInformationByClientId(clientId, tenantDomain)
-                    : OAuth2Util.getAppInformationByClientId(clientId);
+            if (StringUtils.isNotBlank(tenantDomain) && OrganizationManagementUtil.isOrganization(tenantDomain)) {
+                String orgId = AuthenticationServiceHolder.getInstance().getOrganizationManager()
+                        .resolveOrganizationId(tenantDomain);
+                oAuthAppDO = OAuth2Util.getAppInformationFromOrgHierarchy(clientId, orgId);
+            } else {
+                oAuthAppDO = OAuth2Util.getAppInformationByClientId(clientId);
+            }
         } catch (IdentityOAuth2Exception | InvalidOAuthClientException e) {
             log.error("Failed to retrieve application information by client id: " + clientId, e);
             return false;
