@@ -139,24 +139,29 @@ public class Utils {
                 if (StringUtils.equals(accessingTenantDomain, tenantDomain)) {
                     return true;
                 }
-                OrganizationDiscoveryInput organizationDiscoveryInput = new OrganizationDiscoveryInput.Builder()
-                        .orgId(accessingOrganization).build();
-                try {
-                    String serviceProviderUUID = (String) authenticationContext.getParameter(SERVICE_PROVIDER_UUID);
-                    if (StringUtils.isEmpty(serviceProviderUUID)) {
-                        LOG.warn("Service provider UUID is not available in the authentication context for " +
-                                "organization discovery. Organization discovery will fail for organization: " +
-                                accessingOrganization);
-                        return false;
+                String serviceProviderUUID;
+                if (authenticationContext.getParameter(SERVICE_PROVIDER_UUID) instanceof String &&
+                        StringUtils.isNotEmpty(
+                                (String) authenticationContext.getParameter(SERVICE_PROVIDER_UUID))) {
+                    serviceProviderUUID = (String) authenticationContext.getParameter(SERVICE_PROVIDER_UUID);
+                } else {
+                    if (LOG.isDebugEnabled()) {
+                        LOG.debug("Service Provider UUID is not found in the authentication context parameters. " +
+                                "Hence this is not related to a token flow. " +
+                                "Hence, no need to check shared application access ");
                     }
+                    return false;
+                }
+                try {
+                    OrganizationDiscoveryInput organizationDiscoveryInput = new OrganizationDiscoveryInput.Builder()
+                            .orgId(accessingOrganization).build();
                     OrganizationDiscoveryResult organizationDiscoveryResult = AuthorizationValveServiceHolder
                             .getInstance().getOrganizationDiscoveryHandler()
                             .discoverOrganization(organizationDiscoveryInput, serviceProviderUUID, tenantDomain);
-                    if (organizationDiscoveryResult.isSuccessful()) {
-                        return true;
-                    }
+                    return organizationDiscoveryResult.isSuccessful();
                 } catch (FrameworkException e) {
-                    LOG.warn("Organization discovery failed for organization: " + accessingOrganization, e);
+                    LOG.warn("Organization access check failed for organization: " + accessingOrganization +
+                            "for service provider with UUID: " + serviceProviderUUID, e);
                     return false;
                 }
             }

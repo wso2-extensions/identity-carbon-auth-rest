@@ -251,10 +251,15 @@ public class OAuth2AccessTokenHandler extends AuthenticationHandler {
                     */
                     if (StringUtils.isNotEmpty(authorizedUserTenantDomain) && OrganizationManagementUtil.
                             isOrganization(authorizedUserTenantDomain)) {
+                        String clientId = oAuth2IntrospectionResponseDTO.getClientId();
+                        if (log.isDebugEnabled()) {
+                            log.debug("Resolving OAuth application for client id: " + clientId +
+                                    " by traversing the organization hierarchy since the token is issued for an " +
+                                    "authorized user in sub organization: " + authorizedUserTenantDomain);
+                        }
                         String authorizedUserOrgId = AuthenticationServiceHolder.getInstance().getOrganizationManager()
                                 .resolveOrganizationId(authorizedUserTenantDomain);
-                        oAuthAppDO = OAuth2Util.getAppInformationFromOrgHierarchy(
-                                oAuth2IntrospectionResponseDTO.getClientId(), authorizedUserOrgId);
+                        oAuthAppDO = OAuth2Util.getAppInformationFromOrgHierarchy(clientId, authorizedUserOrgId);
                         serviceProviderTenantDomain = OAuth2Util.getTenantDomainOfOauthApp(oAuthAppDO);
                     } else {
                         serviceProviderTenantDomain =
