@@ -397,6 +397,89 @@ public class OAuth2AccessTokenHandlerTest {
         }
     }
 
+    @Test
+    public void testIsTokenBindingValidForOrgWithOrgManagementExceptionFromResolveOrgId() throws Exception {
+
+        OAuth2AccessTokenHandler oAuth2AccessTokenHandler = new OAuth2AccessTokenHandler();
+
+        AuthenticationRequest authenticationRequest = mock(AuthenticationRequest.class);
+        Request request = mock(Request.class);
+        TokenBinding tokenBinding = new TokenBinding("cookie", "bindingRef123", "value");
+        String tenantDomain = "test_tenant";
+
+        when(authenticationRequest.getRequest()).thenReturn(request);
+
+        try (MockedStatic<OrganizationManagementUtil> mockedOrgMgmtUtil =
+                     mockStatic(OrganizationManagementUtil.class);
+             MockedStatic<AuthenticationServiceHolder> mockedAuthServiceHolder =
+                     mockStatic(AuthenticationServiceHolder.class)) {
+
+            OrganizationManager organizationManager = mock(OrganizationManager.class);
+            AuthenticationServiceHolder authenticationServiceHolder = mock(AuthenticationServiceHolder.class);
+            mockedOrgMgmtUtil.when(() -> OrganizationManagementUtil.isOrganization(tenantDomain)).thenReturn(true);
+            mockedAuthServiceHolder.when(AuthenticationServiceHolder::getInstance)
+                    .thenReturn(authenticationServiceHolder);
+            when(authenticationServiceHolder.getOrganizationManager()).thenReturn(organizationManager);
+            // resolveOrganizationId throws — should be caught and return false.
+            when(organizationManager.resolveOrganizationId(tenantDomain))
+                    .thenThrow(new OrganizationManagementException("Failed to resolve org id"));
+
+            Method isTokenBindingValidMethod = oAuth2AccessTokenHandler.getClass()
+                    .getDeclaredMethod("isTokenBindingValid", AuthenticationRequest.class, TokenBinding.class,
+                            String.class, String.class);
+            isTokenBindingValidMethod.setAccessible(true);
+
+            boolean result = (boolean) isTokenBindingValidMethod.invoke(oAuth2AccessTokenHandler,
+                    authenticationRequest, tokenBinding, "clientId", tenantDomain);
+
+            Assert.assertFalse(result,
+                    "Should return false when OrganizationManagementException is thrown from resolveOrganizationId");
+        }
+    }
+
+    @Test
+    public void testIsTokenBindingValidForOrgWithInvalidOAuthClientExceptionFromOrgHierarchy() throws Exception {
+
+        OAuth2AccessTokenHandler oAuth2AccessTokenHandler = new OAuth2AccessTokenHandler();
+
+        AuthenticationRequest authenticationRequest = mock(AuthenticationRequest.class);
+        Request request = mock(Request.class);
+        TokenBinding tokenBinding = new TokenBinding("cookie", "bindingRef123", "value");
+        String tenantDomain = "test_tenant";
+        String orgId = "orgId1";
+
+        when(authenticationRequest.getRequest()).thenReturn(request);
+
+        try (MockedStatic<OrganizationManagementUtil> mockedOrgMgmtUtil =
+                     mockStatic(OrganizationManagementUtil.class);
+             MockedStatic<OAuth2Util> mockedOAuth2Util = mockStatic(OAuth2Util.class);
+             MockedStatic<AuthenticationServiceHolder> mockedAuthServiceHolder =
+                     mockStatic(AuthenticationServiceHolder.class)) {
+
+            OrganizationManager organizationManager = mock(OrganizationManager.class);
+            AuthenticationServiceHolder authenticationServiceHolder = mock(AuthenticationServiceHolder.class);
+            mockedOrgMgmtUtil.when(() -> OrganizationManagementUtil.isOrganization(tenantDomain)).thenReturn(true);
+            mockedAuthServiceHolder.when(AuthenticationServiceHolder::getInstance)
+                    .thenReturn(authenticationServiceHolder);
+            when(authenticationServiceHolder.getOrganizationManager()).thenReturn(organizationManager);
+            when(organizationManager.resolveOrganizationId(tenantDomain)).thenReturn(orgId);
+            // getAppInformationFromOrgHierarchy throws InvalidOAuthClientException — should return false.
+            mockedOAuth2Util.when(() -> OAuth2Util.getAppInformationFromOrgHierarchy("clientId", orgId))
+                    .thenThrow(new InvalidOAuthClientException("Invalid OAuth client"));
+
+            Method isTokenBindingValidMethod = oAuth2AccessTokenHandler.getClass()
+                    .getDeclaredMethod("isTokenBindingValid", AuthenticationRequest.class, TokenBinding.class,
+                            String.class, String.class);
+            isTokenBindingValidMethod.setAccessible(true);
+
+            boolean result = (boolean) isTokenBindingValidMethod.invoke(oAuth2AccessTokenHandler,
+                    authenticationRequest, tokenBinding, "clientId", tenantDomain);
+
+            Assert.assertFalse(result, "Should return false when InvalidOAuthClientException " +
+                            "is thrown from getAppInformationFromOrgHierarchy");
+        }
+    }
+
     @DataProvider
     public Object[][] getTokenIdFromAccessTokenDataProvider() {
 
