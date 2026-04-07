@@ -22,6 +22,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.osgi.service.component.ComponentContext;
 import org.wso2.carbon.identity.organization.management.service.OrganizationManagementInitialize;
+import org.wso2.carbon.identity.organization.management.service.OrganizationManager;
 import org.wso2.carbon.user.core.service.RealmService;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
@@ -98,6 +99,23 @@ public class ContextRewriteValveServiceComponent {
             OrganizationManagementInitialize organizationManagementInitializeInstance) {
 
         ContextRewriteValveServiceComponentHolder.getInstance().setOrganizationManagementEnable(null);
+    }
+
+    @Reference(
+            name = "organization.mgt.service",
+            service = OrganizationManager.class,
+            cardinality = ReferenceCardinality.MANDATORY,
+            policy = ReferencePolicy.DYNAMIC,
+            unbind = "unsetOrganizationManager"
+    )
+    protected void setOrganizationManager(OrganizationManager organizationManager) {
+
+        ContextRewriteValveServiceComponentHolder.getInstance().setOrganizationManager(organizationManager);
+    }
+
+    protected void unsetOrganizationManager(OrganizationManager organizationManager) {
+
+        ContextRewriteValveServiceComponentHolder.getInstance().setOrganizationManager(null);
     }
 
     private void loadPageNotFoundErrorPage() {

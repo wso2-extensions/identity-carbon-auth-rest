@@ -28,6 +28,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.slf4j.MDC;
+import org.wso2.carbon.base.MultitenantConstants;
 import org.wso2.carbon.base.ServerConfiguration;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.identity.base.IdentityRuntimeException;
@@ -37,6 +38,9 @@ import org.wso2.carbon.identity.context.rewrite.internal.ContextRewriteValveServ
 import org.wso2.carbon.identity.core.util.IdentityConfigParser;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
+import org.wso2.carbon.identity.organization.management.service.OrganizationManager;
+import org.wso2.carbon.identity.organization.management.service.exception.OrganizationManagementException;
+import org.wso2.carbon.identity.organization.management.service.exception.OrganizationManagementServerException;
 import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.user.core.tenant.TenantManager;
 
@@ -64,6 +68,7 @@ public class TenantContextRewriteValve extends ValveBase {
 
     private static List<RewriteContext> contextsToRewrite;
     private static List<OrganizationRewriteContext> contextsToRewriteInTenantPerspective;
+    private static List<OrganizationRewriteContext> orgContextsToRewriteInTenantQualifiedPaths;
     private static List<String> contextListToOverwriteDispatch;
     private static List<String> ignorePathListForOverwriteDispatch;
     private static List<String> organizationRoutingOnlySupportedAPIPaths;
@@ -79,6 +84,7 @@ public class TenantContextRewriteValve extends ValveBase {
         // Initialize the tenant context rewrite valve.
         contextsToRewrite = getContextsToRewrite();
         contextsToRewriteInTenantPerspective = getContextsToRewriteInTenantPerspective();
+        orgContextsToRewriteInTenantQualifiedPaths = getOrgContextsToRewriteInTenantQualifiedPaths();
         contextListToOverwriteDispatch = getContextListToOverwriteDispatchLocation();
         ignorePathListForOverwriteDispatch = getIgnorePathListForOverwriteDispatch();
         isTenantQualifiedUrlsEnabled = isTenantQualifiedUrlsEnabled();
@@ -92,6 +98,9 @@ public class TenantContextRewriteValve extends ValveBase {
         String contextToForward = null;
         boolean isContextRewrite = false;
         boolean isWebApp = false;
+        boolean isOrgQualifiedPathFlow = false;
+        String effectiveTenantDomain = null;
+        String urlTenantDomain = null;
 
         /* If an organization under the super tenant is accessed with organization qualified URL, it is prefixed
            with super tenant domain qualifier. /o/... -> /t/<carbon.super>/o/... */
@@ -159,8 +168,66 @@ public class TenantContextRewriteValve extends ValveBase {
             }
         }
 
-        String tenantDomain = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain();
+        orgQualifiedPathsOuterLoop:
+        for (OrganizationRewriteContext context : orgContextsToRewriteInTenantQualifiedPaths) {
+            Pattern patternOrgQualifiedPath =
+                    Pattern.compile("^/t/[^/]+/o/[a-f0-9\\-]+?" + context.getContext());
+            if (patternOrgQualifiedPath.matcher(requestURI).find()) {
+                if (CollectionUtils.isEmpty(context.getSubPaths())) {
+                    isContextRewrite = true;
+                    isWebApp = context.isWebApp();
+                    contextToForward = context.getContext();
+                    String tenantDomainFromUrl = extractTenantDomainFromUrl(requestURI);
+                    String accessingOrgId = extractOrganizationIdFromUrl(requestURI);
+                    String subOrgTenantDomain =
+                            resolveAndValidateTenantQualifiedOrg(tenantDomainFromUrl, accessingOrgId, response);
+                    if (subOrgTenantDomain == null) {
+                        if (log.isDebugEnabled()) {
+                            log.debug("Invalid tenant and organization combination. Tenant domain from URL: "
+                                    + tenantDomainFromUrl + ", organization ID: " + accessingOrgId);
+                        }
+                        return;
+                    }
+                    isOrgQualifiedPathFlow = true;
+                    effectiveTenantDomain = subOrgTenantDomain;
+                    urlTenantDomain = tenantDomainFromUrl;
+                    if (log.isDebugEnabled()) {
+                        log.debug("Resolved sub-org tenant domain: " + subOrgTenantDomain
+                                + " for tenant-qualified org context: " + contextToForward);
+                    }
+                    break;
+                }
+                for (Pattern subPath : context.getSubPaths()) {
+                    if (subPath.matcher(requestURI).find()) {
+                        isContextRewrite = true;
+                        isWebApp = context.isWebApp();
+                        contextToForward = context.getContext();
+                        String tenantDomainFromUrl = extractTenantDomainFromUrl(requestURI);
+                        String accessingOrgId = extractOrganizationIdFromUrl(requestURI);
+                        String subOrgTenantDomain =
+                                resolveAndValidateTenantQualifiedOrg(tenantDomainFromUrl, accessingOrgId, response);
+                        if (subOrgTenantDomain == null) {
+                            return;
+                        }
+                        isOrgQualifiedPathFlow = true;
+                        effectiveTenantDomain = subOrgTenantDomain;
+                        urlTenantDomain = tenantDomainFromUrl;
+                        if (log.isDebugEnabled()) {
+                            log.debug("Resolved sub-org tenant domain: " + subOrgTenantDomain
+                                    + " for tenant-qualified org context: " + contextToForward);
+                        }
+                        break orgQualifiedPathsOuterLoop;
+                    }
+                }
+            }
+        }
+
         try {
+            if (isOrgQualifiedPathFlow) {
+                PrivilegedCarbonContext.startTenantFlow();
+                PrivilegedCarbonContext.getThreadLocalCarbonContext().setTenantDomain(effectiveTenantDomain, true);
+            }
+            String tenantDomain = PrivilegedCarbonContext.getThreadLocalCarbonContext().getTenantDomain();
             MDC.put(TENANT_DOMAIN, tenantDomain);
             MDC.put(TENANT_ID, String.valueOf(IdentityTenantUtil.getTenantId(tenantDomain)));
             //request URI is not a rewrite one
@@ -175,7 +242,8 @@ public class TenantContextRewriteValve extends ValveBase {
                     !tenantManager.isTenantActive(IdentityTenantUtil.getTenantId(tenantDomain))) {
                 handleInvalidTenantDomainErrorResponse(response, HttpServletResponse.SC_NOT_FOUND, tenantDomain);
             } else {
-                IdentityUtil.threadLocalProperties.get().put(TENANT_NAME_FROM_CONTEXT, tenantDomain);
+                IdentityUtil.threadLocalProperties.get().put(TENANT_NAME_FROM_CONTEXT,
+                        isOrgQualifiedPathFlow ? effectiveTenantDomain : tenantDomain);
 
                 if (isWebApp) {
                     // Set the application name in PrivilegedCarbonContext for tenant-qualified URLs if not already set.
@@ -210,7 +278,7 @@ public class TenantContextRewriteValve extends ValveBase {
                         requestURI = requestURI.replace(carbonWebContext + "/", "");
                     }
                     //Servlet
-                    requestURI = requestURI.replace("/t/" + tenantDomain, "");
+                    requestURI = requestURI.replace("/t/" + (isOrgQualifiedPathFlow ? urlTenantDomain : tenantDomain), "");
                     String appResidentOrgId =
                             PrivilegedCarbonContext.getThreadLocalCarbonContext()
                                     .getApplicationResidentOrganizationId();
@@ -224,20 +292,23 @@ public class TenantContextRewriteValve extends ValveBase {
             if (log.isDebugEnabled()) {
                 log.debug("Error occurred while validating tenant domain.", ex);
             }
-            handleInvalidTenantDomainErrorResponse(response, HttpServletResponse.SC_NOT_FOUND, tenantDomain);
+            handleInvalidTenantDomainErrorResponse(response, HttpServletResponse.SC_NOT_FOUND, contextTenantDomain);
         } catch (IdentityRuntimeException e) {
             if (log.isDebugEnabled()) {
                 log.debug("Error occurred while validating tenant domain.", e);
             }
             String INVALID_TENANT_DOMAIN = "Invalid tenant domain";
             if (!StringUtils.isBlank(e.getMessage()) && e.getMessage().contains(INVALID_TENANT_DOMAIN)) {
-                handleInvalidTenantDomainErrorResponse(response, HttpServletResponse.SC_NOT_FOUND, tenantDomain);
+                handleInvalidTenantDomainErrorResponse(response, HttpServletResponse.SC_NOT_FOUND, contextTenantDomain);
             } else {
-                handleRuntimeErrorResponse(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, tenantDomain);
+                handleRuntimeErrorResponse(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, contextTenantDomain);
             }
         } finally {
             IdentityUtil.threadLocalProperties.get().remove(TENANT_NAME_FROM_CONTEXT);
             unsetMDCThreadLocals();
+            if (isOrgQualifiedPathFlow) {
+                PrivilegedCarbonContext.endTenantFlow();
+            }
         }
     }
 
@@ -429,5 +500,166 @@ public class TenantContextRewriteValve extends ValveBase {
     private boolean isOrganizationIdAvailableInTenantPerspective(String requestURI) {
 
         return Pattern.compile("^/t/[^/]+/o/[a-f0-9\\-]+?").matcher(requestURI).find();
+    }
+
+    private List<OrganizationRewriteContext> getOrgContextsToRewriteInTenantQualifiedPaths() {
+
+        List<OrganizationRewriteContext> organizationRewriteContexts = new ArrayList<>();
+        Map<String, Object> configuration = IdentityConfigParser.getInstance().getConfiguration();
+        Object webAppBasePathContexts = configuration.get(
+                "OrgResourceContextsToRewriteInTenantPerspective.WebApp.Context.BasePath");
+        setOrganizationRewriteContexts(organizationRewriteContexts, webAppBasePathContexts, true);
+
+        Object webAppSubPathContexts = configuration.get(
+                "OrgResourceContextsToRewriteInTenantPerspective.WebApp.Context.SubPaths.Path");
+        setSubPathContexts(organizationRewriteContexts, webAppSubPathContexts);
+
+        Object servletBasePathContexts = configuration.get(
+                "OrgResourceContextsToRewriteInTenantPerspective.Servlet.Context");
+        setOrganizationRewriteContexts(organizationRewriteContexts, servletBasePathContexts, false);
+
+        return organizationRewriteContexts;
+    }
+
+    private String extractTenantDomainFromUrl(String requestURI) {
+
+        String temp = requestURI.substring(requestURI.indexOf("/t/") + 3);
+        int index = temp.indexOf('/');
+        if (index != -1) {
+            return temp.substring(0, index);
+        }
+        return StringUtils.EMPTY;
+    }
+
+    private String extractOrganizationIdFromUrl(String requestURI) {
+
+        int startIndex = requestURI.indexOf("/o/") + 3;
+        int endIndex = requestURI.indexOf("/", startIndex);
+        if (startIndex > 2 && endIndex > startIndex) {
+            return requestURI.substring(startIndex, endIndex);
+        }
+        return StringUtils.EMPTY;
+    }
+
+    /**
+     * Validates that the tenant domain in the URL matches the root tenant resolved from the organization ID,
+     * then resolves and returns the sub-org's own tenant domain to be set as the Carbon thread-local context.
+     * Returns the sub-org's tenant domain if valid, or null if an error response was already written.
+     */
+    private String resolveAndValidateTenantQualifiedOrg(String tenantDomainFromUrl, String orgId, Response response)
+            throws IOException {
+
+        if (StringUtils.isBlank(tenantDomainFromUrl) || StringUtils.isBlank(orgId)) {
+            handleInvalidTenantOrgRequest(response,
+                    "Invalid request URI: tenant domain or organization ID is missing.");
+            return null;
+        }
+        if (!tenantExists(tenantDomainFromUrl)) {
+            handleTenantNotFoundRequest(response,
+                    "Tenant domain does not exist: " + tenantDomainFromUrl);
+            return null;
+        }
+        String resolvedRootTenantDomain = resolveTenantDomainFromOrganizationId(orgId);
+        if (resolvedRootTenantDomain == null || !resolvedRootTenantDomain.equals(tenantDomainFromUrl)) {
+            handleInvalidTenantOrgRequest(response,
+                    "Tenant domain in URL does not match the root tenant of organization: " + orgId);
+            return null;
+        }
+        String subOrgTenantDomain = resolveSubOrgTenantDomain(orgId);
+        if (subOrgTenantDomain == null) {
+            handleInvalidTenantOrgRequest(response,
+                    "Unable to resolve tenant domain for sub-organization: " + orgId);
+            return null;
+        }
+        return subOrgTenantDomain;
+    }
+
+    private void handleInvalidTenantOrgRequest(Response response, String description) throws IOException {
+
+        response.setContentType("application/json");
+        response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+        response.setCharacterEncoding("UTF-8");
+        JsonObject errorResponse = new JsonObject();
+        errorResponse.addProperty("code", HttpServletResponse.SC_BAD_REQUEST);
+        errorResponse.addProperty("message", "Invalid tenant and organization combination.");
+        errorResponse.addProperty("description", description);
+        response.getWriter().print(errorResponse.toString());
+    }
+
+    private void handleTenantNotFoundRequest(Response response, String description) throws IOException {
+
+        response.setContentType("application/json");
+        response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+        response.setCharacterEncoding("UTF-8");
+        JsonObject errorResponse = new JsonObject();
+        errorResponse.addProperty("code", HttpServletResponse.SC_NOT_FOUND);
+        errorResponse.addProperty("message", "Tenant not found.");
+        errorResponse.addProperty("description", description);
+        response.getWriter().print(errorResponse.toString());
+    }
+
+    private boolean tenantExists(String tenantDomain) {
+
+        try {
+            int tenantId = IdentityTenantUtil.getRealmService().getTenantManager().getTenantId(tenantDomain);
+            return tenantId != MultitenantConstants.INVALID_TENANT_ID;
+        } catch (UserStoreException e) {
+            if (log.isDebugEnabled()) {
+                log.debug("Error occurred while checking tenant existence for domain: " + tenantDomain, e);
+            }
+            return false;
+        }
+    }
+
+    private String resolveSubOrgTenantDomain(String orgId) {
+
+        OrganizationManager organizationManager =
+                ContextRewriteValveServiceComponentHolder.getInstance().getOrganizationManager();
+        if (organizationManager == null) {
+            log.error("OrganizationManager is not available. Cannot resolve sub-org tenant domain for org ID: "
+                    + orgId);
+            return null;
+        }
+        try {
+            return organizationManager.resolveTenantDomain(orgId);
+        } catch (OrganizationManagementException e) {
+            if (log.isDebugEnabled()) {
+                log.debug("Failed to resolve tenant domain for sub-organization: " + orgId, e);
+            }
+            return null;
+        }
+    }
+
+    private String resolveTenantDomainFromOrganizationId(String orgId) {
+
+        OrganizationManager organizationManager =
+                ContextRewriteValveServiceComponentHolder.getInstance().getOrganizationManager();
+        if (organizationManager == null) {
+            log.error("OrganizationManager is not available. Cannot resolve tenant domain for org ID: " + orgId);
+            return null;
+        }
+        try {
+            if (log.isDebugEnabled()) {
+                log.debug("Attempting to resolve tenant domain for organization ID: " + orgId);
+            }
+            String primaryOrgId = organizationManager.getPrimaryOrganizationId(orgId);
+            if (StringUtils.isBlank(primaryOrgId)) {
+                if (log.isDebugEnabled()) {
+                    log.debug("No primary organization found for organization ID: " + orgId);
+                }
+                return null;
+            }
+            return organizationManager.resolveTenantDomain(primaryOrgId);
+        } catch (OrganizationManagementServerException e) {
+            if (log.isDebugEnabled()) {
+                log.debug("Failed to resolve primary organization for ID: " + orgId, e);
+            }
+            return null;
+        } catch (OrganizationManagementException e) {
+            if (log.isDebugEnabled()) {
+                log.debug("Failed to resolve tenant domain for primary organization of: " + orgId, e);
+            }
+            return null;
+        }
     }
 }
