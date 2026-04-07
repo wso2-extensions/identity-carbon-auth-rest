@@ -161,7 +161,7 @@ public class Utils {
                     return organizationDiscoveryResult.isSuccessful();
                 } catch (FrameworkException e) {
                     LOG.warn("Organization access check failed for organization: " + accessingOrganization +
-                            "for service provider with UUID: " + serviceProviderUUID, e);
+                            " for service provider with UUID: " + serviceProviderUUID, e);
                     return false;
                 }
             }
