@@ -67,6 +67,22 @@
             <artifactId>org.wso2.carbon.identity.organization.management.service</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.testng</groupId>
+            <artifactId>testng</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jacoco</groupId>
+            <artifactId>org.jacoco.agent</artifactId>
+            <classifier>runtime</classifier>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>org.jacoco</groupId>
             <artifactId>jacoco-maven-plugin</artifactId>
             <version>${jacoco.version}</version>
@@ -85,6 +101,20 @@
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${maven.surefire.plugin.version}</version>
+                <configuration>
+                    <suiteXmlFiles>
+                        <suiteXmlFile>src/test/resources/testng.xml</suiteXmlFile>
+                    </suiteXmlFiles>
+                    <classpathDependencyExcludes>
+                        <classpathDependencyExclude>org.ops4j.pax.logging</classpathDependencyExclude>
+                        <classpathDependencyExclude>org.wso2.org.ops4j.pax.logging</classpathDependencyExclude>
+                    </classpathDependencyExcludes>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-bundle-plugin</artifactId>
@@ -111,7 +141,10 @@
                             org.wso2.carbon.identity.authz.service.*;version="${org.wso2.carbon.identity.authz.service.version.range}",
                             org.apache.catalina.*;version="${tomcat.import.version.range}",
                             org.wso2.carbon.identity.organization.management.authz.service; version="${org.wso2.carbon.identity.organization.management.version.range}",
-                            org.wso2.carbon.identity.organization.management.service.constant; version="${org.wso2.carbon.identity.organization.management.core.version.range}"
+                            org.wso2.carbon.identity.organization.management.service.constant; version="${org.wso2.carbon.identity.organization.management.core.version.range}",
+                            org.wso2.carbon.identity.application.authentication.framework.handler.orgdiscovery; version="${carbon.identity.package.import.version.range}",
+                            org.wso2.carbon.identity.application.authentication.framework.model; version="${carbon.identity.package.import.version.range}",
+                            org.wso2.carbon.identity.application.authentication.framework.exception; version="${carbon.identity.package.import.version.range}"
                         </Import-Package>
                         <Export-Package>!org.wso2.carbon.identity.authz.valve.internal,
                             org.wso2.carbon.identity.authz.valve.*;

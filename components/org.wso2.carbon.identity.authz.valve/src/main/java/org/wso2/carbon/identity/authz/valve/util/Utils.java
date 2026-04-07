@@ -23,7 +23,10 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
+import org.wso2.carbon.identity.application.authentication.framework.exception.FrameworkException;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
+import org.wso2.carbon.identity.application.authentication.framework.model.OrganizationDiscoveryInput;
+import org.wso2.carbon.identity.application.authentication.framework.model.OrganizationDiscoveryResult;
 import org.wso2.carbon.identity.application.common.model.User;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
 import org.wso2.carbon.identity.auth.service.util.Constants;
@@ -38,6 +41,7 @@ import org.wso2.carbon.utils.multitenancy.MultitenantConstants;
 import java.util.List;
 
 import static org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil.getResourceResidentTenantForTenantPerspective;
+import static org.wso2.carbon.identity.auth.service.util.Constants.SERVICE_PROVIDER_UUID;
 
 public class Utils {
 
@@ -117,7 +121,8 @@ public class Utils {
         // Check request with organization qualified URL is allowed to access.
         String organizationID = getOrganizationIdFromURLMapping(request);
         if (user != null) {
-            if (StringUtils.equals(organizationID, ((AuthenticatedUser) user).getAccessingOrganization())) {
+            String accessingOrganization = ((AuthenticatedUser) user).getAccessingOrganization();
+            if (StringUtils.equals(organizationID, accessingOrganization)) {
                 return true;
             } else {
                 OAuthAppDO oAuthAppDO = (OAuthAppDO) authenticationContext.getParameter(
@@ -126,13 +131,39 @@ public class Utils {
                 String accessingTenantDomain;
                 try {
                     accessingTenantDomain = AuthorizationValveServiceHolder.getInstance().getOrganizationManager()
-                            .resolveTenantDomain(((AuthenticatedUser) user).getAccessingOrganization());
+                            .resolveTenantDomain(accessingOrganization);
                 } catch (OrganizationManagementException e) {
-                    LOG.warn("Unable to resolve tenant domain for organization: "
-                            + ((AuthenticatedUser) user).getAccessingOrganization(), e);
+                    LOG.warn("Unable to resolve tenant domain for organization: " + accessingOrganization, e);
                     return false;
                 }
-                return StringUtils.equals(accessingTenantDomain, tenantDomain);
+                if (StringUtils.equals(accessingTenantDomain, tenantDomain)) {
+                    return true;
+                }
+                String serviceProviderUUID;
+                if (authenticationContext.getParameter(SERVICE_PROVIDER_UUID) instanceof String &&
+                        StringUtils.isNotEmpty(
+                                (String) authenticationContext.getParameter(SERVICE_PROVIDER_UUID))) {
+                    serviceProviderUUID = (String) authenticationContext.getParameter(SERVICE_PROVIDER_UUID);
+                } else {
+                    if (LOG.isDebugEnabled()) {
+                        LOG.debug("Service Provider UUID is not found in the authentication context parameters. " +
+                                "Hence this is not related to a token flow. " +
+                                "Hence, no need to check shared application access ");
+                    }
+                    return false;
+                }
+                try {
+                    OrganizationDiscoveryInput organizationDiscoveryInput = new OrganizationDiscoveryInput.Builder()
+                            .orgId(accessingOrganization).build();
+                    OrganizationDiscoveryResult organizationDiscoveryResult = AuthorizationValveServiceHolder
+                            .getInstance().getOrganizationDiscoveryHandler()
+                            .discoverOrganization(organizationDiscoveryInput, serviceProviderUUID, tenantDomain);
+                    return organizationDiscoveryResult.isSuccessful();
+                } catch (FrameworkException e) {
+                    LOG.warn("Organization access check failed for organization: " + accessingOrganization +
+                            " for service provider with UUID: " + serviceProviderUUID, e);
+                    return false;
+                }
             }
         }
         return false;

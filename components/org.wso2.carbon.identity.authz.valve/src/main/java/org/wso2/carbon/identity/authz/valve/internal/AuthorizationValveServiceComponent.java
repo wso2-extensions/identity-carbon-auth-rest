@@ -30,6 +30,7 @@ import org.osgi.service.component.annotations.Deactivate;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ReferenceCardinality;
 import org.osgi.service.component.annotations.ReferencePolicy;
+import org.wso2.carbon.identity.application.authentication.framework.handler.orgdiscovery.OrganizationDiscoveryHandler;
 import org.wso2.carbon.identity.organization.management.service.OrganizationManager;
 
 @Component(
@@ -82,6 +83,25 @@ public class AuthorizationValveServiceComponent {
 
         log.debug("Unset organization management service.");
         AuthorizationValveServiceHolder.getInstance().setOrganizationManager(null);
+    }
+
+    @Reference(
+            name = "organization.discoverer.handler",
+            service = OrganizationDiscoveryHandler.class,
+            cardinality = ReferenceCardinality.MANDATORY,
+            policy = ReferencePolicy.DYNAMIC,
+            unbind = "unsetOrganizationDiscoveryHandler"
+    )
+    protected void setOrganizationDiscoveryHandler(OrganizationDiscoveryHandler organizationDiscoveryHandler) {
+
+        AuthorizationValveServiceHolder.getInstance().setOrganizationDiscoveryHandler(organizationDiscoveryHandler);
+        log.debug("Organization discovery handler is set in authorization valve service component.");
+    }
+
+    protected void unsetOrganizationDiscoveryHandler(OrganizationDiscoveryHandler organizationDiscoveryHandler) {
+
+        AuthorizationValveServiceHolder.getInstance().setOrganizationDiscoveryHandler(null);
+        log.debug("Organization discovery handler is unset in authorization valve service component.");
     }
 }
 
