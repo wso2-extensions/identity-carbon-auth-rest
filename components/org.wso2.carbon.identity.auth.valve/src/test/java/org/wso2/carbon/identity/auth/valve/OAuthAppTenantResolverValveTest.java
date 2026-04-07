@@ -29,8 +29,8 @@ import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
+import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
-import org.wso2.carbon.identity.application.authentication.framework.util.FrameworkUtils;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.identity.core.util.IdentityConfigParser;
@@ -50,6 +50,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertNull;
@@ -84,7 +85,7 @@ public class OAuthAppTenantResolverValveTest {
     private final AtomicReference<Object> capturedTenantFromNextValve = new AtomicReference<>();
 
     private AutoCloseable openMocks;
-    private MockedStatic<FrameworkUtils> frameworkUtilsStatic;
+    private MockedStatic<PrivilegedCarbonContext> privilegedCarbonContextStatic;
     private MockedStatic<IdentityTenantUtil> identityTenantUtilStatic;
     private MockedStatic<OAuth2Util> oAuth2UtilStatic;
     private MockedStatic<IdentityUtil> identityUtilStatic;
@@ -112,10 +113,16 @@ public class OAuthAppTenantResolverValveTest {
         Map<String, Object> emptyConfig = new HashMap<>();
         when(mockParser.getConfiguration()).thenReturn(emptyConfig);
 
-        frameworkUtilsStatic = mockStatic(FrameworkUtils.class);
-        frameworkUtilsStatic.when(() -> FrameworkUtils.startTenantFlow(anyString())).then(invocation -> null);
+        PrivilegedCarbonContext mockCarbonContext = mock(PrivilegedCarbonContext.class);
+        privilegedCarbonContextStatic = mockStatic(PrivilegedCarbonContext.class);
+        privilegedCarbonContextStatic.when(PrivilegedCarbonContext::startTenantFlow).then(invocation -> null);
+        privilegedCarbonContextStatic.when(PrivilegedCarbonContext::endTenantFlow).then(invocation -> null);
+        privilegedCarbonContextStatic.when(PrivilegedCarbonContext::getThreadLocalCarbonContext)
+                .thenReturn(mockCarbonContext);
 
         identityTenantUtilStatic = mockStatic(IdentityTenantUtil.class);
+        // Default: any unknown tenant domain returns INVALID_TENANT_ID (-1).
+        identityTenantUtilStatic.when(() -> IdentityTenantUtil.getTenantId(anyString())).thenReturn(-1);
         identityTenantUtilStatic.when(() -> IdentityTenantUtil.getTenantId(TENANT_DOMAIN)).thenReturn(1);
 
         identityUtilStatic = mockStatic(IdentityUtil.class);
@@ -142,7 +149,7 @@ public class OAuthAppTenantResolverValveTest {
 
     @AfterMethod
     public void tearDown() {
-        if (frameworkUtilsStatic != null) frameworkUtilsStatic.close();
+        if (privilegedCarbonContextStatic != null) privilegedCarbonContextStatic.close();
         if (identityTenantUtilStatic != null) identityTenantUtilStatic.close();
         if (oAuth2UtilStatic != null) oAuth2UtilStatic.close();
         if (identityUtilStatic != null) identityUtilStatic.close();
@@ -210,6 +217,51 @@ public class OAuthAppTenantResolverValveTest {
                 .thenThrow(new OAuthClientAuthnException("error.message", "error.code"));
         invokeAppTenantResolverValve();
         assertNull(IdentityUtil.threadLocalProperties.get().get(TENANT_NAME_FROM_CONTEXT));
+    }
+
+    /**
+     * When no OAuth app is found for the extracted client ID but a basic auth header exists,
+     * the tenant should be resolved from the tenant-qualified username (e.g. user@tenant.domain).
+     */
+    @Test
+    public void testInvokeWithTenantResolvedFromUsername() throws Exception {
+
+        String tenantQualifiedUsername = "user1@" + TENANT_DOMAIN;
+        when(request.getRequestURL()).thenReturn(new StringBuffer(DUMMY_RESOURCE_OAUTH_2));
+        // No client_id param — client ID will be derived from the basic auth username.
+        when(request.getParameter(CLIENT_ID)).thenReturn(null);
+
+        oAuth2UtilStatic.when(() -> OAuth2Util.isBasicAuthorizationHeaderExists(request)).thenReturn(true);
+        oAuth2UtilStatic.when(() -> OAuth2Util.extractCredentialsFromAuthzHeader(request))
+                .thenReturn(new String[]{tenantQualifiedUsername, "password"});
+        // No app found for the username-as-clientId — triggers the username fallback.
+        oAuth2UtilStatic.when(() -> OAuth2Util.getAppInformationByClientIdOnly(tenantQualifiedUsername))
+                .thenReturn(null);
+
+        invokeAppTenantResolverValve();
+
+        // Tenant domain extracted from "user1@test.tenant" should be set in the thread-local.
+        assertEquals(capturedTenantFromNextValve.get(), TENANT_DOMAIN);
+    }
+
+    @Test
+    public void testInvokeWithNonExistentTenant() throws Exception {
+
+        when(request.getRequestURL()).thenReturn(new StringBuffer(DUMMY_RESOURCE_OAUTH_2));
+        when(request.getParameter(CLIENT_ID)).thenReturn(DUMMY_CLIENT_ID);
+
+        oAuth2UtilStatic.when(() -> OAuth2Util.getAppInformationByClientIdOnly(DUMMY_CLIENT_ID)).thenReturn(oAuthAppDO);
+        oAuth2UtilStatic.when(() -> OAuth2Util.getTenantDomainOfOauthApp(oAuthAppDO)).thenReturn(TENANT_DOMAIN);
+        oAuth2UtilStatic.when(() -> OAuth2Util.isBasicAuthorizationHeaderExists(request)).thenReturn(false);
+        identityTenantUtilStatic.when(() -> IdentityTenantUtil.getTenantId(TENANT_DOMAIN))
+                .thenThrow(new RuntimeException("Tenant not found: " + TENANT_DOMAIN));
+
+        invokeAppTenantResolverValve();
+
+        // Thread-local should not be set since tenant resolution failed.
+        assertNull(capturedTenantFromNextValve.get());
+        // Next valve must still be invoked.
+        verify(valve).invoke(request, response);
     }
 
     @Test
