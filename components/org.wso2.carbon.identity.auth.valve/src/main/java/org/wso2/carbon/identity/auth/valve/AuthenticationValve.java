@@ -414,8 +414,7 @@ public class AuthenticationValve extends ValveBase {
     private void validateRequestURI(String url) throws AuthenticationFailException {
 
         if (url != null && URL_MATCHING_PATTERN.matcher(url).matches()) {
-            throw new AuthenticationFailException("Given URL contain un-normalized content. URL validation failed for "
-                    + url);
+            throw new AuthenticationFailException("Given URL contain un-normalized content. URL validation failed.");
         }
     }
 }
