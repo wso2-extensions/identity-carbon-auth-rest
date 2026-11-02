@@ -196,6 +196,31 @@ public class CORSRequestHandlerTest {
     }
 
     @Test
+    public void testHandleActualRequestWithAllowedOriginDifferingOnlyInCase() throws Exception {
+
+        when(corsConfiguration.isAllowAnyOrigin()).thenReturn(false);
+
+        try (MockedStatic<CORSValveServiceHolder> mockedStatic = mockStatic(CORSValveServiceHolder.class);
+             MockedStatic<AuthConfigurationUtil> mockedAuthConfigurationUtil =
+                     mockStatic(AuthConfigurationUtil.class)) {
+            mockedStatic.when(CORSValveServiceHolder::getInstance).thenReturn(serviceHolder);
+            mockedAuthConfigurationUtil.when(() -> AuthConfigurationUtil.
+                    getResourceResidentTenantForTenantPerspective(anyString())).thenReturn(null);
+
+            when(serviceHolder.getCorsManager()).thenReturn(corsManager);
+            when(corsManager.getCORSConfiguration(anyString())).thenReturn(corsConfiguration);
+            // Browsers send the scheme and host in lower case, while the stored origin has an upper case host.
+            when(request.getHeader(Header.ORIGIN)).thenReturn("https://example.com:8084");
+            when(corsManager.getCORSOrigins(MultitenantConstants.SUPER_TENANT_DOMAIN_NAME))
+                    .thenReturn(new Origin[]{new Origin("https://EXAMPLE.com:8084")});
+
+            corsRequestHandler.handleActualRequest(request, response);
+
+            verify(response).addHeader(Header.ACCESS_CONTROL_ALLOW_ORIGIN, "https://example.com:8084");
+        }
+    }
+
+    @Test
     public void testHandleActualRequestWithExposedHeaders() throws Exception {
 
         try (MockedStatic<CORSValveServiceHolder> mockedStatic = mockStatic(CORSValveServiceHolder.class);

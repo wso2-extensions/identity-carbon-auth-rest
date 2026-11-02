@@ -225,7 +225,9 @@ public class CORSRequestHandler {
             if (allowedOrigin.endsWith("/")) {
                 allowedOrigin = allowedOrigin.substring(0, allowedOrigin.length() - 1);
             }
-            if (allowedOrigin.equals(origin.toString())) {
+            // The scheme and host of an origin are case-insensitive, so the stored value can differ in case from
+            // the lower case origin the browser sends.
+            if (allowedOrigin.equalsIgnoreCase(origin.toString())) {
                 return true;
             }
         }
