@@ -40,6 +40,7 @@ import org.wso2.carbon.identity.oauth2.util.OAuth2Util;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
 import java.io.IOException;
+import java.net.URI;
 import java.text.ParseException;
 import java.util.Optional;
 
@@ -61,16 +62,26 @@ public class OAuthAppTenantResolverValve extends ValveBase {
 
     private static final Log LOG = LogFactory.getLog(OAuthAppTenantResolverValve.class);
     private static final int INVALID_TENANT_ID = -1;
-    private static String oAuthServerBaseURL = null;
-    private static String oAuth2ServerBaseURL = null;
+    private static final String USERINFO_PATH = "/userinfo";
+    private static String oAuthContextPath = null;
+    private static String oAuth2ContextPath = null;
 
     @Override
     public void invoke(Request request, Response response) throws IOException, ServletException {
 
         boolean newTenantFlowStarted = false;
         try {
-            String clientId = isOAuthRequest(request) ? extractClientIDFromOauthRequest(request)
-                    : extractClientIDFromAuthzHeader(request);
+            String clientId;
+            if (!isOAuthRequest(request) || isUserInfoRequest(request)) {
+                // The userinfo endpoint reads the request body itself, so request parameters are not read here.
+                clientId = extractClientIDFromAuthzHeader(request);
+            } else {
+                clientId = extractClientIDFromOauthRequest(request);
+                if (StringUtils.isEmpty(clientId)) {
+                    // OAuth endpoints called with only a Bearer token.
+                    clientId = extractClientIDFromAuthzHeader(request);
+                }
+            }
 
             String appTenant = "";
             OAuthAppDO oAuthAppDO = null;
@@ -283,10 +294,27 @@ public class OAuthAppTenantResolverValve extends ValveBase {
      */
     private boolean isOAuthRequest(Request request) {
 
-        initBaseUrls();
-        String requestUrl = request.getRequestURL().toString();
-        return StringUtils.isNotEmpty(requestUrl) && (requestUrl.startsWith(oAuth2ServerBaseURL) ||
-                requestUrl.startsWith(oAuthServerBaseURL));
+        initContextPaths();
+        String contextPath = getMappedContextPath(request);
+        return contextPath != null && (contextPath.equals(oAuth2ContextPath) || contextPath.equals(oAuthContextPath));
+    }
+
+    /**
+     * Check whether the request is for the OAuth 2.0 userinfo endpoint.
+     */
+    private boolean isUserInfoRequest(Request request) {
+
+        String pathInfo = request.getPathInfo();
+        return pathInfo != null && (pathInfo.equals(USERINFO_PATH) || pathInfo.startsWith(USERINFO_PATH + "/"))
+                && oAuth2ContextPath.equals(getMappedContextPath(request));
+    }
+
+    /**
+     * Context path Tomcat mapped the request to. It does not depend on the request host, port or proxy context path.
+     */
+    private String getMappedContextPath(Request request) {
+
+        return request.getContext() == null ? null : request.getContext().getPath();
     }
 
     /**
@@ -297,8 +325,7 @@ public class OAuthAppTenantResolverValve extends ValveBase {
      */
     private boolean isOAuth10ARequest(Request request) {
 
-        String requestUrl = request.getRequestURL().toString();
-        return StringUtils.isNotEmpty(requestUrl) && requestUrl.startsWith(oAuthServerBaseURL);
+        return oAuthContextPath.equals(getMappedContextPath(request));
     }
 
     /**
@@ -312,15 +339,15 @@ public class OAuthAppTenantResolverValve extends ValveBase {
     }
 
     /**
-     * Initialize the base urls.
+     * Initialize the context paths of the OAuth endpoints.
      */
-    private void initBaseUrls() {
+    private void initContextPaths() {
 
-        if (StringUtils.isEmpty(oAuthServerBaseURL)) {
-            oAuthServerBaseURL = IdentityUtil.getServerURL("/oauth", true, true) + "/";
+        if (oAuthContextPath == null) {
+            oAuthContextPath = URI.create(IdentityUtil.getServerURL("/oauth", false, true)).getPath();
         }
-        if (StringUtils.isEmpty(oAuth2ServerBaseURL)) {
-            oAuth2ServerBaseURL = IdentityUtil.getServerURL("/oauth2", true, true) + "/";
+        if (oAuth2ContextPath == null) {
+            oAuth2ContextPath = URI.create(IdentityUtil.getServerURL("/oauth2", false, true)).getPath();
         }
     }
 }

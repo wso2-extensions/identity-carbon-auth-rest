@@ -18,6 +18,7 @@
 
 package org.wso2.carbon.identity.auth.valve;
 
+import org.apache.catalina.Context;
 import org.apache.catalina.Valve;
 import org.apache.catalina.connector.Request;
 import org.apache.catalina.connector.Response;
@@ -39,6 +40,7 @@ import org.wso2.carbon.identity.oauth2.client.authentication.OAuthClientAuthnExc
 import org.wso2.carbon.identity.oauth2.util.OAuth2Util;
 
 import java.io.IOException;
+import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
@@ -49,6 +51,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -67,6 +70,7 @@ public class OAuthAppTenantResolverValveTest {
     private static final String DUMMY_CLIENT_ID = "client_id";
     private static final String DUMMY_CLIENT_SECRET = "client_id";
     private static final String TENANT_DOMAIN = "test.tenant";
+    private static final String DUMMY_JWT_CLIENT_ID = "testclientid";
     private static final String DUMMY_BEARER_JWT_TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9." +
                     "eyJpc3MiOiJJQU0gVGVzdCIsImlhdCI6MTc1ODYyMDQwMywiZXhwIjoxNzkwMTU2NDAzLCJhdWQiOiJ" +
                     "3d3cuZXhhbXBsZS5jb20iLCJzdWIiOiJqcm9ja2V0QGV4YW1wbGUuY29tIiwiY2xpZW50X2lkIjoidG" +
@@ -126,14 +130,22 @@ public class OAuthAppTenantResolverValveTest {
         identityTenantUtilStatic.when(() -> IdentityTenantUtil.getTenantId(TENANT_DOMAIN)).thenReturn(1);
 
         identityUtilStatic = mockStatic(IdentityUtil.class);
-        identityUtilStatic.when(() -> IdentityUtil.getServerURL("/oauth", true, true))
+        identityUtilStatic.when(() -> IdentityUtil.getServerURL("/oauth", false, true))
                 .thenReturn("https://localhost:9443/oauth");
-        identityUtilStatic.when(() -> IdentityUtil.getServerURL("/oauth2", true, true))
+        identityUtilStatic.when(() -> IdentityUtil.getServerURL("/oauth2", false, true))
                 .thenReturn("https://localhost:9443/oauth2");
 
         oAuth2UtilStatic = mockStatic(OAuth2Util.class);
 
         oAuthAppTenantResolverValve = spy(new OAuthAppTenantResolverValve());
+    }
+
+    private void mockRequestUrl(String requestUrl) {
+
+        String path = URI.create(requestUrl).getPath();
+        Context context = mock(Context.class);
+        when(context.getPath()).thenReturn(path.substring(0, path.indexOf('/', 1)));
+        when(request.getContext()).thenReturn(context);
     }
 
     private void invokeAppTenantResolverValve() throws IOException, ServletException {
@@ -179,7 +191,7 @@ public class OAuthAppTenantResolverValveTest {
     public void testInvoke(String requestPath, String clientIdParam, String[] headerCredentials,
                            String expectedAppTenant, String bearerToken) throws Exception {
 
-        when(request.getRequestURL()).thenReturn(new StringBuffer(requestPath));
+        mockRequestUrl(requestPath);
         if (requestPath.startsWith("/oauth/")) {
             when(request.getParameter(OAUTH_CONSUMER_KEY)).thenReturn(clientIdParam);
         } else {
@@ -211,7 +223,7 @@ public class OAuthAppTenantResolverValveTest {
     @Test
     public void testInvokeWithException() throws Exception {
 
-        when(request.getRequestURL()).thenReturn(new StringBuffer(DUMMY_RESOURCE_OAUTH_2));
+        mockRequestUrl(DUMMY_RESOURCE_OAUTH_2);
         oAuth2UtilStatic.when(() -> OAuth2Util.isBasicAuthorizationHeaderExists(request)).thenReturn(true);
         oAuth2UtilStatic.when(() -> OAuth2Util.extractCredentialsFromAuthzHeader(request))
                 .thenThrow(new OAuthClientAuthnException("error.message", "error.code"));
@@ -227,7 +239,7 @@ public class OAuthAppTenantResolverValveTest {
     public void testInvokeWithTenantResolvedFromUsername() throws Exception {
 
         String tenantQualifiedUsername = "user1@" + TENANT_DOMAIN;
-        when(request.getRequestURL()).thenReturn(new StringBuffer(DUMMY_RESOURCE_OAUTH_2));
+        mockRequestUrl(DUMMY_RESOURCE_OAUTH_2);
         // No client_id param — client ID will be derived from the basic auth username.
         when(request.getParameter(CLIENT_ID)).thenReturn(null);
 
@@ -247,7 +259,7 @@ public class OAuthAppTenantResolverValveTest {
     @Test
     public void testInvokeWithNonExistentTenant() throws Exception {
 
-        when(request.getRequestURL()).thenReturn(new StringBuffer(DUMMY_RESOURCE_OAUTH_2));
+        mockRequestUrl(DUMMY_RESOURCE_OAUTH_2);
         when(request.getParameter(CLIENT_ID)).thenReturn(DUMMY_CLIENT_ID);
 
         oAuth2UtilStatic.when(() -> OAuth2Util.getAppInformationByClientIdOnly(DUMMY_CLIENT_ID)).thenReturn(oAuthAppDO);
@@ -267,7 +279,7 @@ public class OAuthAppTenantResolverValveTest {
     @Test
     public void testInvokeWithUnsetThreadLocal() throws Exception {
 
-        when(request.getRequestURL()).thenReturn(new StringBuffer(DUMMY_RESOURCE_OAUTH_2));
+        mockRequestUrl(DUMMY_RESOURCE_OAUTH_2);
         when(request.getParameter(CLIENT_ID)).thenReturn(CLIENT_ID);
 
         oAuth2UtilStatic.when(() -> OAuth2Util.getAppInformationByClientIdOnly(DUMMY_CLIENT_ID)).thenReturn(oAuthAppDO);
@@ -276,5 +288,60 @@ public class OAuthAppTenantResolverValveTest {
         invokeAppTenantResolverValve();
         // Should be cleared in finally block
         assertNull(IdentityUtil.threadLocalProperties.get().get(TENANT_NAME_FROM_CONTEXT));
+    }
+
+    @Test
+    public void testInvokeResolvesTenantForOAuthRequestOnAnotherHost() throws Exception {
+
+        // The request URL does not match the configured server URL.
+        when(request.getRequestURL()).thenReturn(new StringBuffer("https://192.0.2.10:9443/oauth2/token"));
+        mockRequestUrl("https://192.0.2.10:9443/oauth2/token");
+        oAuth2UtilStatic.when(() -> OAuth2Util.isBasicAuthorizationHeaderExists(request)).thenReturn(true);
+        oAuth2UtilStatic.when(() -> OAuth2Util.extractCredentialsFromAuthzHeader(request))
+                .thenReturn(new String[]{DUMMY_CLIENT_ID, DUMMY_CLIENT_SECRET});
+        oAuth2UtilStatic.when(() -> OAuth2Util.getAppInformationByClientIdOnly(DUMMY_CLIENT_ID))
+                .thenReturn(oAuthAppDO);
+        oAuth2UtilStatic.when(() -> OAuth2Util.getTenantDomainOfOauthApp(oAuthAppDO)).thenReturn(TENANT_DOMAIN);
+
+        invokeAppTenantResolverValve();
+
+        assertEquals(capturedTenantFromNextValve.get(), TENANT_DOMAIN);
+    }
+
+    @Test
+    public void testInvokeResolvesUserInfoTenantFromBearerTokenWithoutReadingParameters() throws Exception {
+
+        mockRequestUrl("https://localhost:9443/oauth2/userinfo");
+        when(request.getPathInfo()).thenReturn("/userinfo");
+        mockBearerJwtOfTenantApp();
+
+        invokeAppTenantResolverValve();
+
+        assertEquals(capturedTenantFromNextValve.get(), TENANT_DOMAIN);
+        // The userinfo endpoint reads the request body itself.
+        verify(request, never()).getParameter(anyString());
+    }
+
+    @Test
+    public void testInvokeFallsBackToBearerTokenForOAuthRequestWithoutClientId() throws Exception {
+
+        mockRequestUrl("https://localhost:9443/oauth2/introspect");
+        when(request.getPathInfo()).thenReturn("/introspect");
+        oAuth2UtilStatic.when(() -> OAuth2Util.isBasicAuthorizationHeaderExists(request)).thenReturn(false);
+        mockBearerJwtOfTenantApp();
+
+        invokeAppTenantResolverValve();
+
+        assertEquals(capturedTenantFromNextValve.get(), TENANT_DOMAIN);
+    }
+
+    private void mockBearerJwtOfTenantApp() {
+
+        oAuth2UtilStatic.when(() -> OAuth2Util.extractBearerTokenFromAuthzHeader(request))
+                .thenReturn(DUMMY_BEARER_JWT_TOKEN);
+        oAuth2UtilStatic.when(() -> OAuth2Util.isJWT(DUMMY_BEARER_JWT_TOKEN)).thenReturn(true);
+        oAuth2UtilStatic.when(() -> OAuth2Util.getAppInformationByClientIdOnly(DUMMY_JWT_CLIENT_ID))
+                .thenReturn(oAuthAppDO);
+        oAuth2UtilStatic.when(() -> OAuth2Util.getTenantDomainOfOauthApp(oAuthAppDO)).thenReturn(TENANT_DOMAIN);
     }
 }
