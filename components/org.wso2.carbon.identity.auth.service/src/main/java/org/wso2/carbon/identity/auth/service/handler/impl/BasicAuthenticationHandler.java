@@ -85,6 +85,9 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
     private final String ORGANIZATION_PATH_PARAM = "/o/";
     private final String SCIM2_COMPATIBILITY_SETTING_GROUP = "scim2";
     private final String DISABLE_BASIC_AUTH_FOR_ME_ENDPOINT_CONFIG = "disableBasicAuthForMeEndpoint";
+    private final String BASIC_AUTH_COMPATIBILITY_SETTING_GROUP = "basicAuth";
+    private final String DISABLE_BASIC_AUTH_CONFIG = "disableBasicAuth";
+    private final String BASIC_AUTH_ALLOWED_ENDPOINTS_CONFIG = "allowedEndpoints";
 
     @Override
     public void init(InitConfig initConfig) {
@@ -211,6 +214,9 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
                                     if (requestURI.contains(SCIM2_ME_ENDPOINT_URI)) {
                                         blockScim2MeEndpointForBasicAuthIfRequired(tenantDomain);
                                     }
+
+                                    // Block basic authentication for the tenant
+                                    blockBasicAuthIfRestrictedForTenant(tenantDomain, requestURI);
 
                                     if (requestURI.contains(TOTP_ENDPOINT_URI) ||
                                             requestURI.contains(FIDO_ENDPOINT_URI) ||
@@ -343,5 +349,71 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
                     "Error while retrieving compatibility setting for " + DISABLE_BASIC_AUTH_FOR_ME_ENDPOINT_CONFIG,
                     e);
         }
+    }
+
+    /**
+     * Blocks basic authentication for tenant
+     *
+     * @param tenantDomain The tenant domain used to retrieve the compatibility settings.
+     * @param requestURI   The (lower-cased) request URI of the current request.
+     * @throws AuthenticationFailException If basic authentication is disabled for the tenant and the request
+     *                                     URI is not in the tenant's allowed endpoints.
+     */
+    private void blockBasicAuthIfRestrictedForTenant(String tenantDomain, String requestURI)
+            throws AuthenticationFailException {
+
+        CompatibilitySettingsManagerImpl compatibilitySettingsManager =
+                (CompatibilitySettingsManagerImpl) AuthenticationServiceHolder.getInstance()
+                        .getCompatibilitySettingsManager();
+        if (compatibilitySettingsManager == null) {
+            return;
+        }
+        try {
+            CompatibilitySetting setting = compatibilitySettingsManager.getCompatibilitySettingsByGroup(
+                    tenantDomain, BASIC_AUTH_COMPATIBILITY_SETTING_GROUP);
+            if (setting == null || setting.getCompatibilitySettings() == null ||
+                    setting.getCompatibilitySettings().get(BASIC_AUTH_COMPATIBILITY_SETTING_GROUP) == null) {
+                return;
+            }
+
+            boolean disableBasicAuth = Boolean.parseBoolean(setting.getCompatibilitySettings()
+                    .get(BASIC_AUTH_COMPATIBILITY_SETTING_GROUP).getSettingValue(DISABLE_BASIC_AUTH_CONFIG));
+            if (!disableBasicAuth) {
+                return;
+            }
+
+            // Basic Auth is disabled for this tenant. Allow it only for the explicitly listed endpoints.
+            String allowedEndpoints = setting.getCompatibilitySettings()
+                    .get(BASIC_AUTH_COMPATIBILITY_SETTING_GROUP).getSettingValue(BASIC_AUTH_ALLOWED_ENDPOINTS_CONFIG);
+            if (isRequestUriAllowed(requestURI, allowedEndpoints)) {
+                return;
+            }
+
+            String errorMessage = "Basic authentication is not allowed for this tenant.";
+            log.debug(errorMessage);
+            throw new AuthenticationFailException(errorMessage);
+        } catch (CompatibilitySettingException e) {
+            log.error("Error while retrieving compatibility setting for " + DISABLE_BASIC_AUTH_CONFIG, e);
+        }
+    }
+
+    /**
+     * Checks whether the given request URI matches one of the comma-separated allowed endpoint patterns.
+     *
+     * @param requestURI       The request URI of the current request.
+     * @param allowedEndpoints Comma-separated list of URL patterns (regular expressions).
+     * @return true if the request URI matches an allowed pattern.
+     */
+    private boolean isRequestUriAllowed(String requestURI, String allowedEndpoints) {
+
+        if (StringUtils.isBlank(allowedEndpoints) || StringUtils.isBlank(requestURI)) {
+            return false;
+        }
+        for (String pattern : allowedEndpoints.split("\\s*,\\s*")) {
+            if (StringUtils.isNotBlank(pattern) && requestURI.matches("(?i)" + pattern.trim())) {
+                return true;
+            }
+        }
+        return false;
     }
 }
