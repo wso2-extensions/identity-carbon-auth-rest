@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2025, WSO2 LLC. (https://www.wso2.com).
+ * Copyright (c) 2016-2026, WSO2 LLC. (https://www.wso2.com).
  *
  * WSO2 LLC. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -86,6 +86,8 @@ public class Constants {
     public static final String ENGAGED_AUTH_HANDLER = "engagedAuthHandler";
     public static final String BASIC_AUTHENTICATION = "BasicAuthentication";
     public static final String ENABLE_BASIC_AUTH_HANDLER_CONFIG = "EnableBasicAuthHandler";
+    public static final String BASIC_AUTH_FALLBACK_TO_REQUEST_TENANT_CONFIG =
+            "BasicAuth.FallbackToRequestTenant.Enabled";
     public static final String RESOURCE_ACCESS_CONTROL_V2_FILE = "resource-access-control-v2.xml";
     public final static String RESOURCE_ORGANIZATION_ID = "resourceOrgId";
     public static final String AUTHENTICATION_TYPE = "authenticationType";

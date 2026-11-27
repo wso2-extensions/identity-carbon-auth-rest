@@ -133,6 +133,7 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
                 int tenantId;
                 String tenantDomain;
                 boolean organizationRequest = false;
+                boolean fallbackToRequestTenant = false;
                 try {
                     String requestUri = authenticationRequest.getRequestUri();
                     AuthenticatedUser user = new AuthenticatedUser();
@@ -154,9 +155,17 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
                         }
                         user.setTenantDomain(tenantDomain);
                     } else {
-                        tenantId = IdentityTenantUtil.getTenantIdOfUser(userName);
-                        tenantDomain = MultitenantUtils.getTenantDomain(userName);
-                        user.setUserName(MultitenantUtils.getTenantAwareUsername(userName));
+                        fallbackToRequestTenant = isFallbackToRequestTenantRequired(userName);
+                        if (fallbackToRequestTenant) {
+                            // The part after the last '@' is not the request tenant, so it is part of the username.
+                            tenantDomain = IdentityTenantUtil.resolveTenantDomain();
+                            tenantId = IdentityTenantUtil.getTenantId(tenantDomain);
+                            user.setUserName(userName);
+                        } else {
+                            tenantId = IdentityTenantUtil.getTenantIdOfUser(userName);
+                            tenantDomain = MultitenantUtils.getTenantDomain(userName);
+                            user.setUserName(MultitenantUtils.getTenantAwareUsername(userName));
+                        }
                         user.setTenantDomain(tenantDomain);
                     }
 
@@ -176,7 +185,7 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
                             userStoreManager = (AbstractUserStoreManager) userRealm.getUserStoreManager();
                             org.wso2.carbon.user.core.common.AuthenticationResult authResult
                                     = userStoreManager.authenticateWithID(UserCoreClaimConstants.USERNAME_CLAIM_URI,
-                                    organizationRequest ? user.getUserName() :
+                                    organizationRequest || fallbackToRequestTenant ? user.getUserName() :
                                             MultitenantUtils.getTenantAwareUsername(userName),
                                     password, UserCoreConstants.DEFAULT_PROFILE);
                             if (org.wso2.carbon.user.core.common.AuthenticationResult.AuthenticationStatus.SUCCESS
@@ -261,6 +270,26 @@ public class BasicAuthenticationHandler extends AuthenticationHandler {
             throw new AuthenticationFailException(errorMessage);
         }
         return authenticationResult;
+    }
+
+    /**
+     * Checks whether the username should be resolved in the tenant of the request instead of the tenant derived from
+     * the username. This is the case only when {@link Constants#BASIC_AUTH_FALLBACK_TO_REQUEST_TENANT_CONFIG} and
+     * tenant qualified URLs are enabled, and the tenant derived from the username differs from the request tenant.
+     * Such a request always fails the tenant check during authorization otherwise.
+     *
+     * @param username The username present in the request.
+     * @return true if the username should be resolved in the tenant of the request.
+     */
+    private static boolean isFallbackToRequestTenantRequired(String username) {
+
+        if (!StringUtils.contains(username, "@") ||
+                !Boolean.parseBoolean(IdentityUtil.getProperty(Constants.BASIC_AUTH_FALLBACK_TO_REQUEST_TENANT_CONFIG))
+                || !IdentityTenantUtil.isTenantQualifiedUrlsEnabled()) {
+            return false;
+        }
+        return !StringUtils.equalsIgnoreCase(MultitenantUtils.getTenantDomain(username),
+                IdentityTenantUtil.resolveTenantDomain());
     }
 
     /**
