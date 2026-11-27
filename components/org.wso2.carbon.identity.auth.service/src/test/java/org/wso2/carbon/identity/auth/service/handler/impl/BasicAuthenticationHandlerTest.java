@@ -28,6 +28,7 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 import org.wso2.carbon.identity.auth.service.AuthenticationContext;
 import org.wso2.carbon.identity.auth.service.AuthenticationRequest;
@@ -37,6 +38,7 @@ import org.wso2.carbon.identity.auth.service.exception.AuthenticationFailExcepti
 import org.wso2.carbon.identity.auth.service.internal.AuthenticationServiceHolder;
 import org.wso2.carbon.identity.auth.service.util.AuthConfigurationUtil;
 import org.wso2.carbon.identity.auth.service.util.CommonTestUtils;
+import org.wso2.carbon.identity.auth.service.util.Constants;
 import org.wso2.carbon.identity.base.IdentityRuntimeException;
 import org.wso2.carbon.identity.compatibility.settings.core.CompatibilitySettingsManagerImpl;
 import org.wso2.carbon.identity.compatibility.settings.core.exception.CompatibilitySettingException;
@@ -53,6 +55,7 @@ import org.wso2.carbon.user.core.common.User;
 import org.wso2.carbon.user.core.constants.UserCoreClaimConstants;
 import org.wso2.carbon.user.core.service.RealmService;
 import org.wso2.carbon.user.core.util.UserCoreUtil;
+import org.wso2.carbon.utils.multitenancy.MultitenantConstants;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
 import java.nio.charset.StandardCharsets;
@@ -64,9 +67,13 @@ import org.apache.catalina.connector.Request;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
@@ -114,6 +121,7 @@ public class BasicAuthenticationHandlerTest {
 
     private static final int TEST_TENANT_ID = 1;
     private static final String TEST_TENANT_DOMAIN = "test.com";
+    private static final String TEST_USERNAME = "alice@example.com";
     private static final String SCIM2 = "scim2";
 
     @BeforeClass
@@ -161,6 +169,9 @@ public class BasicAuthenticationHandlerTest {
     public void tearDown() {
 
         IdentityContext.destroyCurrentContext();
+        mockedIdentityUtil.when(() -> IdentityUtil.getProperty(
+                Constants.BASIC_AUTH_FALLBACK_TO_REQUEST_TENANT_CONFIG)).thenReturn(null);
+        mockedIdentityTenantUtil.when(IdentityTenantUtil::isTenantQualifiedUrlsEnabled).thenReturn(false);
     }
 
     @Test
@@ -253,6 +264,100 @@ public class BasicAuthenticationHandlerTest {
                 .thenThrow(IdentityRuntimeException.error("Invalid tenant domain"));
 
         basicAuthenticationHandler.doAuthenticate(mockAuthenticationContext);
+    }
+
+    @DataProvider(name = "usernamesWithOtherTenantDomain")
+    public Object[][] usernamesWithOtherTenantDomain() {
+
+        return new Object[][]{
+                // Email username whose domain is not a tenant.
+                {"user@example.org", "example.org"},
+                // Email username whose domain is an existing tenant (e.g. a sub-organization handle).
+                {"user@abc.com", "abc.com"}
+        };
+    }
+
+    @Test(dataProvider = "usernamesWithOtherTenantDomain")
+    public void testDoAuthenticateUsesRequestTenantWhenUsernameTenantDiffers(String username,
+                                                                             String tenantDomainFromUsername)
+            throws Exception {
+
+        String password = "temp123";
+        String superTenantDomain = MultitenantConstants.SUPER_TENANT_DOMAIN_NAME;
+        setUpBasicAuthRequest(username, password);
+        enableFallbackToRequestTenant(superTenantDomain);
+
+        mockedIdentityTenantUtil.clearInvocations();
+        mockedMultitenantUtils.when(() -> MultitenantUtils.getTenantDomain(username))
+                .thenReturn(tenantDomainFromUsername);
+        mockedIdentityTenantUtil.when(() -> IdentityTenantUtil.getTenantId(superTenantDomain))
+                .thenReturn(MultitenantConstants.SUPER_TENANT_ID);
+        stubSuccessfulAuthentication(username, password);
+
+        AuthenticationResult result = basicAuthenticationHandler.doAuthenticate(mockAuthenticationContext);
+
+        Assert.assertEquals(result.getAuthenticationStatus(), AuthenticationStatus.SUCCESS);
+        verify(mockRealmService).getTenantUserRealm(MultitenantConstants.SUPER_TENANT_ID);
+        verify(mockAuthenticationContext, atLeastOnce()).setUser(
+                argThat(user -> username.equals(user.getUserName()) &&
+                        superTenantDomain.equals(user.getTenantDomain())));
+        mockedIdentityTenantUtil.verify(() -> IdentityTenantUtil.getTenantIdOfUser(username), never());
+    }
+
+    @Test
+    public void testDoAuthenticateKeepsUsernameTenantWhenItMatchesRequestTenant() throws Exception {
+
+        String usernameWithTenantDomain = TEST_USERNAME + "@" + TEST_TENANT_DOMAIN;
+        String password = "temp123";
+        setUpBasicAuthRequest(usernameWithTenantDomain, password);
+        enableFallbackToRequestTenant(TEST_TENANT_DOMAIN);
+
+        mockedMultitenantUtils.when(() -> MultitenantUtils.getTenantDomain(usernameWithTenantDomain))
+                .thenReturn(TEST_TENANT_DOMAIN);
+        when(MultitenantUtils.getTenantAwareUsername(usernameWithTenantDomain)).thenReturn(TEST_USERNAME);
+        mockedIdentityTenantUtil.when(() -> IdentityTenantUtil.getTenantIdOfUser(usernameWithTenantDomain))
+                .thenReturn(TEST_TENANT_ID);
+        stubSuccessfulAuthentication(TEST_USERNAME, password);
+
+        AuthenticationResult result = basicAuthenticationHandler.doAuthenticate(mockAuthenticationContext);
+
+        Assert.assertEquals(result.getAuthenticationStatus(), AuthenticationStatus.SUCCESS);
+        verify(mockRealmService).getTenantUserRealm(TEST_TENANT_ID);
+    }
+
+    @Test(expectedExceptions = AuthenticationFailException.class)
+    public void testDoAuthenticateDoesNotFallBackWhenConfigDisabled() throws Exception {
+
+        String username = "user@example.org";
+        setUpBasicAuthRequest(username, "temp123");
+        mockedIdentityTenantUtil.when(IdentityTenantUtil::isTenantQualifiedUrlsEnabled).thenReturn(true);
+
+        mockedIdentityTenantUtil.clearInvocations();
+        mockedIdentityTenantUtil.when(() -> IdentityTenantUtil.getTenantIdOfUser(username))
+                .thenThrow(IdentityRuntimeException.error("Invalid tenant domain example.org"));
+        try {
+            basicAuthenticationHandler.doAuthenticate(mockAuthenticationContext);
+        } finally {
+            mockedIdentityTenantUtil.verify(IdentityTenantUtil::resolveTenantDomain, never());
+        }
+    }
+
+    @Test(expectedExceptions = AuthenticationFailException.class)
+    public void testDoAuthenticateDoesNotFallBackWithoutTenantQualifiedUrls() throws Exception {
+
+        String username = "user@example.org";
+        setUpBasicAuthRequest(username, "temp123");
+        enableFallbackToRequestTenant(MultitenantConstants.SUPER_TENANT_DOMAIN_NAME);
+        mockedIdentityTenantUtil.when(IdentityTenantUtil::isTenantQualifiedUrlsEnabled).thenReturn(false);
+
+        mockedIdentityTenantUtil.clearInvocations();
+        mockedIdentityTenantUtil.when(() -> IdentityTenantUtil.getTenantIdOfUser(username))
+                .thenThrow(IdentityRuntimeException.error("Invalid tenant domain example.org"));
+        try {
+            basicAuthenticationHandler.doAuthenticate(mockAuthenticationContext);
+        } finally {
+            mockedIdentityTenantUtil.verify(IdentityTenantUtil::resolveTenantDomain, never());
+        }
     }
 
     @Test(expectedExceptions = IdentityRuntimeException.class)
@@ -513,5 +618,40 @@ public class BasicAuthenticationHandlerTest {
         // Should not call compatibility settings service for non-scim2/me endpoint.
         AuthenticationResult result = basicAuthenticationHandler.doAuthenticate(mockAuthenticationContext);
         Assert.assertEquals(result.getAuthenticationStatus(), AuthenticationStatus.SUCCESS);
+    }
+
+    private void enableFallbackToRequestTenant(String requestTenantDomain) {
+
+        mockedIdentityUtil.when(() -> IdentityUtil.getProperty(Constants.BASIC_AUTH_FALLBACK_TO_REQUEST_TENANT_CONFIG))
+                .thenReturn("true");
+        mockedIdentityTenantUtil.when(IdentityTenantUtil::isTenantQualifiedUrlsEnabled).thenReturn(true);
+        mockedIdentityTenantUtil.when(IdentityTenantUtil::resolveTenantDomain).thenReturn(requestTenantDomain);
+    }
+
+    private void setUpBasicAuthRequest(String username, String password) {
+
+        String authHeader = "Basic " +
+                Base64.encodeBase64String((username + ":" + password).getBytes(StandardCharsets.UTF_8));
+        when(mockAuthenticationRequest.getHeader(HttpHeaders.AUTHORIZATION)).thenReturn(authHeader);
+        when(mockAuthenticationRequest.getRequestUri()).thenReturn("/scim2/Me");
+    }
+
+    private void stubSuccessfulAuthentication(String tenantAwareUsername, String password) throws Exception {
+
+        when(mockRealmService.getTenantUserRealm(anyInt())).thenReturn(mockUserRealm);
+        when(mockUserRealm.getUserStoreManager()).thenReturn(mockUserStoreManager);
+
+        org.wso2.carbon.user.core.common.AuthenticationResult mockAuthResult =
+                mock(org.wso2.carbon.user.core.common.AuthenticationResult.class);
+        when(mockAuthResult.getAuthenticationStatus())
+                .thenReturn(org.wso2.carbon.user.core.common.AuthenticationResult.AuthenticationStatus.SUCCESS);
+        User mockUser = mock(User.class);
+        when(mockUser.getUserID()).thenReturn("user-123");
+        when(mockUser.getUsername()).thenReturn(tenantAwareUsername);
+        when(mockAuthResult.getAuthenticatedUser()).thenReturn(Optional.of(mockUser));
+
+        when(mockUserStoreManager.authenticateWithID(eq(UserCoreClaimConstants.USERNAME_CLAIM_URI),
+                eq(tenantAwareUsername), eq(password), any(String.class))).thenReturn(mockAuthResult);
+        mockedUserCoreUtil.when(UserCoreUtil::getDomainFromThreadLocal).thenReturn("PRIMARY");
     }
 }
